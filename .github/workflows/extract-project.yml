@@ -1,0 +1,29 @@
+name: Extract Meead project ZIP
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          rm -rf extracted
+          mkdir -p extracted
+          unzip -q meead-accessories-supabase-env-fixed.zip -d extracted
+
+      - name: Commit extracted project
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add extracted/meead-project
+          git commit -m "Extract Meead project source"
+          git push
