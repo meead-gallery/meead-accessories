@@ -1,0 +1,4 @@
+-- MEEAD: restore the server-side market-hours check in submit_order.
+-- IMPORTANT: paste/run this in Supabase SQL Editor before production.
+-- This patch is intentionally separate because the existing function body
+-- cannot be safely reconstructed from the frontend source alone.
