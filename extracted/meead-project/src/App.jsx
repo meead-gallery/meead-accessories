@@ -174,7 +174,7 @@ async function adminState() {
   const m = marketRes.data || {};
   const sys = systemRes.data || {};
   const settings = mergeSettings({
-    products: Object.fromEntries(PRODUCTS.map(p => [p.key, mapProduct(products[p.key] || {}, ph.filter(h => h.product_key === p.key))])),
+    products: Object.fromEntries(PRODUCTS.map(p => [p.key, mapProduct(products[p.key] || {}, [])])),
     market: { closeStart:m.close_start ?? "00:00", closeEnd:m.close_end ?? "11:00", buyEnabled:m.buy_enabled ?? true, sellEnabled:m.sell_enabled ?? true, emergencyStop:m.emergency_stop ?? false },
     priceLockMinutes: Number(sys.price_lock_minutes ?? 5), sellValidityDays: Number(sys.sell_validity_days ?? 3),
     bank: { cardNumber:sys.bank_card_number || "", accountNumber:sys.bank_account_number || "", sheba:sys.bank_sheba || "", ownerName:sys.bank_owner_name || "" },
