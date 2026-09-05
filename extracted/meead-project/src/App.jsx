@@ -139,7 +139,7 @@ function mapSettings(publicData) {
   const market = publicData?.market || {};
   const system = publicData?.system || {};
   return mergeSettings({
-    products: Object.fromEntries(PRODUCTS.map(p => [p.key, mapProduct(products.find(x => x.key === p.key) || {}, [])])),
+    products: Object.fromEntries(PRODUCTS.map(p => [p.key, products[p.key] || {}, [])])),
     market: {
       closeStart: market.closeStart ?? "00:00", closeEnd: market.closeEnd ?? "11:00",
       buyEnabled: market.buyEnabled ?? true, sellEnabled: market.sellEnabled ?? true,
