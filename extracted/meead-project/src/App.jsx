@@ -135,7 +135,7 @@ function mapOrder(row, histories = []) {
 }
 
 function mapSettings(publicData) {
-  const products = publicData?.products || [];
+  const products = publicData?.products || {};
   const market = publicData?.market || {};
   const system = publicData?.system || {};
   return mergeSettings({
