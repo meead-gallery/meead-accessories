@@ -28,7 +28,26 @@ const DEFAULT_SETTINGS = {
   nextOrderSeq: 1058,
   lastPriceUpdate: null,
 };
+function mergeSettings(patch = {}) {
+  const s = patch || {};
 
+  return {
+    ...DEFAULT_SETTINGS,
+    ...s,
+    products: {
+      ...DEFAULT_SETTINGS.products,
+      ...(s.products || {}),
+    },
+    market: {
+      ...DEFAULT_SETTINGS.market,
+      ...(s.market || {}),
+    },
+    bank: {
+      ...DEFAULT_SETTINGS.bank,
+      ...(s.bank || {}),
+    },
+  };
+}
 const BUY_STATUSES = ["در انتظار پرداخت", "در انتظار تأیید پرداخت", "پرداخت تأیید شد", "پرداخت رد شد", "تکمیل شد", "لغو شد"];
 const SELL_STATUSES = ["درخواست جدید", "منتظر دریافت ساچمه", "ساچمه دریافت شد", "در حال بررسی", "وزن نهایی ثبت شد", "مبلغ نهایی تعیین شد", "پرداخت شد", "تکمیل شد", "لغو شد"];
 
