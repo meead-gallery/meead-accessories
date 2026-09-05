@@ -402,7 +402,7 @@ export default function App() {
       setReady(true);
     } catch (error) {
       console.error("Initial app load failed:", error);
-      setLoadError("ارتباط با سرور برقرار نشد. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.");
+      setLoadError(`خطای واقعی ارتباط با Supabase: ${error?.message || error?.details || error?.hint || String(error)}`);
       setReady(true);
     }
   }, [load]);
