@@ -188,7 +188,23 @@ async function adminState() {
     bank: { cardNumber:sys.bank_card_number || "", accountNumber:sys.bank_account_number || "", sheba:sys.bank_sheba || "", ownerName:sys.bank_owner_name || "" },
     sellAddress: sys.sell_address || "", lastPriceUpdate: sys.last_price_update || null, nextOrderSeq: Number(sys.next_order_seq ?? 1058)
   });
-  const orders = (ordersRes.data || []).map(r => mapOrder(r, orderHistoriesRes.data || []));
+  const orders = await Promise.all((ordersRes.data || []).map(async (r) => {
+  const order = mapOrder(r, orderHistoriesRes.data || []);
+  if (order?.receiptPath) {
+    try {
+      const { data: signed, error: signedError } = await supabase.storage
+        .from("receipts")
+        .createSignedUrl(order.receiptPath, 3600);
+
+      if (!signedError && signed?.signedUrl) {
+        order.receiptImage = signed.signedUrl;
+      }
+    } catch (e) {
+      console.error("Receipt preview URL error:", e);
+    }
+  }
+  return order;
+}));
   const log = (logRes.data || []).map(x => ({ time:x.created_at, action:x.action, detail:x.detail }));
   return { settings, orders, log };
 }
