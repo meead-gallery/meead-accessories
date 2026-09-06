@@ -147,6 +147,7 @@ function mapSettings(publicData) {
     },
     priceLockMinutes: Number(system.priceLockMinutes ?? 5),
     sellValidityDays: Number(system.sellValidityDays ?? 3),
+    sellAddress: system.sellAddress ?? "",
     lastPriceUpdate: system.lastPriceUpdate ?? null
   });
 }
