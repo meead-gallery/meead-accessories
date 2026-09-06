@@ -404,7 +404,7 @@ export default function App() {
       setReady(true);
     } catch (error) {
       console.error("Initial app load failed:", error);
-      setLoadError(`خطای واقعی: ${error?.message || error}`);
+      setLoadError("ارتباط با سرور برقرار نشد. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.");
       setReady(true);
     }
   }, [load]);
