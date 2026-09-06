@@ -164,7 +164,7 @@ async function adminState() {
     supabase.from("price_history").select("*").order("created_at", { ascending: false }),
     supabase.from("market_settings").select("*").order("id", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("system_settings").select("*").order("id", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("orders").select("*").order("created_at", { ascending: false }),
+    supabase.from("orders").select("*").order("Created_at", { ascending: false }),
     supabase.from("order_history").select("*").order("created_at", { ascending: true }),
     supabase.from("activity_log").select("*").order("created_at", { ascending: false }).limit(300)
   ]);
