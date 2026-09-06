@@ -1310,10 +1310,22 @@ function TabMarket({ settings, setSettings, setToast }) {
   useEffect(() => setForm(settings.market), [settings.market]);
 
   const save = async () => {
-    const next = await api.updateMarket(form);
+  try {
+    const next = await api.updateMarket({
+      closeStart: form.closeStart,
+      closeEnd: form.closeEnd,
+      buyEnabled: form.buyEnabled,
+      sellEnabled: form.sellEnabled,
+      emergencyStop: form.emergencyStop
+    });
     setSettings(next);
+    setForm(next.market);
     setToast("تنظیمات بازار ذخیره شد");
-  };
+  } catch (e) {
+    console.error("updateMarket error:", e);
+    setToast(e?.message || "ذخیره تنظیمات بازار ناموفق بود");
+  }
+};
 
   const toggleEmergency = async () => {
     const next = await api.setEmergencyStop(!form.emergencyStop);
