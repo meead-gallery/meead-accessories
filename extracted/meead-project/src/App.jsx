@@ -482,29 +482,10 @@ export default function App() {
   };
 
   const tryAdminLogin = async () => {
-  try {
     const res = await api.login(adminEmail, adminPw);
-    if (res.ok) {
-      setAdminError("");
-      setAdminPw("");
-      setIsAdmin(true);
-      setView("admin");
-
-      const st = await api.getAdminState();
-
-      setSettings(st.settings);
-      setOrders(st.orders);
-      setLog(st.log);
-    } else {
-      setAdminError(res.reason || "ورود ناموفق بود");
-    }
-  } catch (error) {
-    console.error("Admin login failed:", error);
-    setAdminError(
-      `خطای واقعی ورود/پنل: ${error?.message || error?.details || error?.hint || String(error)}`
-    );
-  }
-};
+    if (res.ok) { setAdminError(""); setAdminPw(""); setIsAdmin(true); setView("admin"); const st=await api.getAdminState(); setSettings(st.settings); setOrders(st.orders); setLog(st.log); }
+    else setAdminError(res.reason || "ورود ناموفق بود");
+  };
 
   if (!ready) {
     return (
