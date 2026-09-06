@@ -743,7 +743,7 @@ function TrackOrder({ onAttachReceipt, onBack }) {
 /* -------------------------------- Order form ------------------------------- */
 
 function Countdown({ expiresAt, now }) {
-  const remain = Math.max(0, Math.floor((expiresAt - now) / 1000));
+  const remain = Math.max(0, Math.floor((new Date(expiresAt).getTime() - now) / 1000));
   const mm = String(Math.floor(remain / 60)).padStart(2, "0");
   const ss = String(remain % 60).padStart(2, "0");
   return (
