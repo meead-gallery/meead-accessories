@@ -517,11 +517,6 @@ export default function App() {
   setSettings(pub.settings);
   setView(res.order.type === "buy" ? "buy-payment" : "sell-submitted");
 };
-    setLastOrder(res.order);
-    const pub = await api.getState();
-    setSettings(pub.settings);
-    setView(res.order.type === "buy" ? "buy-payment" : "sell-submitted");
-  };
 
   const attachReceipt = async (order, file) => {
     const res = await api.attachReceipt(order, file);
