@@ -243,8 +243,7 @@ const api = {
     const { data, error } = await supabase.auth.signInWithPassword({ email:email.trim(), password });
     if (error || !data.session) return {ok:false, reason:error?.message || "ورود ناموفق بود"};
     const { data:admin, error:ae } = await supabase.rpc("is_admin");
-console.log("ADMIN CHECK:", { admin, error: ae, userId: data.user?.id });
-if (ae) return {ok:false, reason:`خطای is_admin: ${ae.message || ae.details || ae.hint || String(ae)}`};
+
     if (ae || admin !== true) { await supabase.auth.signOut(); return {ok:false, reason:"این حساب دسترسی مدیریت ندارد"}; }
     return {ok:true};
   },
