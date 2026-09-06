@@ -492,8 +492,31 @@ export default function App() {
   const goToSummary = () => { if (canContinue) setView("order-summary"); };
 
   const submitOrder = async () => {
-    const res = await api.submitOrder(quote, weight, customer);
-    if (!res.ok) return setToast(res.reason);
+  const expiresAtMs = quote ? new Date(quote.expiresAt).getTime() : 0;
+
+  if (!quote || !Number.isFinite(expiresAtMs) || Date.now() >= expiresAtMs) {
+    setNow(Date.now());
+    setToast("اعتبار قیمت تمام شده است. لطفاً قیمت جدید دریافت کنید.");
+    return;
+  }
+
+  const res = await api.submitOrder(quote, weight, customer);
+
+  if (!res.ok) {
+    if (res.code === "quote_expired" || res.reason === "quote_expired") {
+      setNow(Date.now());
+      setToast("اعتبار قیمت تمام شده است. لطفاً قیمت جدید دریافت کنید.");
+      return;
+    }
+
+    return setToast(res.reason);
+  }
+
+  setLastOrder(res.order);
+  const pub = await api.getState();
+  setSettings(pub.settings);
+  setView(res.order.type === "buy" ? "buy-payment" : "sell-submitted");
+};
     setLastOrder(res.order);
     const pub = await api.getState();
     setSettings(pub.settings);
