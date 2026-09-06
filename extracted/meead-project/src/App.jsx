@@ -1131,7 +1131,24 @@ function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onN
             <div className="calc-row"><span>اعتبار فروش تا</span><span className="mono">{fmtTime(order.sellValidUntil)}</span></div>
           )}
 
-          {order.receiptImage && <img src={order.receiptImage} alt="رسید" className="receipt-img" />}
+          {order.receiptImage && (
+  order.receiptPath?.toLowerCase().endsWith(".pdf") ? (
+    <a
+      href={order.receiptImage}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="ghost-btn small-btn"
+    >
+      مشاهده رسید PDF
+    </a>
+  ) : (
+    <img
+      src={order.receiptImage}
+      alt="رسید پرداخت"
+      className="receipt-img"
+    />
+  )
+)}
 
           {order.type === "sell" && (
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
