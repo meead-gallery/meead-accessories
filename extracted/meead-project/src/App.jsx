@@ -467,13 +467,36 @@ export default function App() {
   const marketSellOpen = api.isMarketOpen(settings, "sell");
 
   const startQuote = async (purityKey, mode) => {
-    const res = await api.createQuote(purityKey, mode);
-    if (!res.ok) return setToast(res.reason);
-    setQuote(res.quote);
-    setWeight("");
-    setCustomer({ name: "", phone: "" });
-    setView("order");
-  };
+  if (!api.isMarketOpen(settings, mode)) {
+    if (settings.market.emergencyStop) {
+      setToast("معاملات به‌طور موقت متوقف شده است.");
+    } else if (
+      isWithinClosedWindow(
+        settings.market.closeStart,
+        settings.market.closeEnd,
+        new Date(now)
+      )
+    ) {
+      setToast(
+        `بازار بسته است. ${mode === "buy" ? "خرید" : "فروش"} در ساعات فعالیت بازار امکان‌پذیر است.`
+      );
+    } else {
+      setToast(
+        `${mode === "buy" ? "خرید" : "فروش"} در حال حاضر فعال نیست.`
+      );
+    }
+    return;
+  }
+
+  const res = await api.createQuote(purityKey, mode);
+
+  if (!res.ok) return setToast(res.reason);
+
+  setQuote(res.quote);
+  setWeight("");
+  setCustomer({ name: "", phone: "" });
+  setView("order");
+};
 
   const refreshQuote = async () => {
     if (!quote) return;
