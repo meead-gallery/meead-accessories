@@ -611,7 +611,13 @@ export default function App() {
       <GlobalStyles />
 
       <header className="app-header">
-  <span className="header-spacer" />
+  <button
+  className="icon-btn"
+  onClick={() => setView("support")}
+  aria-label="پشتیبانی"
+>
+  <Headphones size={16} />
+</button>
   <div className="brand">
     <BrandMark size={54} />
     <div className="brand-text">
