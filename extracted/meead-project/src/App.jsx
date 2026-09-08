@@ -53,6 +53,10 @@ function mergeSettings(patch = {}) {
       ...DEFAULT_SETTINGS.bank,
       ...(s.bank || {}),
     },
+    support: {
+  ...DEFAULT_SETTINGS.support,
+  ...(s.support || {}),
+},
   };
 }
 const BUY_STATUSES = ["در انتظار پرداخت", "در انتظار تأیید پرداخت", "پرداخت تأیید شد", "پرداخت رد شد", "تکمیل شد", "لغو شد"];
