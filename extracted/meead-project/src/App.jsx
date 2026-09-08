@@ -159,7 +159,20 @@ function mapSettings(publicData) {
     priceLockMinutes: Number(system.priceLockMinutes ?? 5),
     sellValidityDays: Number(system.sellValidityDays ?? 3),
     sellAddress: system.sellAddress ?? "",
-    lastPriceUpdate: system.lastPriceUpdate ?? null
+    lastPriceUpdate: system.lastPriceUpdate ?? null ,
+    support: {
+
+  landline: system.support?.landline ?? "",
+
+  mobile: system.support?.mobile ?? "",
+
+  whatsapp: system.support?.whatsapp ?? "",
+
+  telegram: system.support?.telegram ?? "",
+
+  instagram: system.support?.instagram ?? "",
+
+}
   });
 }
 
