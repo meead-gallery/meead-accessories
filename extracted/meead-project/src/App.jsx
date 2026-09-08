@@ -1422,51 +1422,110 @@ function TabMarket({ settings, setSettings, setToast }) {
   useEffect(() => setForm(settings.market), [settings.market]);
 
   const save = async () => {
-  try {
     const next = await api.updateMarket({
       closeStart: form.closeStart,
       closeEnd: form.closeEnd,
       buyEnabled: form.buyEnabled,
       sellEnabled: form.sellEnabled,
-      emergencyStop: form.emergencyStop
+      emergencyStop: form.emergencyStop,
     });
+
     setSettings(next);
     setForm(next.market);
     setToast("تنظیمات بازار ذخیره شد");
-  } catch (e) {
-    console.error("updateMarket error:", e);
-    setToast(e?.message || "ذخیره تنظیمات بازار ناموفق بود");
-  }
-};
+  };
 
   const toggleEmergency = async () => {
     const next = await api.setEmergencyStop(!form.emergencyStop);
     setSettings(next);
     setForm(next.market);
-    setToast(next.market.emergencyStop ? "معاملات متوقف شد" : "معاملات دوباره فعال شد");
+    setToast(
+      next.market.emergencyStop
+        ? "معاملات متوقف شد"
+        : "معاملات دوباره فعال شد"
+    );
   };
 
   return (
-    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
+    <div
+      className="admin-section"
+      style={{ borderTop: "none", paddingTop: 0 }}
+    >
       <div className="admin-grid">
-        <label className="field"><span>ساعت شروع بسته بودن</span><input type="time" value={form.closeStart} onChange={(e) => setForm({ ...form, closeStart: e.target.value })} /></label>
-        <label className="field"><span>ساعت پایان بسته بودن</span><input type="time" value={form.closeEnd} onChange={(e) => setForm({ ...form, closeEnd: e.target.value })} /></label>
+        <label className="field">
+          <span>ساعت شروع بسته بودن</span>
+          <input
+            type="time"
+            value={form.closeStart}
+            onChange={(e) =>
+              setForm({ ...form, closeStart: e.target.value })
+            }
+          />
+        </label>
+
+        <label className="field">
+          <span>ساعت پایان بسته بودن</span>
+          <input
+            type="time"
+            value={form.closeEnd}
+            onChange={(e) =>
+              setForm({ ...form, closeEnd: e.target.value })
+            }
+          />
+        </label>
       </div>
-      <label className="toggle-row"><input type="checkbox" checked={form.buyEnabled} onChange={(e) => setForm({ ...form, buyEnabled: e.target.checked })} /> خرید فعال باشد</label>
-      <label className="toggle-row"><input type="checkbox" checked={form.sellEnabled} onChange={(e) => setForm({ ...form, sellEnabled: e.target.checked })} /> فروش فعال باشد</label>
-      <button className="primary-btn" onClick={save}>ذخیره تنظیمات بازار</button>
+
+      <label className="toggle-row">
+        <input
+          type="checkbox"
+          checked={form.buyEnabled}
+          onChange={(e) =>
+            setForm({ ...form, buyEnabled: e.target.checked })
+          }
+        />
+        خرید فعال باشد
+      </label>
+
+      <label className="toggle-row">
+        <input
+          type="checkbox"
+          checked={form.sellEnabled}
+          onChange={(e) =>
+            setForm({ ...form, sellEnabled: e.target.checked })
+          }
+        />
+        فروش فعال باشد
+      </label>
+
+      <button className="primary-btn" onClick={save}>
+        ذخیره تنظیمات بازار
+      </button>
 
       <div className="danger-zone">
         <span className="pay-label">توقف اضطراری معاملات</span>
-        <p className="pay-note">با فعال کردن این گزینه، خرید و فروش فوراً و مستقل از ساعات بازار متوقف می‌شود.</p>
-        <button className={form.emergencyStop ? "primary-btn danger-btn-active" : "danger-btn"} onClick={toggleEmergency}>
-          <AlertTriangle size={14} /> {form.emergencyStop ? "لغو توقف اضطراری" : "توقف اضطراری معاملات"}
+
+        <p className="pay-note">
+          با فعال کردن این گزینه، خرید و فروش فوراً و مستقل از ساعات بازار
+          متوقف می‌شود.
+        </p>
+
+        <button
+          className={
+            form.emergencyStop
+              ? "primary-btn danger-btn-active"
+              : "danger-btn"
+          }
+          onClick={toggleEmergency}
+        >
+          <AlertTriangle size={14} />
+          {form.emergencyStop
+            ? "لغو توقف اضطراری"
+            : "توقف اضطراری معاملات"}
         </button>
       </div>
     </div>
   );
 }
-
 
 function TabSettings({ settings, setSettings, setToast }) {
   const [lockMinutes, setLockMinutes] = useState(settings.priceLockMinutes);
