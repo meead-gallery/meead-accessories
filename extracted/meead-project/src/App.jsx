@@ -1110,6 +1110,7 @@ const TABS = [
   { key: "customers", label: "مشتریان", icon: Users },
   { key: "market", label: "بازار", icon: Clock },
   { key: "settings", label: "تنظیمات", icon: SettingsIcon },
+  { key: "support", label: "پشتیبانی", icon: Headphones },
   { key: "log", label: "لاگ", icon: History },
   { key: "backup", label: "پشتیبان", icon: Database },
 ];
