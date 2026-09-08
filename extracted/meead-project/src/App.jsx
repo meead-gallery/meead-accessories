@@ -1434,47 +1434,6 @@ function TabMarket({ settings, setSettings, setToast }) {
     </div>
   );
 }
-function TabSupport({ settings, setSettings, setToast }) {
-  const support = settings.support || {
-    landline: "",
-    mobile: "",
-    whatsapp: "",
-    telegram: "",
-    instagram: "",
-  };
-
-  const update = (field, value) => {
-    setSettings({
-      ...settings,
-      support: {
-        ...support,
-        [field]: value,
-      },
-    });
-  };
-
-  const save = async () => {
-    try {
-      const nextSettings = await api.saveSettings({
-        ...settings,
-        support,
-      });
-      setSettings(nextSettings);
-      setToast("اطلاعات پشتیبانی ذخیره شد");
-    } catch (error) {
-      console.error(error);
-      setToast("ذخیره اطلاعات پشتیبانی ناموفق بود");
-    }
-  };
-
-  return (
-    <div className="admin-section">
-      <h3 className="section-title">اطلاعات پشتیبانی</h3>
-
-      <label className="field">
-        <span>تلفن ثابت</span>
-        <input
-          value={support.landline}
 
 
 function TabSettings({ settings, setSettings, setToast }) {
