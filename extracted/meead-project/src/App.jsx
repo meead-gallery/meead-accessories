@@ -27,6 +27,13 @@ const DEFAULT_SETTINGS = {
   adminPassword: "meead1404",
   nextOrderSeq: 1058,
   lastPriceUpdate: null,
+support: {
+  landline: "",
+  mobile: "",
+  whatsapp: "",
+  telegram: "",
+  instagram: "",
+},
 };
 function mergeSettings(patch = {}) {
   const s = patch || {};
