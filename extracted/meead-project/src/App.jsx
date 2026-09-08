@@ -590,15 +590,7 @@ export default function App() {
       <GlobalStyles />
 
       <header className="app-header">
-        {!isAdmin ? (
-  <button
-    className="icon-btn"
-    onClick={() => setView("support")}
-    aria-label="پشتیبانی"
-  >
-    <Headphones size={16} />
-  </button>
-) : (
+        
   <span className="header-spacer" />
 )}
         <div className="brand">
