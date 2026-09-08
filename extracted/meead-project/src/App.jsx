@@ -1255,62 +1255,95 @@ function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onN
       {open && (
         <div className="order-detail">
           <div className="calc-row"><span>قیمت هر گرم</span><span className="mono">{toman(order.pricePerGram)}</span></div>
+
           {order.type === "buy" && order.lockExpiresAt && (
-            <div className="calc-row"><span>اعتبار قیمت تا</span><span className="mono">{fmtTime(order.lockExpiresAt)}</span></div>
+            <div className="calc-row">
+              <span>اعتبار قیمت تا</span>
+              <span className="mono">{fmtTime(order.lockExpiresAt)}</span>
+            </div>
           )}
+
           {order.type === "sell" && order.sellValidUntil && (
-            <div className="calc-row"><span>اعتبار فروش تا</span><span className="mono">{fmtTime(order.sellValidUntil)}</span></div>
+            <div className="calc-row">
+              <span>اعتبار فروش تا</span>
+              <span className="mono">{fmtTime(order.sellValidUntil)}</span>
+            </div>
           )}
 
           {order.receiptImage && (
-  order.receiptPath?.toLowerCase().endsWith(".pdf") ? (
-    <a
-      href={order.receiptImage}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="ghost-btn small-btn"
-    >
-      مشاهده رسید PDF
-    </a>
-  ) : (
-    <img
-      src={order.receiptImage}
-      alt="رسید پرداخت"
-      className="receipt-img"
-    />
-  )
-)}
+            <img
+              src={order.receiptImage}
+              alt="رسید"
+              className="receipt-img"
+            />
+          )}
 
           {order.type === "sell" && (
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
               <div className="admin-grid">
-                <label className="field"><span>وزن نهایی واقعی (گرم)</span><input type="number" value={finalWeight} onChange={(e) => setFinalWeight(e.target.value)} /></label>
-                <button className="ghost-btn small-btn" onClick={saveWeight}>ثبت وزن نهایی</button>
+                <label className="field">
+                  <span>وزن نهایی واقعی (گرم)</span>
+                  <input
+                    type="number"
+                    value={finalWeight}
+                    onChange={(e) => setFinalWeight(e.target.value)}
+                  />
+                </label>
+
+                <button className="ghost-btn small-btn" onClick={saveWeight}>
+                  ثبت وزن نهایی
+                </button>
               </div>
+
               {order.finalWeight != null && (
                 <div className="admin-grid">
-                  <label className="field"><span>قیمت نهایی هر گرم</span><input type="number" value={finalPrice} onChange={(e) => setFinalPrice(e.target.value)} /></label>
-                  <button className="ghost-btn small-btn" onClick={saveAmount}>تعیین مبلغ نهایی</button>
+                  <label className="field">
+                    <span>قیمت نهایی هر گرم</span>
+                    <input
+                      type="number"
+                      value={finalPrice}
+                      onChange={(e) => setFinalPrice(e.target.value)}
+                    />
+                  </label>
+
+                  <button className="ghost-btn small-btn" onClick={saveAmount}>
+                    تعیین مبلغ نهایی
+                  </button>
                 </div>
               )}
-              {order.finalTotal != null && <span className="pay-note">مبلغ نهایی: {toman(order.finalTotal)}</span>}
+
+              {order.finalTotal != null && (
+                <span className="pay-note">
+                  مبلغ نهایی: {toman(order.finalTotal)}
+                </span>
+              )}
             </div>
           )}
 
           <label className="field" style={{ marginTop: 8 }}>
             <span>اطلاعات تکمیلی / یادداشت ادمین</span>
-            <textarea className="textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} onBlur={() => onNoteChange(order.id, note)} />
+            <textarea
+              className="textarea"
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onBlur={() => onNoteChange(order.id, note)}
+            />
           </label>
 
           <div className="timeline" style={{ marginTop: 8 }}>
-            {order.history.map((h, i) => <div className="timeline-row" key={i}><span className="mono">{fmtTime(h.time)}</span><span>{h.status}</span></div>)}
+            {order.history.map((h, i) => (
+              <div className="timeline-row" key={i}>
+                <span className="mono">{fmtTime(h.time)}</span>
+                <span>{h.status}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
     </div>
   );
 }
-
 function TabOrders({ orders, setOrders }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
