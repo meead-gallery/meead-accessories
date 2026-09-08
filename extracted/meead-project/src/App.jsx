@@ -501,7 +501,11 @@ function Support({ onBack, settings }) {
         </a>
 
         <a className="support-item" href={`https://wa.me/${support.whatsapp}`}>
-          <div className="social-icon whatsapp">WA</div>
+          <div className="social-icon whatsapp">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M20.52 3.48A11.8 11.8 0 0 0 12.08 0C5.55 0 .23 5.32.23 11.85c0 2.09.55 4.13 1.59 5.93L.13 24l6.36-1.67a11.8 11.8 0 0 0 5.58 1.42h.01c6.53 0 11.85-5.32 11.85-11.85 0-3.17-1.23-6.15-3.41-8.42ZM12.08 21.7h-.01a9.8 9.8 0 0 1-4.99-1.36l-.36-.21-3.77.99 1.01-3.67-.23-.38a9.8 9.8 0 1 1 8.35 4.63Zm5.37-7.35c-.29-.15-1.72-.85-1.99-.95-.27-.1-.46-.15-.65.15-.19.29-.75.95-.92 1.14-.17.19-.34.22-.63.07-.29-.15-1.23-.45-2.35-1.43-.87-.77-1.45-1.72-1.62-2.01-.17-.29-.02-.45.13-.6.13-.13.29-.34.43-.51.15-.17.19-.29.29-.49.1-.19.05-.37-.02-.52-.07-.15-.65-1.57-.89-2.15-.23-.56-.47-.48-.65-.49h-.56c-.19 0-.5.07-.76.37-.26.29-1 1-1 2.43s1.03 2.82 1.17 3.01c.15.19 2.03 3.1 4.92 4.35.69.3 1.23.49 1.65.63.69.22 1.32.19 1.82.12.55-.08 1.72-.7 1.96-1.37.24-.67.24-1.24.17-1.37-.07-.12-.26-.19-.55-.34Z" />
+            </svg>
+          </div>
           <div>
             <strong>واتساپ</strong>
             <span>{support.whatsapp || "ثبت نشده"}</span>
@@ -509,7 +513,11 @@ function Support({ onBack, settings }) {
         </a>
 
         <a className="support-item" href={`https://t.me/${support.telegram}`}>
-          <div className="social-icon telegram">✈</div>
+          <div className="social-icon telegram">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M21.6 3.2 2.9 10.4c-1.28.5-1.27 1.2-.23 1.51l4.8 1.5 1.84 5.64c.23.64.12.9.79.9.52 0 .75-.24 1.02-.53l2.34-2.27 4.86 3.58c.89.49 1.53.24 1.75-.83l3.13-14.76c.33-1.32-.5-1.92-1.6-1.39ZM8.2 13.1l9.46-5.97c.47-.28.9-.13.55.17l-7.66 6.92-.3 3.23-1.02-3.15-1.03-.32Z" />
+            </svg>
+          </div>
           <div>
             <strong>تلگرام</strong>
             <span>{support.telegram || "ثبت نشده"}</span>
@@ -517,7 +525,13 @@ function Support({ onBack, settings }) {
         </a>
 
         <a className="support-item" href={`https://instagram.com/${support.instagram}`}>
-          <div className="social-icon instagram">◎</div>
+          <div className="social-icon instagram">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="5" />
+              <circle cx="12" cy="12" r="4" />
+              <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+            </svg>
+          </div>
           <div>
             <strong>اینستاگرام</strong>
             <span>{support.instagram || "ثبت نشده"}</span>
@@ -528,7 +542,6 @@ function Support({ onBack, settings }) {
     </div>
   );
 }
-
 /* ---------------------------------- App ----------------------------------- */
 
 export default function App() {
