@@ -1434,7 +1434,99 @@ function TabMarket({ settings, setSettings, setToast }) {
     </div>
   );
 }
+function TabSupport({ settings, setSettings, setToast }) {
+  const support = settings.support || {
+    landline: "",
+    mobile: "",
+    whatsapp: "",
+    telegram: "",
+    instagram: "",
+  };
 
+  const update = (field, value) => {
+    setSettings({
+      ...settings,
+      support: {
+        ...support,
+        [field]: value,
+      },
+    });
+  };
+
+  const save = async () => {
+    try {
+      const nextSettings = await api.saveSettings({
+        ...settings,
+        support,
+      });
+      setSettings(nextSettings);
+      setToast("اطلاعات پشتیبانی ذخیره شد");
+    } catch (error) {
+      console.error(error);
+      setToast("ذخیره اطلاعات پشتیبانی ناموفق بود");
+    }
+  };
+
+  return (
+    <div className="admin-section">
+      <h3 className="section-title">اطلاعات پشتیبانی</h3>
+
+      <label className="field">
+        <span>تلفن ثابت</span>
+        <input
+          value={support.landline}
+          onChange={(e) => update("landline", e.target.value)}
+          placeholder="مثلاً 02112345678"
+          dir="ltr"
+        />
+      </label>
+
+      <label className="field">
+        <span>تلفن همراه</span>
+        <input
+          value={support.mobile}
+          onChange={(e) => update("mobile", e.target.value)}
+          placeholder="مثلاً 09121234567"
+          dir="ltr"
+        />
+      </label>
+
+      <label className="field">
+        <span>واتساپ</span>
+        <input
+          value={support.whatsapp}
+          onChange={(e) => update("whatsapp", e.target.value)}
+          placeholder="مثلاً 989121234567"
+          dir="ltr"
+        />
+      </label>
+
+      <label className="field">
+        <span>تلگرام</span>
+        <input
+          value={support.telegram}
+          onChange={(e) => update("telegram", e.target.value)}
+          placeholder="مثلاً meead_support"
+          dir="ltr"
+        />
+      </label>
+
+      <label className="field">
+        <span>اینستاگرام</span>
+        <input
+          value={support.instagram}
+          onChange={(e) => update("instagram", e.target.value)}
+          placeholder="مثلاً meead.accessories"
+          dir="ltr"
+        />
+      </label>
+
+      <button className="primary-btn" onClick={save}>
+        ذخیره اطلاعات پشتیبانی
+      </button>
+    </div>
+  );
+}
 function TabSettings({ settings, setSettings, setToast }) {
   const [lockMinutes, setLockMinutes] = useState(settings.priceLockMinutes);
   const [sellDays, setSellDays] = useState(settings.sellValidityDays);
