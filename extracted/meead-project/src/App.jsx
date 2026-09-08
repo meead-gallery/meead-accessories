@@ -731,10 +731,13 @@ export default function App() {
           />
         )}
 
-        
         {view === "support" && (
-  <Support onBack={() => setView("home")} />
+  <Support
+    settings={settings}
+    onBack={() => setView("home")}
+  />
 )}
+      
       </main>
 
       {toast && <div className="toast">{toast}</div>}
