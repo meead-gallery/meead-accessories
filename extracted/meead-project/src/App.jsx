@@ -1681,7 +1681,10 @@ function TabSupport({ settings, setSettings, setToast }) {
   };
 
   return (
-    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
+    <div
+  className="admin-section support-admin-section"
+  style={{ borderTop: "none", paddingTop: 0, color: "#000" }}
+>
       <h3>اطلاعات پشتیبانی</h3>
 
       <div className="admin-grid">
