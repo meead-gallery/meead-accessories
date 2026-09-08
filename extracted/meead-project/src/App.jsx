@@ -660,38 +660,7 @@ export default function App() {
         {view === "admin-login" && (
           <AdminLogin email={adminEmail} setEmail={setAdminEmail} pw={adminPw} setPw={setAdminPw} error={adminError} onSubmit={tryAdminLogin} onCancel={() => setView("home")} />
         )}
-{view === "support" && (
-  <section className="app-main" style={{ padding: "24px" }}>
-    <div className="card">
-      <h2>پشتیبانی</h2>
-      <p>برای ارتباط با پشتیبانی با ما تماس بگیرید.</p>
 
-      <a href="tel:09002815743" className="primary-btn">
-        📞 09002815743
-      </a>
-
-      <a href="tel:02833228401" className="secondary-btn">
-        ☎️ 02833228401
-      </a>
-
-      <a
-        href="https://instagram.com/meead.accessories"
-        target="_blank"
-        rel="noreferrer"
-        className="secondary-btn"
-      >
-        Instagram
-      </a>
-
-      <button
-        className="secondary-btn"
-        onClick={() => setView("home")}
-      >
-        بازگشت
-      </button>
-    </div>
-  </section>
-)}
         {view === "admin" && isAdmin && (
           <Admin
             settings={settings} setSettings={setSettings}
