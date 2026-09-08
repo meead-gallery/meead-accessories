@@ -400,7 +400,28 @@ function BarIcon({ tone }) {
     </svg>
   );
 }
+function Support({ onBack }) {
+  return (
+    <div className="panel">
+      <button className="back-link" onClick={onBack}>
+        <ChevronRight size={16} /> بازگشت
+      </button>
 
+      <h2 className="panel-title">پشتیبانی</h2>
+
+      <div className="confirm-summary">
+        <div className="calc-row">
+          <span>پشتیبانی و پاسخگویی</span>
+          <span>آنلاین</span>
+        </div>
+
+        <p className="pay-note">
+          برای ارتباط با پشتیبانی با فروشگاه تماس بگیرید.
+        </p>
+      </div>
+    </div>
+  );
+}
 /* ---------------------------------- App ----------------------------------- */
 
 export default function App() {
