@@ -590,14 +590,7 @@ export default function App() {
       <GlobalStyles />
 
       <header className="app-header">
-  <button
-    className="icon-btn"
-    onClick={() => setView("support")}
-    aria-label="پشتیبانی"
-  >
-    <Headphones size={16} />
-  </button>
-
+  <span className="header-spacer" />
   <div className="brand">
     <BrandMark size={54} />
     <div className="brand-text">
@@ -605,20 +598,9 @@ export default function App() {
       <span className="brand-sub">معاملات فلزات گران‌بها</span>
     </div>
   </div>
-
   <button
     className="icon-btn"
-    onClick={async () => {
-      if (isAdmin) {
-        await api.logout();
-        setIsAdmin(false);
-        setOrders([]);
-        setLog([]);
-        setView("home");
-      } else {
-        setView("admin-login");
-      }
-    }}
+    onClick={async () => { if (isAdmin) { await api.logout(); setIsAdmin(false); setOrders([]); setLog([]); setView("home"); } else setView("admin-login"); }}
     aria-label="پنل مدیریت"
   >
     <Lock size={16} />
