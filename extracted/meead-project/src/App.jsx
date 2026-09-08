@@ -335,10 +335,48 @@ const api = {
     if(error) throw error; return (await adminState()).settings;
   },
   async updateSystemSettings(patch) {
-    const b=patch.bank || {};
-    const {error}=await supabase.rpc("update_system_settings", {p_price_lock_minutes:Number(patch.priceLockMinutes),p_sell_validity_days:Number(patch.sellValidityDays),p_sell_address:patch.sellAddress || "",p_bank_card_number:b.cardNumber || "",p_bank_account_number:b.accountNumber || "",p_bank_sheba:b.sheba || "",p_bank_owner_name:b.ownerName || ""});
-    if(error) throw error; return (await adminState()).settings;
-  },
+  const current = (await adminState()).settings;
+
+  const b = {
+    ...current.bank,
+    ...(patch.bank || {}),
+  };
+
+  const s = {
+    ...current.support,
+    ...(patch.support || {}),
+  };
+
+  const { data, error } = await supabase.rpc("update_system_settings", {
+    p_price_lock_minutes: Number(
+      patch.priceLockMinutes ?? current.priceLockMinutes
+    ),
+    p_sell_validity_days: Number(
+      patch.sellValidityDays ?? current.sellValidityDays
+    ),
+    p_sell_address: patch.sellAddress ?? current.sellAddress ?? "",
+    p_bank_card_number: b.cardNumber || "",
+    p_bank_account_number: b.accountNumber || "",
+    p_bank_sheba: b.sheba || "",
+    p_bank_owner_name: b.ownerName || "",
+
+    p_support_landline: s.landline || "",
+    p_support_mobile: s.mobile || "",
+    p_support_whatsapp: s.whatsapp || "",
+    p_support_telegram: s.telegram || "",
+    p_support_instagram: s.instagram || "",
+  });
+
+  if (error) throw error;
+
+  if (!data?.ok) {
+    throw new Error(
+      data?.reason || "ذخیره تنظیمات ناموفق بود"
+    );
+  }
+
+  return (await adminState()).settings;
+},
   async resolveOrderId(orderOrId) {
     if (orderOrId && typeof orderOrId === "object" && orderOrId.dbId) return Number(orderOrId.dbId);
     const st = await adminState();
