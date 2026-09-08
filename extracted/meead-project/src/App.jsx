@@ -407,7 +407,9 @@ function BarIcon({ tone }) {
     </svg>
   );
 }
-function Support({ onBack }) {
+function Support({ onBack, settings }) {
+  const support = settings.support || {};
+
   return (
     <div className="panel">
       <button className="back-link" onClick={onBack}>
@@ -416,19 +418,53 @@ function Support({ onBack }) {
 
       <h2 className="panel-title">پشتیبانی</h2>
 
-      <div className="confirm-summary">
-        <div className="calc-row">
-          <span>پشتیبانی و پاسخگویی</span>
-          <span>آنلاین</span>
-        </div>
+      <div className="support-list">
 
-        <p className="pay-note">
-          برای ارتباط با پشتیبانی با فروشگاه تماس بگیرید.
-        </p>
+        <a className="support-item" href={`tel:${support.landline}`}>
+          <Phone size={20} />
+          <div>
+            <strong>تلفن ثابت</strong>
+            <span>{support.landline || "ثبت نشده"}</span>
+          </div>
+        </a>
+
+        <a className="support-item" href={`tel:${support.mobile}`}>
+          <PhoneCall size={20} />
+          <div>
+            <strong>تلفن همراه</strong>
+            <span>{support.mobile || "ثبت نشده"}</span>
+          </div>
+        </a>
+
+        <a className="support-item" href={`https://wa.me/${support.whatsapp}`}>
+          <div className="social-icon whatsapp">WA</div>
+          <div>
+            <strong>واتساپ</strong>
+            <span>{support.whatsapp || "ثبت نشده"}</span>
+          </div>
+        </a>
+
+        <a className="support-item" href={`https://t.me/${support.telegram}`}>
+          <div className="social-icon telegram">✈</div>
+          <div>
+            <strong>تلگرام</strong>
+            <span>{support.telegram || "ثبت نشده"}</span>
+          </div>
+        </a>
+
+        <a className="support-item" href={`https://instagram.com/${support.instagram}`}>
+          <div className="social-icon instagram">◎</div>
+          <div>
+            <strong>اینستاگرام</strong>
+            <span>{support.instagram || "ثبت نشده"}</span>
+          </div>
+        </a>
+
       </div>
     </div>
   );
 }
+
 /* ---------------------------------- App ----------------------------------- */
 
 export default function App() {
