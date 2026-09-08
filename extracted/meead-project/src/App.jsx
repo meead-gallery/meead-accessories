@@ -590,24 +590,40 @@ export default function App() {
       <GlobalStyles />
 
       <header className="app-header">
-        
-  <span className="header-spacer" />
-)}
-        <div className="brand">
-          <BrandMark size={54} />
-          <div className="brand-text">
-            <span className="brand-name">MEEAD ACCESSORIES</span>
-            <span className="brand-sub">معاملات فلزات گران‌بها</span>
-          </div>
-        </div>
-        <button
-          className="icon-btn"
-          onClick={async () => { if (isAdmin) { await api.logout(); setIsAdmin(false); setOrders([]); setLog([]); setView("home"); } else setView("admin-login"); }}
-          aria-label="پنل مدیریت"
-        >
-          <Lock size={16} />
-        </button>
-      </header>
+  <button
+    className="icon-btn"
+    onClick={() => setView("support")}
+    aria-label="پشتیبانی"
+  >
+    <Headphones size={16} />
+  </button>
+
+  <div className="brand">
+    <BrandMark size={54} />
+    <div className="brand-text">
+      <span className="brand-name">MEEAD ACCESSORIES</span>
+      <span className="brand-sub">معاملات فلزات گران‌بها</span>
+    </div>
+  </div>
+
+  <button
+    className="icon-btn"
+    onClick={async () => {
+      if (isAdmin) {
+        await api.logout();
+        setIsAdmin(false);
+        setOrders([]);
+        setLog([]);
+        setView("home");
+      } else {
+        setView("admin-login");
+      }
+    }}
+    aria-label="پنل مدیریت"
+  >
+    <Lock size={16} />
+  </button>
+</header>
 
       <main className="app-main">
         {view === "home" && (
