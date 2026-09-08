@@ -1577,7 +1577,108 @@ function TabSettings({ settings, setSettings, setToast }) {
     </div>
   );
 }
+function TabSupport({ settings, setSettings, setToast }) {
+  const [support, setSupport] = useState({
+    landline: settings.support?.landline || "",
+    mobile: settings.support?.mobile || "",
+    whatsapp: settings.support?.whatsapp || "",
+    telegram: settings.support?.telegram || "",
+    instagram: settings.support?.instagram || "",
+  });
 
+  const save = async () => {
+    try {
+      const patch = {
+        support: {
+          landline: support.landline.trim(),
+          mobile: support.mobile.trim(),
+          whatsapp: support.whatsapp.trim(),
+          telegram: support.telegram.trim(),
+          instagram: support.instagram.trim(),
+        },
+      };
+
+      const next = await api.updateSystemSettings(patch);
+      setSettings(next);
+      setToast("اطلاعات پشتیبانی ذخیره شد");
+    } catch (e) {
+      console.error(e);
+      setToast("ذخیره اطلاعات پشتیبانی ناموفق بود");
+    }
+  };
+
+  return (
+    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
+      <h3>اطلاعات پشتیبانی</h3>
+
+      <div className="admin-grid">
+
+        <label className="field">
+          <span>تلفن ثابت</span>
+          <input
+            value={support.landline}
+            onChange={(e) =>
+              setSupport({ ...support, landline: e.target.value })
+            }
+            placeholder="مثلاً ۰۲۸..."
+            inputMode="tel"
+          />
+        </label>
+
+        <label className="field">
+          <span>شماره موبایل</span>
+          <input
+            value={support.mobile}
+            onChange={(e) =>
+              setSupport({ ...support, mobile: e.target.value })
+            }
+            placeholder="مثلاً ۰۹..."
+            inputMode="tel"
+          />
+        </label>
+
+        <label className="field">
+          <span>واتساپ</span>
+          <input
+            value={support.whatsapp}
+            onChange={(e) =>
+              setSupport({ ...support, whatsapp: e.target.value })
+            }
+            placeholder="شماره واتساپ"
+            inputMode="tel"
+          />
+        </label>
+
+        <label className="field">
+          <span>تلگرام</span>
+          <input
+            value={support.telegram}
+            onChange={(e) =>
+              setSupport({ ...support, telegram: e.target.value })
+            }
+            placeholder="@username"
+          />
+        </label>
+
+        <label className="field">
+          <span>اینستاگرام</span>
+          <input
+            value={support.instagram}
+            onChange={(e) =>
+              setSupport({ ...support, instagram: e.target.value })
+            }
+            placeholder="@username"
+          />
+        </label>
+
+      </div>
+
+      <button className="primary-btn" onClick={save}>
+        ذخیره اطلاعات پشتیبانی
+      </button>
+    </div>
+  );
+}
 function TabLog({ log }) {
   return (
     <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
