@@ -211,7 +211,16 @@ async function adminState() {
     market: { closeStart:m.close_start ?? "00:00", closeEnd:m.close_end ?? "11:00", buyEnabled:m.buy_enabled ?? true, sellEnabled:m.sell_enabled ?? true, emergencyStop:m.emergency_stop ?? false },
     priceLockMinutes: Number(sys.price_lock_minutes ?? 5), sellValidityDays: Number(sys.sell_validity_days ?? 3),
     bank: { cardNumber:sys.bank_card_number || "", accountNumber:sys.bank_account_number || "", sheba:sys.bank_sheba || "", ownerName:sys.bank_owner_name || "" },
-    sellAddress: sys.sell_address || "", lastPriceUpdate: sys.last_price_update || null, nextOrderSeq: Number(sys.next_order_seq ?? 1058)
+    sellAddress: sys.sell_address || "",
+lastPriceUpdate: sys.last_price_update || null,
+nextOrderSeq: Number(sys.next_order_seq ?? 1058),
+support: {
+  landline: sys.support_landline || "",
+  mobile: sys.support_mobile || "",
+  whatsapp: sys.support_whatsapp || "",
+  telegram: sys.support_telegram || "",
+  instagram: sys.support_instagram || "",
+}
   });
   const orders = await Promise.all((ordersRes.data || []).map(async (r) => {
   const order = mapOrder(r, orderHistoriesRes.data || []);
