@@ -1139,7 +1139,6 @@ function Admin({ settings, setSettings, orders, setOrders, log, onExit, setToast
       {tab === "customers" && <TabCustomers orders={orders} />}
       {tab === "market" && <TabMarket settings={settings} setSettings={setSettings} setToast={setToast} />}
       {tab === "settings" && <TabSettings settings={settings} setSettings={setSettings} setToast={setToast} />}
-      {tab === "support" && <TabSupport settings={settings} setSettings={setSettings} setToast={setToast} />}
       {tab === "log" && <TabLog log={log} />}
       {tab === "backup" && <TabBackup setSettings={setSettings} setOrders={setOrders} setToast={setToast} />}
     </div>
