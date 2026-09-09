@@ -2808,9 +2808,38 @@ function GlobalStyles() {
 
       .upload-btn { display:flex; align-items:center; justify-content:center; gap:6px; background:#F6F7F8; border:1px dashed rgba(30,40,50,0.2); border-radius:10px; padding: 11px; font-size:12.5px; color:#667085; cursor:pointer; width:100%; }
 
+        .receipt-upload-progress {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(30, 40, 50, 0.12);
+  border-radius: 10px;
+  background: #F6F7F8;
+}
 
+.receipt-upload-progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  color: #667085;
+}
 
+.receipt-upload-progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(30, 40, 50, 0.10);
+  border-radius: 999px;
+  overflow: hidden;
+}
 
+.receipt-upload-progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: #667085;
+  transition: width 0.15s ease;
+}
 .upload-spinner {
   width: 14px;
   height: 14px;
