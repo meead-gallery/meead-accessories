@@ -15,10 +15,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Patch TabOrders
-        shell: python
+        shell: bash
         run: |
+          python3 <<'PY'
           from pathlib import Path
-          import re
 
           path = Path('extracted/meead-project/src/App.jsx')
           text = path.read_text(encoding='utf-8')
@@ -204,8 +204,10 @@ function TabOrders({ orders, setOrders }) {
 '''
 
           path.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
+          PY
 
       - name: Commit patched App.jsx
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
