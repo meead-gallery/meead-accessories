@@ -1732,18 +1732,14 @@ function TabOrders({ orders, setOrders }) {
   }, {});
 
   const toggleDay = (key) => {
-    setOpenDays((prev) => {
-      const next = new Set(prev);
+  setOpenDays((prev) => {
+    if (prev.has(key)) {
+      return new Set();
+    }
 
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-
-      return next;
-    });
-  };
+    return new Set([key]);
+  });
+};
 
   const handleStatusChange = async (id, status) => {
     setOrders(
