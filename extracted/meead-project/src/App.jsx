@@ -373,7 +373,10 @@ lockExpiresAt:o.lock_expires_at,
 sellValidUntil:o.sell_valid_until,
       bankSnapshot:o.bank_snapshot || {}, receiptPath:o.receipt_url || null, receiptImage:null, status:o.status, adminNote:o.admin_note || "",
       finalWeight:o.final_weight == null ? null : Number(o.final_weight), finalPricePerGram:o.final_price_per_gram == null ? null : Number(o.final_price_per_gram), finalTotal:o.final_total == null ? null : Number(o.final_total),
-      history:(o.history || []).map(h=>({status:h.status,time:h.created_at || h.time}))
+      history:(Array.isArray(o.history) ? o.history : []).map(h=>({
+  status:h.status,
+  time:h.created_at || h.time
+}))
     };
   },
   async login(email, password) {
