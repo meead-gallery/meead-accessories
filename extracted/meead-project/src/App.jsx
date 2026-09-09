@@ -664,7 +664,8 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [toast, setToast] = useState("");
   const [now, setNow] = useState(Date.now());
-
+const [uploadingReceiptId, setUploadingReceiptId] = useState(null);
+const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   const load = useCallback(async () => {
     const state = await api.getState();
     setSettings(state.settings);
