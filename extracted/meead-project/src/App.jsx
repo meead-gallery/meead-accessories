@@ -737,7 +737,12 @@ export default function App() {
 
   setQuote(res.quote);
   setWeight("");
-  setCustomer({ name: "", phone: "" });
+  setCustomer({
+  firstName: "",
+  lastName: "",
+  phone: "",
+  address: "",
+});
   setView("order");
 };
 
