@@ -280,7 +280,7 @@ const api = {
     const pub = await publicSettings().catch(()=>null);
     return { ok:true, order, orders:[], settings:mapSettings(pub || {}) };
   },
-  async attachReceipt(order, file) {
+  
   async attachReceipt(order, file, onProgress) {
   try {
     const fd = new FormData();
