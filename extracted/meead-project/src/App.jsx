@@ -1509,6 +1509,12 @@ function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onN
 
       {open && (
         <div className="order-detail">
+          {order.address && (
+  <div className="calc-row">
+    <span>آدرس</span>
+    <span>{order.address}</span>
+  </div>
+)}
           <div className="calc-row"><span>قیمت هر گرم</span><span className="mono">{toman(order.pricePerGram)}</span></div>
 
           {order.type === "buy" && order.lockExpiresAt && (
