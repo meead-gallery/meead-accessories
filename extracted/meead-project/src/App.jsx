@@ -1659,9 +1659,11 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
           </p>
         )}
 
-        <p className="pay-note">
-          پس از واریز، تصویر رسید را آپلود کنید تا سفارش شما بررسی شود.
-        </p>
+        {!uploading && !uploadSuccess && (
+  <p className="pay-note">
+    پس از واریز، تصویر رسید را آپلود کنید تا سفارش شما بررسی شود.
+  </p>
+)}
 
         {!uploading && !uploadSuccess && (
           <label
