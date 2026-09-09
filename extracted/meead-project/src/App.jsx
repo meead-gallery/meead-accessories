@@ -872,7 +872,8 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
 };
 
 
-    const attachReceipt = async (order, file) => {
+    
+  const attachReceipt = async (order, file) => {
   if (!file) return null;
 
   if (file.size > 5 * 1024 * 1024) {
@@ -892,25 +893,33 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     return null;
   }
 
+  // اول وضعیت آپلود را نمایش می‌دهیم
   setUploadingReceiptId(order.id);
   setReceiptUploadStatus("uploading");
-  setReceiptUploadProgress(0);
+  setReceiptUploadProgress(5);
   setToast("در حال ارسال رسید… لطفاً صفحه را نبندید.");
+
+  // فرصت می‌دهیم React صفحه را رندر کند
+  await new Promise((resolve) =>
+    requestAnimationFrame(() => resolve())
+  );
 
   let progressTimer = null;
 
   try {
+    // پیشرفت نمایشی تا 90٪
     progressTimer = setInterval(() => {
       setReceiptUploadProgress((current) => {
         if (current >= 90) return current;
 
         const next =
-          current + Math.floor(Math.random() * 4) + 1;
+          current + Math.floor(Math.random() * 3) + 1;
 
         return Math.min(next, 90);
       });
-    }, 180);
+    }, 250);
 
+    // شروع آپلود واقعی
     const res = await api.attachReceipt(order, file);
 
     if (progressTimer) {
@@ -934,11 +943,12 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
       return null;
     }
 
+    // نمایش 100٪
     setReceiptUploadProgress(100);
 
-    // اجازه می‌دهیم مشتری ۱ ثانیه ۱۰۰٪ را ببیند
+    // حتماً 100٪ را قابل مشاهده می‌کنیم
     await new Promise((resolve) =>
-      setTimeout(resolve, 1000)
+      setTimeout(resolve, 1200)
     );
 
     setLastOrder(res.order);
@@ -976,7 +986,6 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     return null;
   }
 };
-  
 
   const tryAdminLogin = async () => {
     const res = await api.login(adminEmail, adminPw);
