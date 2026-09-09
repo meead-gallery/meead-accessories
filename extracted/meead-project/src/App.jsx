@@ -482,7 +482,14 @@ function Support({ onBack, settings }) {
 
       <h2 className="panel-title">پشتیبانی</h2>
 
-      <div className="support-list">
+      <div
+  className="support-list"
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  }}
+>
 
         <a className="support-item" href={`tel:${support.landline}`}>
           <Phone size={20} />
