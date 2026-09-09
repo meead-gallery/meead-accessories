@@ -1130,8 +1130,8 @@ function TrackOrder({ onAttachReceipt, onBack }) {
               <div className="timeline-row" key={i}><span className="mono">{fmtTime(h.time)}</span><span>{h.status}</span></div>
             ))}
           </div>
-          {result.type === "buy" && result.status === "در انتظار پرداخت" && (
-            {(() => {
+
+          {result.type === "buy" && result.status === "در انتظار پرداخت" && (() => {
   const uploading =
     uploadingReceiptId === result.id &&
     receiptUploadStatus === "uploading";
@@ -1193,12 +1193,7 @@ function TrackOrder({ onAttachReceipt, onBack }) {
     </>
   );
 })()}
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+          
 
 /* -------------------------------- Order form ------------------------------- */
 
