@@ -1497,48 +1497,248 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
 
 /* ------------------------------- Buy payment ------------------------------- */
 
-function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
+
+
+    function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
   const [copied, setCopied] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
   const bank = order.bankSnapshot || {};
 
   const copy = async (val) => {
-    try { await navigator.clipboard.writeText(val); setCopied(true); setTimeout(() => setCopied(false), 1500); }
-    catch (e) { setToast("کپی خودکار ممکن نشد"); }
+    try {
+      await navigator.clipboard.writeText(val);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      setToast("کپی خودکار ممکن نشد");
+    }
+  };
+
+  const handleReceiptUpload = async (file) => {
+    if (!file || uploading) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("حجم فایل نباید بیشتر از ۵ مگابایت باشد");
+      return;
+    }
+
+    setUploading(true);
+    setUploadSuccess(false);
+    setUploadError("");
+    setUploadProgress(5);
+
+    let timer = null;
+
+    try {
+      timer = setInterval(() => {
+        setUploadProgress((current) => {
+          if (current >= 90) return current;
+
+          const next =
+            current + Math.floor(Math.random() * 4) + 1;
+
+          return Math.min(next, 90);
+        });
+      }, 250);
+
+      // آپلود واقعی
+      const result = await onAttachReceipt(file);
+
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+
+      if (!result) {
+        setUploadError("آپلود رسید ناموفق بود");
+        setUploadProgress(0);
+        setUploading(false);
+        return;
+      }
+
+      setUploadProgress(100);
+
+      // اجازه می‌دهیم 100٪ دیده شود
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000)
+      );
+
+      setUploadSuccess(true);
+      setUploading(false);
+
+    } catch (e) {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+
+      setUploadError("آپلود رسید ناموفق بود");
+      setUploadProgress(0);
+      setUploading(false);
+    }
   };
 
   return (
     <div className="panel confirm">
-      <div className="confirm-icon"><CheckCircle2 size={38} /></div>
+      <div className="confirm-icon">
+        <CheckCircle2 size={38} />
+      </div>
+
       <h2 className="panel-title">سفارش ثبت شد</h2>
-      <span className="order-code mono">کد پیگیری: {order.id}</span>
+
+      <span className="order-code mono">
+        کد پیگیری: {order.id}
+      </span>
 
       <div className="confirm-summary">
-        <div className="calc-row"><span>محصول</span><span>{PRODUCTS.find((p) => p.key === order.purity)?.title}</span></div>
-        <div className="calc-row"><span>وزن</span><span className="mono">{order.weight} گرم</span></div>
-        <div className="calc-row total"><span>مبلغ قابل پرداخت</span><span className="mono">{toman(order.total)}</span></div>
+        <div className="calc-row">
+          <span>محصول</span>
+          <span>
+            {PRODUCTS.find((p) => p.key === order.purity)?.title}
+          </span>
+        </div>
+
+        <div className="calc-row">
+          <span>وزن</span>
+          <span className="mono">
+            {order.weight} گرم
+          </span>
+        </div>
+
+        <div className="calc-row total">
+          <span>مبلغ قابل پرداخت</span>
+          <span className="mono">
+            {toman(order.total)}
+          </span>
+        </div>
       </div>
 
       <div className="pay-box">
-        <span className="pay-label">اطلاعات واریز:</span>
+        <span className="pay-label">
+          اطلاعات واریز:
+        </span>
+
         {bank.cardNumber && (
           <div className="card-number-row">
-            <span className="mono card-number">{bank.cardNumber}</span>
-            <button className="icon-btn" onClick={() => copy(bank.cardNumber)}>{copied ? <Check size={16} /> : <Copy size={16} />}</button>
+            <span className="mono card-number">
+              {bank.cardNumber}
+            </span>
+
+            <button
+              className="icon-btn"
+              onClick={() => copy(bank.cardNumber)}
+            >
+              {copied ? (
+                <Check size={16} />
+              ) : (
+                <Copy size={16} />
+              )}
+            </button>
           </div>
         )}
-        {bank.sheba && <div className="address-box mono">IR{bank.sheba}</div>}
-        {bank.ownerName && <span className="pay-label">به نام: {bank.ownerName}</span>}
-        {!bank.cardNumber && !bank.sheba && <p className="pay-note">اطلاعات پرداخت هنوز ثبت نشده — با فروشگاه تماس بگیرید.</p>}
 
-        <p className="pay-note">پس از واریز، تصویر رسید را آپلود کنید تا سفارش شما بررسی شود.</p>
-        <label className="upload-btn">
-          <Upload size={14} /> آپلود رسید پرداخت
-          <input type="file" accept="image/*,.pdf" hidden onChange={(e) => e.target.files[0] && onAttachReceipt(e.target.files[0])} />
-        </label>
-        {order.receiptImage && <span className="pay-note">✅ رسید ارسال شد — وضعیت: {order.status}</span>}
+        {bank.sheba && (
+          <div className="address-box mono">
+            IR{bank.sheba}
+          </div>
+        )}
+
+        {bank.ownerName && (
+          <span className="pay-label">
+            به نام: {bank.ownerName}
+          </span>
+        )}
+
+        {!bank.cardNumber && !bank.sheba && (
+          <p className="pay-note">
+            اطلاعات پرداخت هنوز ثبت نشده — با فروشگاه تماس بگیرید.
+          </p>
+        )}
+
+        <p className="pay-note">
+          پس از واریز، تصویر رسید را آپلود کنید تا سفارش شما بررسی شود.
+        </p>
+
+        {!uploading && !uploadSuccess && (
+          <label
+            className="upload-btn"
+            style={{ marginTop: 10 }}
+          >
+            <Upload size={14} />
+            آپلود رسید پرداخت
+
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              hidden
+              disabled={uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+
+                if (file) {
+                  handleReceiptUpload(file);
+                }
+
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
+
+        {uploading && (
+          <div className="receipt-upload-progress">
+            <div className="receipt-upload-progress-top">
+              <span>
+                در حال ارسال رسید…
+              </span>
+
+              <span>
+                {uploadProgress}٪
+              </span>
+            </div>
+
+            <div className="receipt-upload-progress-track">
+              <div
+                className="receipt-upload-progress-fill"
+                style={{
+                  width: `${uploadProgress}%`,
+                }}
+              />
+            </div>
+
+            <p className="pay-note">
+              لطفاً تا پایان ارسال، صفحه را نبندید.
+            </p>
+          </div>
+        )}
+
+        {uploadSuccess && (
+          <p
+            className="pay-note"
+            style={{ color: "#12915B" }}
+          >
+            ✅ رسید با موفقیت ارسال شد.
+          </p>
+        )}
+
+        {uploadError && (
+          <p className="error-text">
+            {uploadError}
+          </p>
+        )}
       </div>
 
-      <button className="primary-btn" onClick={onDone}>بازگشت به صفحه اصلی</button>
+      <button
+        className="primary-btn"
+        onClick={onDone}
+        disabled={uploading}
+      >
+        بازگشت به صفحه اصلی
+      </button>
     </div>
   );
 }
