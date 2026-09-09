@@ -1246,7 +1246,7 @@ function TrackOrder({ onAttachReceipt, onBack }) {
           <div className="calc-row"><span>وزن</span><span className="mono">{result.weight} گرم</span></div>
           <div className="calc-row total"><span>مبلغ</span><span className="mono">{toman(result.total ?? result.approxTotal)}</span></div>
           <div className="timeline">
-            {result.history.map((h, i) => (
+            {(Array.isArray(result.history) ? result.history : []).map((h, i) => (
               <div className="timeline-row" key={i}><span className="mono">{fmtTime(h.time)}</span><span>{h.status}</span></div>
             ))}
           </div>
