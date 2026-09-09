@@ -1217,6 +1217,7 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
 
 /* ------------------------------- Track order ------------------------------ */
 
+
 function TrackOrder({ onAttachReceipt, onBack }) {
   const [code, setCode] = useState("");
   const [phone, setPhone] = useState("");
@@ -1231,92 +1232,108 @@ function TrackOrder({ onAttachReceipt, onBack }) {
 
   return (
     <div className="panel">
-      <button className="back-link" onClick={onBack}><ChevronRight size={16} /> بازگشت</button>
-      <h2 className="panel-title">پیگیری سفارش</h2>
-      <label className="field"><span>کد رهگیری</span><input value={code} onChange={(e) => setCode(e.target.value)} placeholder="SP-1058" /></label>
-      <label className="field"><span>شماره تماس</span><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="09xxxxxxxxx" /></label>
-      <button className="primary-btn" onClick={search}>جستجو</button>
+      <button className="back-link" onClick={onBack}>
+        <ChevronRight size={16} /> بازگشت
+      </button>
 
-      {searched && !result && <p className="pay-note">سفارشی با این مشخصات پیدا نشد.</p>}
+      <h2 className="panel-title">پیگیری سفارش</h2>
+
+      <label className="field">
+        <span>کد رهگیری</span>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="SP-1058"
+        />
+      </label>
+
+      <label className="field">
+        <span>شماره تماس</span>
+        <input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="09xxxxxxxxx"
+        />
+      </label>
+
+      <button className="primary-btn" onClick={search}>
+        جستجو
+      </button>
+
+      {searched && !result && (
+        <p className="pay-note">
+          سفارشی با این مشخصات پیدا نشد.
+        </p>
+      )}
 
       {result && (
         <div className="confirm-summary" style={{ marginTop: 10 }}>
-          <div className="calc-row"><span>وضعیت</span><span className="status-pill">{result.status}</span></div>
-          <div className="calc-row"><span>محصول</span><span>{PRODUCTS.find((p) => p.key === result.purity)?.title}</span></div>
-          <div className="calc-row"><span>وزن</span><span className="mono">{result.weight} گرم</span></div>
-          <div className="calc-row total"><span>مبلغ</span><span className="mono">{toman(result.total ?? result.approxTotal)}</span></div>
+          <div className="calc-row">
+            <span>وضعیت</span>
+            <span className="status-pill">{result.status}</span>
+          </div>
+
+          <div className="calc-row">
+            <span>محصول</span>
+            <span>
+              {PRODUCTS.find((p) => p.key === result.purity)?.title}
+            </span>
+          </div>
+
+          <div className="calc-row">
+            <span>وزن</span>
+            <span className="mono">{result.weight} گرم</span>
+          </div>
+
+          <div className="calc-row total">
+            <span>مبلغ</span>
+            <span className="mono">
+              {toman(result.total ?? result.approxTotal)}
+            </span>
+          </div>
+
           <div className="timeline">
-            {(Array.isArray(result.history) ? result.history : []).map((h, i) => (
-              <div className="timeline-row" key={i}><span className="mono">{fmtTime(h.time)}</span><span>{h.status}</span></div>
-            ))}
+            {(Array.isArray(result.history) ? result.history : []).map(
+              (h, i) => (
+                <div className="timeline-row" key={i}>
+                  <span className="mono">{fmtTime(h.time)}</span>
+                  <span>{h.status}</span>
+                </div>
+              )
+            )}
           </div>
 
           {result.type === "buy" &&
-  result.status === "در انتظار پرداخت" && (
-  <>
-    {uploadingReceiptId === result.id &&
-    receiptUploadStatus === "uploading" ? (
-      <div className="receipt-upload-progress">
-        <div className="receipt-upload-progress-top">
-          <span>در حال ارسال رسید…</span>
-          <span>{receiptUploadProgress}٪</span>
+            result.status === "در انتظار پرداخت" && (
+              <label
+                className="upload-btn"
+                style={{ marginTop: 10 }}
+              >
+                <Upload size={14} />
+                آپلود رسید پرداخت
+
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+
+                    if (file) {
+                      onAttachReceipt(result, file);
+                    }
+
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
         </div>
-
-        <div className="receipt-upload-progress-track">
-          <div
-            className="receipt-upload-progress-fill"
-            style={{
-              width: `${receiptUploadProgress}%`,
-            }}
-          />
-        </div>
-
-        <p className="pay-note">
-          لطفاً تا پایان ارسال، صفحه را نبندید.
-        </p>
-      </div>
-    ) : (
-      <label
-        className="upload-btn"
-        style={{ marginTop: 10 }}
-      >
-        <Upload size={14} />
-        آپلود رسید پرداخت
-
-        <input
-          type="file"
-          accept="image/*,.pdf"
-          hidden
-          disabled={
-            
-              {result.type === "buy" && result.status === "در انتظار پرداخت" && (
-  <label className="upload-btn" style={{ marginTop: 10 }}>
-    <Upload size={14} />
-    آپلود رسید پرداخت
-
-    <input
-      type="file"
-      accept="image/*,.pdf"
-      hidden
-      onChange={(e) => {
-        const file = e.target.files?.[0];
-
-        if (file) {
-          onAttachReceipt(result, file);
-        }
-
-        e.target.value = "";
-      }}
-    />
-  </label>
-)}    </div>
       )}
-      
-
-
-          </div>
+    </div>
   );
 }
+        
 /* -------------------------------- Order form ------------------------------- */
 
 function Countdown({ expiresAt, now }) {
