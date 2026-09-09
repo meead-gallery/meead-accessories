@@ -1128,14 +1128,58 @@ function OrderForm({ quote, product, productTitle, weight, setWeight, customer, 
       )}
 
       <div className="field-pair">
-        <label className="field"><span>نام و نام خانوادگی</span>
-          <input type="text" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} placeholder="نام شما" disabled={expired} />
-        </label>
-        <label className="field"><span>شماره تماس</span>
-          <input type="tel" value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} placeholder="09xxxxxxxxx" disabled={expired} />
-        </label>
-      </div>
+  <label className="field">
+    <span>نام</span>
+    <input
+      type="text"
+      value={customer.firstName}
+      onChange={(e) =>
+        setCustomer({ ...customer, firstName: e.target.value })
+      }
+      placeholder="نام"
+      disabled={expired}
+    />
+  </label>
 
+  <label className="field">
+    <span>نام خانوادگی</span>
+    <input
+      type="text"
+      value={customer.lastName}
+      onChange={(e) =>
+        setCustomer({ ...customer, lastName: e.target.value })
+      }
+      placeholder="نام خانوادگی"
+      disabled={expired}
+    />
+  </label>
+
+  <label className="field">
+    <span>شماره تلفن</span>
+    <input
+      type="tel"
+      value={customer.phone}
+      onChange={(e) =>
+        setCustomer({ ...customer, phone: e.target.value })
+      }
+      placeholder="09xxxxxxxxx"
+      disabled={expired}
+    />
+  </label>
+
+  <label className="field">
+    <span>آدرس</span>
+    <input
+      type="text"
+      value={customer.address}
+      onChange={(e) =>
+        setCustomer({ ...customer, address: e.target.value })
+      }
+      placeholder="آدرس کامل"
+      disabled={expired}
+    />
+  </label>
+</div>
       <button className="primary-btn" onClick={onContinue} disabled={!canContinue}>ادامه و مشاهده خلاصه سفارش</button>
     </div>
   );
