@@ -1214,9 +1214,25 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
         </div>
         <div className="calc-row"><span>زمان درخواست</span><span className="mono">{fmtClock(now)}</span></div>
         <div className="calc-row"><span>اعتبار قیمت تا</span><span className="mono">{fmtClock(quote.expiresAt)}</span></div>
-        <div className="calc-row"><span>نام</span><span>{customer.name}</span></div>
-        <div className="calc-row"><span>شماره تماس</span><span className="mono">{customer.phone}</span></div>
-      </div>
+        <div className="calc-row">
+  <span>نام</span>
+  <span>{customer.firstName}</span>
+</div>
+
+<div className="calc-row">
+  <span>نام خانوادگی</span>
+  <span>{customer.lastName}</span>
+</div>
+
+<div className="calc-row">
+  <span>شماره تلفن</span>
+  <span className="mono">{customer.phone}</span>
+</div>
+
+<div className="calc-row">
+  <span>آدرس</span>
+  <span>{customer.address}</span>
+</div>
 
       {quote.mode === "sell" && (
         <div className="sell-warning">
