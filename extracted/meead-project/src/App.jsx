@@ -1288,38 +1288,28 @@ function TrackOrder({ onAttachReceipt, onBack }) {
           accept="image/*,.pdf"
           hidden
           disabled={
-            uploadingReceiptId === result.id &&
-            receiptUploadStatus === "uploading"
-          }
-          onChange={(e) => {
-            const file = e.target.files?.[0];
+            
+              {result.type === "buy" && result.status === "در انتظار پرداخت" && (
+  <label className="upload-btn" style={{ marginTop: 10 }}>
+    <Upload size={14} />
+    آپلود رسید پرداخت
 
-            if (file) {
-              onAttachReceipt(result, file);
-            }
+    <input
+      type="file"
+      accept="image/*,.pdf"
+      hidden
+      onChange={(e) => {
+        const file = e.target.files?.[0];
 
-            e.target.value = "";
-          }}
-        />
-      </label>
-    )}
+        if (file) {
+          onAttachReceipt(result, file);
+        }
 
-    {uploadingReceiptId === result.id &&
-    receiptUploadStatus === "success" && (
-      <p className="pay-note" style={{ color: "#12915B" }}>
-        ✅ رسید با موفقیت ارسال شد.
-      </p>
-    )}
-
-    {uploadingReceiptId === result.id &&
-    receiptUploadStatus === "error" && (
-      <p className="error-text">
-        ارسال رسید ناموفق بود. دوباره تلاش کنید.
-      </p>
-    )}
-  </>
-)}
-                  </div>
+        e.target.value = "";
+      }}
+    />
+  </label>
+)}    </div>
       )}
       
 
