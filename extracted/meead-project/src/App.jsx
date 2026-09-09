@@ -291,8 +291,15 @@ const api = {
       });
       const data = await res.json().catch(()=>({}));
       if (!res.ok || data.ok === false) return {ok:false, reason:data.reason || "آپلود رسید ناموفق بود"};
-      const found = await this.findOrder(order.id, order.phone);
-      return {ok:true, order:found, orders:[]};
+      return {
+  ok: true,
+  order: {
+    ...order,
+    status: data.status || "در انتظار تأیید پرداخت",
+    receiptPath: data.receiptPath || order.receiptPath || null,
+  },
+  orders: [],
+};
     } catch(e) { return {ok:false, reason:"آپلود رسید ناموفق بود"}; }
   },
   async findOrder(code, phone) {
