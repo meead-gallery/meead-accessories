@@ -633,7 +633,12 @@ export default function App() {
   const [view, setView] = useState("home");
   const [quote, setQuote] = useState(null); // {purityKey, mode, pricePerGram, expiresAt}
   const [weight, setWeight] = useState("");
-  const [customer, setCustomer] = useState({ name: "", phone: "" });
+  const [customer, setCustomer] = useState({
+  firstName: "",
+  lastName: "",
+  phone: "",
+  address: "",
+});
   const [lastOrder, setLastOrder] = useState(null);
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPw, setAdminPw] = useState("");
