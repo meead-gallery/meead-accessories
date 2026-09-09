@@ -1233,7 +1233,7 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
   <span>آدرس</span>
   <span>{customer.address}</span>
 </div>
-
+</div>
       {quote.mode === "sell" && (
         <div className="sell-warning">
           ⚠️ توجه: قیمت تعیین‌شده برای فروش حداکثر تا {sellValidityDays} روز معتبر است. لطفاً ساچمه را در این مدت به دست ما برسانید. پس از پایان این مدت، قیمت بر اساس شرایط و قیمت روز محاسبه خواهد شد.
