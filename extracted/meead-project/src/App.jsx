@@ -878,6 +878,7 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   if (file.size > 5 * 1024 * 1024) {
     setUploadingReceiptId(order.id);
     setReceiptUploadStatus("error");
+    setReceiptUploadProgress(0);
     setToast("حجم فایل نباید بیشتر از ۵ مگابایت باشد");
 
     setTimeout(() => {
@@ -885,6 +886,7 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
         id === order.id ? null : id
       );
       setReceiptUploadStatus("idle");
+      setReceiptUploadProgress(0);
     }, 2500);
 
     return null;
@@ -895,31 +897,31 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   setReceiptUploadProgress(0);
   setToast("در حال ارسال رسید… لطفاً صفحه را نبندید.");
 
+  let progressTimer = null;
+
   try {
-    let fakeProgress = 0;
-let progressTimer = null;
+    progressTimer = setInterval(() => {
+      setReceiptUploadProgress((current) => {
+        if (current >= 90) return current;
 
-const startFakeProgress = () => {
-  progressTimer = setInterval(() => {
-    setReceiptUploadProgress((current) => {
-      if (current >= 90) return current;
+        const next =
+          current + Math.floor(Math.random() * 4) + 1;
 
-      const next = current + Math.floor(Math.random() * 4) + 1;
-      return Math.min(next, 90);
-    });
-  }, 180);
-};
+        return Math.min(next, 90);
+      });
+    }, 180);
 
-startFakeProgress();
+    const res = await api.attachReceipt(order, file);
 
-const res = await api.attachReceipt(order, file);
+    if (progressTimer) {
+      clearInterval(progressTimer);
+      progressTimer = null;
+    }
 
-if (progressTimer) {
-  clearInterval(progressTimer);
-}
     if (!res.ok) {
       setReceiptUploadStatus("error");
       setToast(res.reason);
+      setReceiptUploadProgress(0);
 
       setTimeout(() => {
         setUploadingReceiptId((id) =>
@@ -932,8 +934,14 @@ if (progressTimer) {
       return null;
     }
 
-    setLastOrder(res.order);
     setReceiptUploadProgress(100);
+
+    // اجازه می‌دهیم مشتری ۱ ثانیه ۱۰۰٪ را ببیند
+    await new Promise((resolve) =>
+      setTimeout(resolve, 1000)
+    );
+
+    setLastOrder(res.order);
     setReceiptUploadStatus("success");
     setToast("رسید با موفقیت ارسال شد");
 
@@ -943,12 +951,18 @@ if (progressTimer) {
       );
       setReceiptUploadStatus("idle");
       setReceiptUploadProgress(0);
-    }, 3000);
+    }, 2500);
 
     return res.order;
 
   } catch (e) {
+    if (progressTimer) {
+      clearInterval(progressTimer);
+      progressTimer = null;
+    }
+
     setReceiptUploadStatus("error");
+    setReceiptUploadProgress(0);
     setToast("آپلود رسید ناموفق بود");
 
     setTimeout(() => {
