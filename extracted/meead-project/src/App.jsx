@@ -303,7 +303,14 @@ const api = {
     return {
       id:o.order_number || code.trim(), dbId:Number(o.id), type:o.type, purity:o.purity, weight:Number(o.weight),
       pricePerGram:Number(o.price_per_gram ?? 0), total:o.total == null ? null : Number(o.total), approxTotal:o.approx_total == null ? null : Number(o.approx_total),
-      name:o.name, phone:o.phone, createdAt:o.created_at, lockExpiresAt:o.lock_expires_at, sellValidUntil:o.sell_valid_until,
+      name:o.name,
+firstName:o.first_name || "",
+lastName:o.last_name || "",
+phone:o.phone,
+address:o.address || "",
+createdAt:o.created_at,
+lockExpiresAt:o.lock_expires_at,
+sellValidUntil:o.sell_valid_until,
       bankSnapshot:o.bank_snapshot || {}, receiptPath:o.receipt_url || null, receiptImage:null, status:o.status, adminNote:o.admin_note || "",
       finalWeight:o.final_weight == null ? null : Number(o.final_weight), finalPricePerGram:o.final_price_per_gram == null ? null : Number(o.final_price_per_gram), finalTotal:o.final_total == null ? null : Number(o.final_total),
       history:(o.history || []).map(h=>({status:h.status,time:h.created_at || h.time}))
