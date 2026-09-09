@@ -809,12 +809,66 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   setView(res.order.type === "buy" ? "buy-payment" : "sell-submitted");
 };
 
-  const attachReceipt = async (order, file) => {
+
+    const attachReceipt = async (order, file) => {
+  if (!file) return null;
+
+  if (file.size > 5 * 1024 * 1024) {
+    setUploadingReceiptId(order.id);
+    setReceiptUploadStatus("error");
+    setToast("حجم فایل نباید بیشتر از ۵ مگابایت باشد");
+
+    setTimeout(() => {
+      setUploadingReceiptId((id) => id === order.id ? null : id);
+      setReceiptUploadStatus("idle");
+    }, 2500);
+
+    return null;
+  }
+
+  setUploadingReceiptId(order.id);
+  setReceiptUploadStatus("uploading");
+  setToast("در حال ارسال رسید… لطفاً صفحه را نبندید.");
+
+  try {
     const res = await api.attachReceipt(order, file);
-    if (!res.ok) return setToast(res.reason);
+
+    if (!res.ok) {
+      setReceiptUploadStatus("error");
+      setToast(res.reason);
+
+      setTimeout(() => {
+        setUploadingReceiptId((id) => id === order.id ? null : id);
+        setReceiptUploadStatus("idle");
+      }, 2500);
+
+      return null;
+    }
+
     setLastOrder(res.order);
-    setToast("رسید ارسال شد");
-  };
+    setReceiptUploadStatus("success");
+    setToast("رسید با موفقیت ارسال شد");
+
+    setTimeout(() => {
+      setUploadingReceiptId((id) => id === order.id ? null : id);
+      setReceiptUploadStatus("idle");
+    }, 3000);
+
+    return res.order;
+
+  } catch (e) {
+    setReceiptUploadStatus("error");
+    setToast("آپلود رسید ناموفق بود");
+
+    setTimeout(() => {
+      setUploadingReceiptId((id) => id === order.id ? null : id);
+      setReceiptUploadStatus("idle");
+    }, 2500);
+
+    return null;
+  }
+};
+  
 
   const tryAdminLogin = async () => {
     const res = await api.login(adminEmail, adminPw);
