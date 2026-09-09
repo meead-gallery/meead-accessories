@@ -1240,85 +1240,72 @@ function TrackOrder({ onAttachReceipt, onBack }) {
           </div>
 
           {result.type === "buy" && result.status === "در انتظار پرداخت" && (
-  <label
-    className={`upload-btn ${
-      uploadingReceiptId === result.id &&
-      receiptUploadStatus === "uploading"
-        ? "upload-btn-active"
-        : ""
-    }`}
-    style={{ marginTop: 10 }}
-  >
+  <>
     {uploadingReceiptId === result.id &&
     receiptUploadStatus === "uploading" ? (
-      <>
-        <span className="upload-spinner" />
-        در حال ارسال رسید…
-      </>
+      <div className="receipt-upload-progress">
+        <div className="receipt-upload-progress-top">
+          <span>در حال ارسال رسید…</span>
+          <span>{receiptUploadProgress}٪</span>
+        </div>
+
+        <div className="receipt-upload-progress-track">
+          <div
+            className="receipt-upload-progress-fill"
+            style={{
+              width: `${receiptUploadProgress}%`,
+            }}
+          />
+        </div>
+
+        <p className="pay-note">
+          لطفاً تا پایان ارسال، صفحه را نبندید.
+        </p>
+      </div>
     ) : (
-      <>
+      <label
+        className="upload-btn"
+        style={{ marginTop: 10 }}
+      >
         <Upload size={14} />
         آپلود رسید پرداخت
-      </>
-    )}
 
-    <input
-      type="file"
-      accept="image/*,.pdf"
-      hidden
-      disabled={
-        uploadingReceiptId === result.id &&
-        receiptUploadStatus === "uploading"
-      }
-      onChange={(e) => {
-        const file = e.target.files?.[0];
+        <input
+          type="file"
+          accept="image/*,.pdf"
+          hidden
+          disabled={
+            uploadingReceiptId === result.id &&
+            receiptUploadStatus === "uploading"
+          }
+          onChange={(e) => {
+            const file = e.target.files?.[0];
 
-        if (file) {
-          onAttachReceipt(result, file);
-        }
+            if (file) {
+              onAttachReceipt(result, file);
+            }
 
-        e.target.value = "";
-      }}
-    />
-  </label>
-)}
-
-{uploadingReceiptId === result.id &&
-  receiptUploadStatus === "uploading" && (
-    <div className="receipt-upload-progress">
-      <div className="receipt-upload-progress-top">
-        <span>در حال ارسال رسید…</span>
-        <span>{receiptUploadProgress}٪</span>
-      </div>
-
-      <div className="receipt-upload-progress-track">
-        <div
-          className="receipt-upload-progress-fill"
-          style={{
-            width: `${receiptUploadProgress}%`,
+            e.target.value = "";
           }}
         />
-      </div>
+      </label>
+    )}
 
-      <p className="pay-note">
-        لطفاً تا پایان ارسال، صفحه را نبندید.
+    {uploadingReceiptId === result.id &&
+    receiptUploadStatus === "success" && (
+      <p className="pay-note" style={{ color: "#12915B" }}>
+        ✅ رسید با موفقیت ارسال شد.
       </p>
-    </div>
+    )}
+
+    {uploadingReceiptId === result.id &&
+    receiptUploadStatus === "error" && (
+      <p className="error-text">
+        ارسال رسید ناموفق بود. دوباره تلاش کنید.
+      </p>
+    )}
+  </>
 )}
-
-{uploadingReceiptId === result.id &&
-  receiptUploadStatus === "success" && (
-    <p className="pay-note" style={{ color: "#12915B" }}>
-      ✅ رسید با موفقیت ارسال شد.
-    </p>
-  )}
-
-{uploadingReceiptId === result.id &&
-  receiptUploadStatus === "error" && (
-    <p className="error-text">
-      ارسال رسید ناموفق بود. دوباره تلاش کنید.
-    </p>
-  )}
                   </div>
       )}
       
