@@ -896,14 +896,27 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   setToast("در حال ارسال رسید… لطفاً صفحه را نبندید.");
 
   try {
-    const res = await api.attachReceipt(
-      order,
-      file,
-      (percent) => {
-        setReceiptUploadProgress(percent);
-      }
-    );
+    let fakeProgress = 0;
+let progressTimer = null;
 
+const startFakeProgress = () => {
+  progressTimer = setInterval(() => {
+    setReceiptUploadProgress((current) => {
+      if (current >= 90) return current;
+
+      const next = current + Math.floor(Math.random() * 4) + 1;
+      return Math.min(next, 90);
+    });
+  }, 180);
+};
+
+startFakeProgress();
+
+const res = await api.attachReceipt(order, file);
+
+if (progressTimer) {
+  clearInterval(progressTimer);
+}
     if (!res.ok) {
       setReceiptUploadStatus("error");
       setToast(res.reason);
