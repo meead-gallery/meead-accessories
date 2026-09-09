@@ -880,7 +880,9 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     setToast("حجم فایل نباید بیشتر از ۵ مگابایت باشد");
 
     setTimeout(() => {
-      setUploadingReceiptId((id) => id === order.id ? null : id);
+      setUploadingReceiptId((id) =>
+        id === order.id ? null : id
+      );
       setReceiptUploadStatus("idle");
     }, 2500);
 
@@ -889,30 +891,44 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
 
   setUploadingReceiptId(order.id);
   setReceiptUploadStatus("uploading");
+  setReceiptUploadProgress(0);
   setToast("در حال ارسال رسید… لطفاً صفحه را نبندید.");
 
   try {
-    const res = await api.attachReceipt(order, file);
+    const res = await api.attachReceipt(
+      order,
+      file,
+      (percent) => {
+        setReceiptUploadProgress(percent);
+      }
+    );
 
     if (!res.ok) {
       setReceiptUploadStatus("error");
       setToast(res.reason);
 
       setTimeout(() => {
-        setUploadingReceiptId((id) => id === order.id ? null : id);
+        setUploadingReceiptId((id) =>
+          id === order.id ? null : id
+        );
         setReceiptUploadStatus("idle");
+        setReceiptUploadProgress(0);
       }, 2500);
 
       return null;
     }
 
     setLastOrder(res.order);
+    setReceiptUploadProgress(100);
     setReceiptUploadStatus("success");
     setToast("رسید با موفقیت ارسال شد");
 
     setTimeout(() => {
-      setUploadingReceiptId((id) => id === order.id ? null : id);
+      setUploadingReceiptId((id) =>
+        id === order.id ? null : id
+      );
       setReceiptUploadStatus("idle");
+      setReceiptUploadProgress(0);
     }, 3000);
 
     return res.order;
@@ -922,8 +938,11 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     setToast("آپلود رسید ناموفق بود");
 
     setTimeout(() => {
-      setUploadingReceiptId((id) => id === order.id ? null : id);
+      setUploadingReceiptId((id) =>
+        id === order.id ? null : id
+      );
       setReceiptUploadStatus("idle");
+      setReceiptUploadProgress(0);
     }, 2500);
 
     return null;
