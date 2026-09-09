@@ -1,0 +1,55 @@
+name: Apply receipt upload UX fix
+
+on: push
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch receipt upload UX
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('extracted/meead-project/src/App.jsx')
+          s = p.read_text(encoding='utf-8')
+
+          def replace(old, new, label):
+              global s
+              if old not in s:
+                  raise SystemExit(f'{label} not found')
+              s = s.replace(old, new, 1)
+
+          replace('''  const [toast, setToast] = useState("");\n  const [now, setNow] = useState(Date.now());''', '''  const [toast, setToast] = useState("");\n  const [now, setNow] = useState(Date.now());\n  const [uploadingReceiptId, setUploadingReceiptId] = useState(null);\n  const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");''', 'App upload state')
+
+          replace('''  const attachReceipt = async (order, file) => {\n    const res = await api.attachReceipt(order, file);\n    if (!res.ok) return setToast(res.reason);\n    setLastOrder(res.order);\n    setToast("رسید ارسال شد");\n  };''', '''  const attachReceipt = async (order, file) => {\n    if (!file) return null;\n    if (file.size > 5 * 1024 * 1024) {\n      setUploadingReceiptId(order.id);\n      setReceiptUploadStatus("error");\n      setToast("حجم فایل نباید بیشتر از ۵ مگابایت باشد");\n      setTimeout(() => { setUploadingReceiptId(null); setReceiptUploadStatus("idle"); }, 2500);\n      return null;\n    }\n    setUploadingReceiptId(order.id);\n    setReceiptUploadStatus("uploading");\n    setToast("در حال ارسال رسید… لطفاً صفحه را نبندید.");\n    try {\n      const res = await api.attachReceipt(order, file);\n      if (!res.ok) {\n        setReceiptUploadStatus("error");\n        setToast(res.reason);\n        setTimeout(() => { setUploadingReceiptId(null); setReceiptUploadStatus("idle"); }, 2500);\n        return null;\n      }\n      setLastOrder(res.order);\n      setReceiptUploadStatus("success");\n      setToast("رسید با موفقیت ارسال شد");\n      setTimeout(() => { setUploadingReceiptId(null); setReceiptUploadStatus("idle"); }, 3000);\n      return res.order;\n    } catch (e) {\n      setReceiptUploadStatus("error");\n      setToast("آپلود رسید ناموفق بود");\n      setTimeout(() => { setUploadingReceiptId(null); setReceiptUploadStatus("idle"); }, 2500);\n      return null;\n    }\n  };''', 'App attachReceipt')
+
+          replace('function TrackOrder({ onAttachReceipt, onBack }) {', 'function TrackOrder({ onAttachReceipt, onBack, uploadingReceiptId, receiptUploadStatus }) {', 'TrackOrder props')
+          replace('''  const search = async () => {\n    const found = await api.findOrder(code, phone);\n    setResult(found);\n    setSearched(true);\n  };\n\n  return (''', '''  const search = async () => {\n    const found = await api.findOrder(code, phone);\n    setResult(found);\n    setSearched(true);\n  };\n\n  const handleAttachReceipt = async (order, file) => {\n    const updated = await onAttachReceipt(order, file);\n    if (updated) setResult(updated);\n  };\n\n  return (''', 'TrackOrder handler')
+
+          replace('''          {result.type === "buy" && result.status === "در انتظار پرداخت" && (\n            <label className="upload-btn" style={{ marginTop: 10 }}>\n              <Upload size={14} /> آپلود رسید پرداخت\n              <input type="file" accept="image/*,.pdf" hidden onChange={(e) => e.target.files[0] && onAttachReceipt(result, e.target.files[0])} />\n            </label>\n          )}''', '''          {result.type === "buy" && result.status === "در انتظار پرداخت" && (() => {\n            const uploading = uploadingReceiptId === result.id && receiptUploadStatus === "uploading";\n            return (\n              <label className={`upload-btn ${uploading ? "upload-btn-active" : ""}`} style={{ marginTop: 10 }}>\n                {uploading ? <><span className="upload-spinner" /> در حال ارسال رسید…</> : <><Upload size={14} /> آپلود رسید پرداخت</>}\n                <input type="file" accept="image/*,.pdf" hidden disabled={uploading} onChange={(e) => { const file = e.target.files?.[0]; if (file) handleAttachReceipt(result, file); e.target.value = ""; }} />\n              </label>\n            );\n          })()}\n          {uploadingReceiptId === result.id && receiptUploadStatus === "uploading" && <p className="pay-note">لطفاً تا پایان ارسال، صفحه را نبندید.</p>}\n          {uploadingReceiptId === result.id && receiptUploadStatus === "success" && <p className="pay-note" style={{ color: "#12915B" }}>✅ رسید با موفقیت ارسال شد.</p>}\n          {uploadingReceiptId === result.id && receiptUploadStatus === "error" && <p className="error-text">ارسال رسید ناموفق بود. دوباره تلاش کنید.</p>}''', 'TrackOrder upload UI')
+
+          replace('function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {', 'function BuyPayment({ order, onAttachReceipt, onDone, setToast, uploadingReceiptId, receiptUploadStatus }) {', 'BuyPayment props')
+          replace('''        <p className="pay-note">پس از واریز، تصویر رسید را آپلود کنید تا سفارش شما بررسی شود.</p>\n        <label className="upload-btn">\n          <Upload size={14} /> آپلود رسید پرداخت\n          <input type="file" accept="image/*,.pdf" hidden onChange={(e) => e.target.files[0] && onAttachReceipt(e.target.files[0])} />\n        </label>\n        {order.receiptImage && <span className="pay-note">✅ رسید ارسال شد — وضعیت: {order.status}</span>}''', '''        <p className="pay-note">پس از واریز، تصویر رسید را آپلود کنید تا سفارش شما بررسی شود.</p>\n        {(() => {\n          const uploading = uploadingReceiptId === order.id && receiptUploadStatus === "uploading";\n          return (\n            <label className={`upload-btn ${uploading ? "upload-btn-active" : ""}`}>\n              {uploading ? <><span className="upload-spinner" /> در حال ارسال رسید…</> : <><Upload size={14} /> آپلود رسید پرداخت</>}\n              <input type="file" accept="image/*,.pdf" hidden disabled={uploading} onChange={(e) => { const file = e.target.files?.[0]; if (file) onAttachReceipt(file); e.target.value = ""; }} />\n            </label>\n          );\n        })()}\n        {uploadingReceiptId === order.id && receiptUploadStatus === "uploading" && <span className="pay-note">لطفاً تا پایان ارسال، صفحه را نبندید.</span>}\n        {uploadingReceiptId === order.id && receiptUploadStatus === "success" && <span className="pay-note" style={{ color: "#12915B" }}>✅ رسید با موفقیت ارسال شد — وضعیت: {order.status}</span>}\n        {uploadingReceiptId === order.id && receiptUploadStatus === "error" && <span className="error-text">ارسال رسید ناموفق بود. دوباره تلاش کنید.</span>}''', 'BuyPayment upload UI')
+
+          replace('{view === "track" && <TrackOrder onAttachReceipt={attachReceipt} onBack={() => setView("home")} />}', '{view === "track" && <TrackOrder onAttachReceipt={attachReceipt} onBack={() => setView("home")} uploadingReceiptId={uploadingReceiptId} receiptUploadStatus={receiptUploadStatus} />}', 'TrackOrder usage')
+          replace('<BuyPayment order={lastOrder} onAttachReceipt={(f) => attachReceipt(lastOrder, f)} onDone={() => setView("home")} setToast={setToast} />', '<BuyPayment order={lastOrder} onAttachReceipt={(f) => attachReceipt(lastOrder, f)} onDone={() => setView("home")} setToast={setToast} uploadingReceiptId={uploadingReceiptId} receiptUploadStatus={receiptUploadStatus} />', 'BuyPayment usage')
+
+          replace('''      .upload-btn { display:flex; align-items:center; justify-content:center; gap:6px; background:#F6F7F8; border:1px dashed rgba(30,40,50,0.2); border-radius:10px; padding: 11px; font-size:12.5px; color:#667085; cursor:pointer; width:100%; }''', '''      .upload-btn { display:flex; align-items:center; justify-content:center; gap:6px; background:#F6F7F8; border:1px dashed rgba(30,40,50,0.2); border-radius:10px; padding: 11px; font-size:12.5px; color:#667085; cursor:pointer; width:100%; transition:0.15s; }\n      .upload-btn-active { border-color:#A9803A; background:rgba(169,128,58,0.08); cursor:wait; }\n      .upload-spinner { width:14px; height:14px; border:2px solid rgba(169,128,58,0.25); border-top-color:#A9803A; border-radius:50%; animation:meead-spin 0.8s linear infinite; display:inline-block; }\n      @keyframes meead-spin { to { transform:rotate(360deg); } }''', 'upload CSS')
+
+          p.write_text(s, encoding='utf-8')
+          print('receipt upload UX patched')
+          PY
+
+      - name: Commit patch and remove temporary workflows
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add extracted/meead-project/src/App.jsx
+          git commit -m "fix: receipt upload UX"
+          git rm -f .github/workflows/apply-receipt-ux-fix.yml .github/workflows/fix-receipt-upload-ux.yml
+          git commit -m "chore: remove temporary receipt UX workflows"
+          git push
