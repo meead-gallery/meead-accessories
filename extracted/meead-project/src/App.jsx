@@ -1258,10 +1258,26 @@ function TrackOrder({ onAttachReceipt, onBack }) {
 
 {uploadingReceiptId === result.id &&
   receiptUploadStatus === "uploading" && (
-    <p className="pay-note">
-      لطفاً تا پایان ارسال، صفحه را نبندید.
-    </p>
-  )}
+    <div className="receipt-upload-progress">
+      <div className="receipt-upload-progress-top">
+        <span>در حال ارسال رسید…</span>
+        <span>{receiptUploadProgress}٪</span>
+      </div>
+
+      <div className="receipt-upload-progress-track">
+        <div
+          className="receipt-upload-progress-fill"
+          style={{
+            width: `${receiptUploadProgress}%`,
+          }}
+        />
+      </div>
+
+      <p className="pay-note">
+        لطفاً تا پایان ارسال، صفحه را نبندید.
+      </p>
+    </div>
+)}
 
 {uploadingReceiptId === result.id &&
   receiptUploadStatus === "success" && (
