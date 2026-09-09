@@ -2711,6 +2711,30 @@ function GlobalStyles() {
 
       .upload-btn { display:flex; align-items:center; justify-content:center; gap:6px; background:#F6F7F8; border:1px dashed rgba(30,40,50,0.2); border-radius:10px; padding: 11px; font-size:12.5px; color:#667085; cursor:pointer; width:100%; }
 
+
+
+
+.upload-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(30, 40, 50, 0.18);
+  border-top-color: #667085;
+  border-radius: 50%;
+  animation: upload-spin 0.7s linear infinite;
+  flex: 0 0 auto;
+}
+
+.upload-btn-active {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+@keyframes upload-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
       .admin-login { align-items:center; text-align:center; }
 
       .admin-header { display:flex; justify-content:space-between; align-items:center; }
