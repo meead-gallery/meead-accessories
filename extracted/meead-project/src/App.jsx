@@ -281,27 +281,81 @@ const api = {
     return { ok:true, order, orders:[], settings:mapSettings(pub || {}) };
   },
   async attachReceipt(order, file) {
-    try {
-      const fd = new FormData();
-      fd.append("orderNumber", order.id);
-      fd.append("phone", order.phone);
-      fd.append("file", file);
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/upload-receipt`, {
-        method:"POST", headers:{ apikey:SUPABASE_PUBLISHABLE_KEY, Authorization:`Bearer ${SUPABASE_PUBLISHABLE_KEY}` }, body:fd
-      });
-      const data = await res.json().catch(()=>({}));
-      if (!res.ok || data.ok === false) return {ok:false, reason:data.reason || "آپلود رسید ناموفق بود"};
-      return {
-  ok: true,
-  order: {
-    ...order,
-    status: data.status || "در انتظار تأیید پرداخت",
-    receiptPath: data.receiptPath || order.receiptPath || null,
-  },
-  orders: [],
-};
-    } catch(e) { return {ok:false, reason:"آپلود رسید ناموفق بود"}; }
-  },
+  async attachReceipt(order, file, onProgress) {
+  try {
+    const fd = new FormData();
+    fd.append("orderNumber", order.id);
+    fd.append("phone", order.phone);
+    fd.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+
+    const result = await new Promise((resolve) => {
+      xhr.open("POST", `${SUPABASE_URL}/functions/v1/upload-receipt`);
+
+      xhr.setRequestHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
+      xhr.setRequestHeader(
+        "Authorization",
+        `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+      );
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          const percent = Math.round(
+            (event.loaded / event.total) * 100
+          );
+          onProgress(percent);
+        }
+      };
+
+      xhr.onload = async () => {
+        let data = {};
+
+        try {
+          data = JSON.parse(xhr.responseText || "{}");
+        } catch (e) {}
+
+        if (xhr.status < 200 || xhr.status >= 300 || data.ok === false) {
+          resolve({
+            ok: false,
+            reason: data.reason || "آپلود رسید ناموفق بود",
+          });
+          return;
+        }
+
+        resolve({
+          ok: true,
+          order: {
+            ...order,
+            status:
+              data.status || "در انتظار تأیید پرداخت",
+            receiptPath:
+              data.receiptPath ||
+              order.receiptPath ||
+              null,
+          },
+          orders: [],
+        });
+      };
+
+      xhr.onerror = () => {
+        resolve({
+          ok: false,
+          reason: "آپلود رسید ناموفق بود",
+        });
+      };
+
+      xhr.send(fd);
+    });
+
+    return result;
+  } catch (e) {
+    return {
+      ok: false,
+      reason: "آپلود رسید ناموفق بود",
+    };
+  }
+},
   async findOrder(code, phone) {
     const { data, error } = await supabase.rpc("find_order", { p_order_number:code.trim(), p_phone:phone.trim() });
     if (error || !data?.ok || !data?.order) return null;
