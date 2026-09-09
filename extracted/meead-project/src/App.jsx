@@ -261,7 +261,14 @@ const api = {
     return data;
   },
   async submitOrder(quote, weight, customer) {
-    const { data, error } = await supabase.rpc("submit_order", { p_quote: quote, p_weight:Number(weight), p_name:customer.name, p_phone:customer.phone });
+    const { data, error } = await supabase.rpc("submit_order", {
+  p_quote: quote,
+  p_weight: Number(weight),
+  p_first_name: customer.firstName,
+  p_last_name: customer.lastName,
+  p_phone: customer.phone,
+  p_address: customer.address,
+});
     if (error) return { ok:false, reason:error.message || "ثبت سفارش ناموفق بود" };
     if (!data?.ok) return data || {ok:false, reason:"ثبت سفارش ناموفق بود"};
     const row = data.order || data;
