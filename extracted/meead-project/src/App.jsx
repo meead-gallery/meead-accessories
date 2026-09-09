@@ -1248,7 +1248,10 @@ function TrackOrder({ onAttachReceipt, onBack }) {
             ))}
           </div>
 
-          {result.type === "buy" && result.status === "در انتظار پرداخت" && (
+          {result.type === "buy" &&
+  (result.status === "در انتظار پرداخت" ||
+    (uploadingReceiptId === result.id &&
+      receiptUploadStatus === "uploading")) && (
   <>
     {uploadingReceiptId === result.id &&
     receiptUploadStatus === "uploading" ? (
