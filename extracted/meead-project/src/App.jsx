@@ -1197,7 +1197,12 @@ function TrackOrder({ onAttachReceipt, onBack }) {
   )}
                   </div>
       )}
+      
 
+
+          </div>
+  );
+}
 /* -------------------------------- Order form ------------------------------- */
 
 function Countdown({ expiresAt, now }) {
