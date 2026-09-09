@@ -1605,52 +1605,547 @@ function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onN
     </div>
   );
 }
+
 function TabOrders({ orders, setOrders }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-
-  const filtered = orders.filter((o) =>
-    (typeFilter === "all" || o.type === typeFilter) && (statusFilter === "all" || o.status === statusFilter)
-  );
-
-  const handleStatusChange = async (id, status) => setOrders(await api.updateOrderStatus(id, status));
-  const handleRecordWeight = async (id, weight) => setOrders(await api.recordFinalWeight(id, weight));
-  const handleFinalizeAmount = async (id, price) => setOrders(await api.finalizeSellAmount(id, price));
-  const handleNoteChange = async (id, note) => setOrders(await api.setOrderNote(id, note));
+  const [dateFilter, setDateFilter] = useState("all");
+  const [customDate, setCustomDate] = useState("");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [openDays, setOpenDays] = useState(new Set());
+  const pageSize = 50;
 
   const allStatuses = [...new Set([...BUY_STATUSES, ...SELL_STATUSES])];
 
+  const dayKey = (value) => {
+    const d = new Date(value);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  const todayKey = dayKey(new Date());
+
+  const startOfWeek = () => {
+    const d = new Date();
+    const day = d.getDay();
+    const daysFromSaturday = (day + 1) % 7;
+
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - daysFromSaturday);
+
+    return d;
+  };
+
+  const startOfMonth = () => {
+    const d = new Date();
+
+    d.setHours(0, 0, 0, 0);
+    d.setDate(1);
+
+    return d;
+  };
+
+  const matchesDate = (order) => {
+    const d = new Date(order.createdAt);
+
+    if (dateFilter === "all") return true;
+
+    if (dateFilter === "today") {
+      return dayKey(d) === todayKey;
+    }
+
+    if (dateFilter === "week") {
+      return d >= startOfWeek();
+    }
+
+    if (dateFilter === "month") {
+      return d >= startOfMonth();
+    }
+
+    if (dateFilter === "custom") {
+      return !customDate || dayKey(d) === customDate;
+    }
+
+    return true;
+  };
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const filtered = orders
+    .filter((o) =>
+      (typeFilter === "all" || o.type === typeFilter) &&
+      (statusFilter === "all" || o.status === statusFilter) &&
+      matchesDate(o) &&
+      (
+        !normalizedQuery ||
+        [
+          o.id,
+          o.name,
+          o.firstName,
+          o.lastName,
+          o.phone,
+          o.address
+        ]
+          .filter(Boolean)
+          .some((v) =>
+            String(v).toLowerCase().includes(normalizedQuery)
+          )
+      )
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filtered.length / pageSize)
+  );
+
+  const safePage = Math.min(page, totalPages);
+
+  const pageOrders = filtered.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    typeFilter,
+    statusFilter,
+    dateFilter,
+    customDate,
+    query
+  ]);
+
+  const grouped = pageOrders.reduce((acc, order) => {
+    const key = dayKey(order.createdAt);
+
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+
+    acc[key].push(order);
+
+    return acc;
+  }, {});
+
+  const toggleDay = (key) => {
+    setOpenDays((prev) => {
+      const next = new Set(prev);
+
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+
+      return next;
+    });
+  };
+
+  const handleStatusChange = async (id, status) => {
+    setOrders(
+      await api.updateOrderStatus(id, status)
+    );
+  };
+
+  const handleRecordWeight = async (id, weight) => {
+    setOrders(
+      await api.recordFinalWeight(id, weight)
+    );
+  };
+
+  const handleFinalizeAmount = async (id, price) => {
+    setOrders(
+      await api.finalizeSellAmount(id, price)
+    );
+  };
+
+  const handleNoteChange = async (id, note) => {
+    setOrders(
+      await api.setOrderNote(id, note)
+    );
+  };
+
+  const labelForDay = (key) => {
+    const [y, m, d] = key
+      .split("-")
+      .map(Number);
+
+    const date = new Date(
+      y,
+      m - 1,
+      d
+    );
+
+    const label = date.toLocaleDateString(
+      "fa-IR",
+      {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }
+    );
+
+    if (key === todayKey) {
+      return `امروز — ${label}`;
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(
+      yesterday.getDate() - 1
+    );
+
+    if (key === dayKey(yesterday)) {
+      return `دیروز — ${label}`;
+    }
+
+    return label;
+  };
+
   return (
-    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
-      <div className="admin-grid">
-        <label className="field"><span>نوع</span>
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-            <option value="all">همه</option><option value="buy">خرید</option><option value="sell">فروش</option>
-          </select>
-        </label>
-        <label className="field"><span>وضعیت</span>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">همه</option>
-            {allStatuses.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </label>
-      </div>
-      <div className="orders-list">
-        {filtered.length === 0 && <p className="pay-note">سفارشی یافت نشد.</p>}
-        {filtered.map((o) => (
-          <OrderRow
-            key={o.id} order={o}
-            onStatusChange={handleStatusChange}
-            onRecordWeight={handleRecordWeight}
-            onFinalizeAmount={handleFinalizeAmount}
-            onNoteChange={handleNoteChange}
+    <div
+      className="admin-section"
+      style={{
+        borderTop: "none",
+        paddingTop: 0
+      }}
+    >
+
+      {/* Filters */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 8,
+          marginBottom: 10
+        }}
+      >
+
+        <label
+          className="field"
+          style={{ margin: 0 }}
+        >
+          <span>جستجوی سفارش</span>
+
+          <input
+            value={query}
+            onChange={(e) =>
+              setQuery(e.target.value)
+            }
+            placeholder="کد، نام یا تلفن"
           />
-        ))}
+        </label>
+
+        <label
+          className="field"
+          style={{ margin: 0 }}
+        >
+          <span>نوع</span>
+
+          <select
+            value={typeFilter}
+            onChange={(e) =>
+              setTypeFilter(e.target.value)
+            }
+          >
+            <option value="all">همه</option>
+            <option value="buy">خرید</option>
+            <option value="sell">فروش</option>
+          </select>
+        </label>
+
+        <label
+          className="field"
+          style={{ margin: 0 }}
+        >
+          <span>وضعیت</span>
+
+          <select
+            value={statusFilter}
+            onChange={(e) =>
+              setStatusFilter(e.target.value)
+            }
+          >
+            <option value="all">همه</option>
+
+            {allStatuses.map((s) => (
+              <option
+                key={s}
+                value={s}
+              >
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label
+          className="field"
+          style={{ margin: 0 }}
+        >
+          <span>بازه زمانی</span>
+
+          <select
+            value={dateFilter}
+            onChange={(e) =>
+              setDateFilter(e.target.value)
+            }
+          >
+            <option value="all">
+              همه سفارش‌ها
+            </option>
+
+            <option value="today">
+              امروز
+            </option>
+
+            <option value="week">
+              این هفته
+            </option>
+
+            <option value="month">
+              این ماه
+            </option>
+
+            <option value="custom">
+              انتخاب تاریخ
+            </option>
+          </select>
+        </label>
+
       </div>
+
+      {/* Custom date */}
+      {dateFilter === "custom" && (
+        <label
+          className="field"
+          style={{ marginBottom: 10 }}
+        >
+          <span>تاریخ موردنظر</span>
+
+          <input
+            type="date"
+            value={customDate}
+            onChange={(e) =>
+              setCustomDate(e.target.value)
+            }
+          />
+        </label>
+      )}
+
+      {/* Result count */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 10
+        }}
+      >
+        <span className="pay-note">
+          {filtered.length.toLocaleString("fa-IR")}
+          {" "}سفارش
+        </span>
+
+        <span className="pay-note">
+          نمایش{" "}
+          {filtered.length
+            ? (
+                (safePage - 1) *
+                  pageSize +
+                1
+              ).toLocaleString("fa-IR")
+            : "۰"}
+          {"–"}
+          {Math.min(
+            safePage * pageSize,
+            filtered.length
+          ).toLocaleString("fa-IR")}
+          {" "}از{" "}
+          {filtered.length.toLocaleString("fa-IR")}
+        </span>
+      </div>
+
+      {/* Orders */}
+      <div className="orders-list">
+
+        {filtered.length === 0 && (
+          <p className="pay-note">
+            سفارشی با این فیلترها یافت نشد.
+          </p>
+        )}
+
+        {Object.entries(grouped).map(
+          ([key, dayOrders]) => {
+
+            const isOpen =
+              key === todayKey ||
+              openDays.has(key) ||
+              !!query.trim() ||
+              dateFilter === "custom";
+
+            return (
+              <div
+                key={key}
+                style={{ marginBottom: 10 }}
+              >
+
+                {/* Date header */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    toggleDay(key)
+                  }
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
+                    padding: "10px 12px",
+                    border:
+                      "1px solid rgba(127,127,127,.2)",
+                    borderRadius: 10,
+                    background:
+                      "transparent",
+                    color: "inherit",
+                    cursor: "pointer",
+                    font: "inherit"
+                  }}
+                >
+                  <span
+                    style={{
+                      fontWeight: 700
+                    }}
+                  >
+                    {isOpen
+                      ? "⌄"
+                      : "›"}{" "}
+                    {labelForDay(key)}
+                  </span>
+
+                  <span className="pay-note">
+                    {dayOrders.length.toLocaleString(
+                      "fa-IR"
+                    )}
+                    {" "}سفارش
+                  </span>
+                </button>
+
+                {/* Orders of this date */}
+                {isOpen &&
+                  dayOrders.map((o) => (
+                    <OrderRow
+                      key={o.id}
+                      order={o}
+                      onStatusChange={
+                        handleStatusChange
+                      }
+                      onRecordWeight={
+                        handleRecordWeight
+                      }
+                      onFinalizeAmount={
+                        handleFinalizeAmount
+                      }
+                      onNoteChange={
+                        handleNoteChange
+                      }
+                    />
+                  ))}
+
+              </div>
+            );
+          }
+        )}
+
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 6,
+            marginTop: 12,
+            flexWrap: "wrap"
+          }}
+        >
+
+          <button
+            className="ghost-btn small-btn"
+            disabled={safePage === 1}
+            onClick={() =>
+              setPage(
+                Math.max(
+                  1,
+                  safePage - 1
+                )
+              )
+            }
+          >
+            قبلی
+          </button>
+
+          {Array.from(
+            {
+              length: totalPages
+            },
+            (_, i) => i + 1
+          )
+            .slice(
+              Math.max(
+                0,
+                safePage - 3
+              ),
+              safePage + 2
+            )
+            .map((p) => (
+              <button
+                key={p}
+                className={
+                  p === safePage
+                    ? "primary-btn small-btn"
+                    : "ghost-btn small-btn"
+                }
+                onClick={() =>
+                  setPage(p)
+                }
+              >
+                {p}
+              </button>
+            ))}
+
+          <button
+            className="ghost-btn small-btn"
+            disabled={
+              safePage === totalPages
+            }
+            onClick={() =>
+              setPage(
+                Math.min(
+                  totalPages,
+                  safePage + 1
+                )
+              )
+            }
+          >
+            بعدی
+          </button>
+
+        </div>
+      )}
+
     </div>
   );
 }
-
 function TabCustomers({ orders }) {
   const map = {};
   orders.forEach((o) => {
