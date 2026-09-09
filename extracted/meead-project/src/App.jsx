@@ -758,7 +758,15 @@ export default function App() {
   const product = quote ? settings.products[quote.purityKey] : null;
   const productTitle = quote ? PRODUCTS.find((p) => p.key === quote.purityKey)?.title : "";
   const weightOutOfRange = quote && product && weight && (Number(weight) < product.minWeight || Number(weight) > product.maxWeight);
-  const canContinue = quote && !quoteExpired && !weightOutOfRange && Number(weight) > 0 && customer.name.trim() && customer.phone.trim();
+  const canContinue =
+  quote &&
+  !quoteExpired &&
+  !weightOutOfRange &&
+  Number(weight) > 0 &&
+  customer.firstName.trim() &&
+  customer.lastName.trim() &&
+  customer.phone.trim() &&
+  customer.address.trim();
 
   const goToSummary = () => { if (canContinue) setView("order-summary"); };
 
