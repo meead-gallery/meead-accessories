@@ -24,7 +24,6 @@ const DEFAULT_SETTINGS = {
   sellValidityDays: 3,
   bank: { cardNumber: "", accountNumber: "", sheba: "", ownerName: "" },
   sellAddress: "",
-  adminPassword: "meead1404",
   nextOrderSeq: 1058,
   lastPriceUpdate: null,
 support: {
