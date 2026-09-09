@@ -1,15 +1,12 @@
 name: Fix receipt upload UX
 
-on:
-  push:
-    branches: [main]
+on: push
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.event.head_commit.message != 'fix: add visible receipt upload progress feedback' && github.event.head_commit.message != 'fix: receipt upload UX'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
