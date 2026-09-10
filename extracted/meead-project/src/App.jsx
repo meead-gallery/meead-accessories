@@ -372,9 +372,12 @@ const api = {
   p_quote: quote,
   p_weight: Number(weight),
   p_first_name: customer.firstName,
-  p_last_name: customer.lastName,
-  p_phone: customer.phone,
-  p_address: customer.address,
+p_last_name: customer.lastName,
+p_phone: customer.phone,
+p_address: customer.address,
+p_province: customer.province,
+p_city: customer.city,
+p_postal_code: customer.postalCode,
 });
     if (error) return { ok:false, reason:error.message || "ثبت سفارش ناموفق بود" };
     if (!data?.ok) return data || {ok:false, reason:"ثبت سفارش ناموفق بود"};
