@@ -2204,7 +2204,7 @@ function TabPrices({ settings, setSettings, setToast }) {
   );
 }
 
-function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onNoteChange }) {
+  function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onNoteChange, onDelete }) {
   const [open, setOpen] = useState(false);
   const [finalWeight, setFinalWeight] = useState(order.finalWeight ?? "");
   const [finalPrice, setFinalPrice] = useState(order.finalPricePerGram ?? order.pricePerGram);
