@@ -2234,6 +2234,16 @@ function TabPrices({ settings, setSettings, setToast }) {
         <select value={order.status} onChange={(e) => onStatusChange(order.id, e.target.value)}>
           {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
+        <button
+  type="button"
+  className="ghost-btn small-btn"
+  onClick={(e) => {
+    e.stopPropagation();
+    onDelete(order);
+  }}
+>
+  حذف
+</button>
       </div>
 
       {open && (
