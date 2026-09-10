@@ -1558,17 +1558,96 @@ function OrderForm({ quote, product, productTitle, weight, setWeight, customer, 
   </label>
 
   <label className="field">
-    <span>آدرس</span>
-    <input
-      type="text"
-      value={customer.address}
-      onChange={(e) =>
-        setCustomer({ ...customer, address: e.target.value })
-      }
-      placeholder="آدرس کامل"
-      disabled={expired}
-    />
-  </label>
+  <span>استان</span>
+  <select
+    value={customer.province}
+    onChange={(e) =>
+      setCustomer({
+        ...customer,
+        province: e.target.value,
+        city: "",
+      })
+    }
+    disabled={expired}
+  >
+    <option value="">انتخاب استان</option>
+    <option value="آذربایجان شرقی">آذربایجان شرقی</option>
+    <option value="آذربایجان غربی">آذربایجان غربی</option>
+    <option value="اردبیل">اردبیل</option>
+    <option value="اصفهان">اصفهان</option>
+    <option value="البرز">البرز</option>
+    <option value="ایلام">ایلام</option>
+    <option value="بوشهر">بوشهر</option>
+    <option value="تهران">تهران</option>
+    <option value="چهارمحال و بختیاری">چهارمحال و بختیاری</option>
+    <option value="خراسان جنوبی">خراسان جنوبی</option>
+    <option value="خراسان رضوی">خراسان رضوی</option>
+    <option value="خراسان شمالی">خراسان شمالی</option>
+    <option value="خوزستان">خوزستان</option>
+    <option value="زنجان">زنجان</option>
+    <option value="سمنان">سمنان</option>
+    <option value="سیستان و بلوچستان">سیستان و بلوچستان</option>
+    <option value="فارس">فارس</option>
+    <option value="قزوین">قزوین</option>
+    <option value="قم">قم</option>
+    <option value="کردستان">کردستان</option>
+    <option value="کرمان">کرمان</option>
+    <option value="کرمانشاه">کرمانشاه</option>
+    <option value="کهگیلویه و بویراحمد">کهگیلویه و بویراحمد</option>
+    <option value="گلستان">گلستان</option>
+    <option value="گیلان">گیلان</option>
+    <option value="لرستان">لرستان</option>
+    <option value="مازندران">مازندران</option>
+    <option value="مرکزی">مرکزی</option>
+    <option value="هرمزگان">هرمزگان</option>
+    <option value="همدان">همدان</option>
+    <option value="یزد">یزد</option>
+  </select>
+</label>
+
+<label className="field">
+  <span>شهر</span>
+  <input
+    type="text"
+    value={customer.city}
+    onChange={(e) =>
+      setCustomer({ ...customer, city: e.target.value })
+    }
+    placeholder="نام شهر"
+    disabled={expired || !customer.province}
+  />
+</label>
+
+<label className="field">
+  <span>آدرس کامل</span>
+  <input
+    type="text"
+    value={customer.address}
+    onChange={(e) =>
+      setCustomer({ ...customer, address: e.target.value })
+    }
+    placeholder="خیابان، کوچه، پلاک، واحد"
+    disabled={expired}
+  />
+</label>
+
+<label className="field">
+  <span>کد پستی</span>
+  <input
+    type="tel"
+    inputMode="numeric"
+    maxLength={10}
+    value={customer.postalCode}
+    onChange={(e) =>
+      setCustomer({
+        ...customer,
+        postalCode: e.target.value.replace(/\D/g, ""),
+      })
+    }
+    placeholder="کد پستی ۱۰ رقمی"
+    disabled={expired}
+  />
+</label>
 </div>
       <button className="primary-btn" onClick={onContinue} disabled={!canContinue}>ادامه و مشاهده خلاصه سفارش</button>
     </div>
