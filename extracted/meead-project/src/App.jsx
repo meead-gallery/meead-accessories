@@ -1735,8 +1735,23 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
 </div>
 
 <div className="calc-row">
-  <span>آدرس</span>
+  <span>استان</span>
+  <span>{customer.province}</span>
+</div>
+
+<div className="calc-row">
+  <span>شهر</span>
+  <span>{customer.city}</span>
+</div>
+
+<div className="calc-row">
+  <span>آدرس کامل</span>
   <span>{customer.address}</span>
+</div>
+
+<div className="calc-row">
+  <span>کد پستی</span>
+  <span className="mono">{customer.postalCode}</span>
 </div>
 </div>
       {quote.mode === "sell" && (
