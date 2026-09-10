@@ -831,6 +831,24 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [now, setNow] = useState(Date.now());
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  useEffect(() => {
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+
+  if (isStandalone) return;
+
+  const dismissed =
+    localStorage.getItem("meead-pwa-install-dismissed") === "1";
+
+  if (dismissed) return;
+
+  const timer = setTimeout(() => {
+    setShowPwaPrompt(true);
+  }, 900);
+
+  return () => clearTimeout(timer);
+}, []);
 const [uploadingReceiptId, setUploadingReceiptId] = useState(null);
 const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   const [receiptUploadProgress, setReceiptUploadProgress] = useState(0);
