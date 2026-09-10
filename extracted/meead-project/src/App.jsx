@@ -1773,25 +1773,29 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
   <span className="mono">{customer.phone}</span>
 </div>
 
-<div className="calc-row">
-  <span>استان</span>
-  <span>{customer.province}</span>
-</div>
+  {quote.mode === "buy" && (
+  <>
+    <div className="calc-row">
+      <span>استان</span>
+      <span>{customer.province}</span>
+    </div>
 
-<div className="calc-row">
-  <span>شهر</span>
-  <span>{customer.city}</span>
-</div>
+    <div className="calc-row">
+      <span>شهر</span>
+      <span>{customer.city}</span>
+    </div>
 
-<div className="calc-row">
-  <span>آدرس کامل</span>
-  <span>{customer.address}</span>
-</div>
+    <div className="calc-row">
+      <span>آدرس کامل</span>
+      <span>{customer.address}</span>
+    </div>
 
-<div className="calc-row">
-  <span>کد پستی</span>
-  <span className="mono">{customer.postalCode}</span>
-</div>
+    <div className="calc-row">
+      <span>کد پستی</span>
+      <span className="mono">{customer.postalCode}</span>
+    </div>
+  </>
+)}
 </div>
       {quote.mode === "sell" && (
         <div className="sell-warning">
