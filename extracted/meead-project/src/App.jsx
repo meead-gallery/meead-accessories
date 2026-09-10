@@ -830,6 +830,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [toast, setToast] = useState("");
   const [now, setNow] = useState(Date.now());
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
 const [uploadingReceiptId, setUploadingReceiptId] = useState(null);
 const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   const [receiptUploadProgress, setReceiptUploadProgress] = useState(0);
