@@ -978,7 +978,10 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   firstName: "",
   lastName: "",
   phone: "",
+  province: "",
+  city: "",
   address: "",
+  postalCode: "",
 });
   setView("order");
 };
