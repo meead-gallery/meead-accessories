@@ -6,6 +6,108 @@ import {
   AlertTriangle, TrendingUp, TrendingDown, Package, History, LayoutDashboard,Headphones,Phone, PhoneCall,
   ShieldAlert ,
 } from "lucide-react";
+function PwaInstallPrompt({ onClose }) {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
+
+    if (isStandalone) {
+      onClose();
+      return;
+    }
+
+    const ios =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !window.MSStream &&
+      !/CriOS|FxiOS/.test(navigator.userAgent);
+
+    setIsIOS(ios);
+
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setDeferredPrompt(event);
+    };
+
+    window.addEventListener(
+      "beforeinstallprompt",
+      handleBeforeInstallPrompt
+    );
+
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt
+      );
+    };
+  }, [onClose]);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+
+    await deferredPrompt.userChoice;
+
+    setDeferredPrompt(null);
+    onClose();
+  };
+
+  return (
+    <div className="pwa-overlay">
+      <div className="pwa-card" dir="rtl">
+        <button className="pwa-close" onClick={onClose}>
+          ×
+        </button>
+
+        <div className="pwa-icon">M</div>
+
+        <h2>نصب Meead</h2>
+
+        <p>
+          برای دسترسی سریع‌تر، Meead را به صفحه اصلی گوشی خود اضافه کنید.
+        </p>
+
+        {isIOS ? (
+          <div className="pwa-steps">
+            <div className="pwa-step">
+              <strong>۱</strong>
+              در Safari روی دکمه <b>Share</b> بزنید.
+            </div>
+
+            <div className="pwa-step">
+              <strong>۲</strong>
+              گزینه <b>Add to Home Screen</b> یا «افزودن به صفحه اصلی» را
+              انتخاب کنید.
+            </div>
+
+            <div className="pwa-step">
+              <strong>۳</strong>
+              روی <b>Add</b> یا «افزودن» بزنید.
+            </div>
+          </div>
+        ) : deferredPrompt ? (
+          <button className="pwa-install-btn" onClick={handleInstall}>
+            افزودن Meead به صفحه اصلی
+          </button>
+        ) : (
+          <div className="pwa-steps">
+            <div className="pwa-step">
+              از منوی مرورگر گزینه <b>Add to Home Screen</b> را انتخاب کنید.
+            </div>
+          </div>
+        )}
+
+        <button className="pwa-later" onClick={onClose}>
+          فعلاً نه
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /* ---------------------------- Config & helpers --------------------------- */
 
