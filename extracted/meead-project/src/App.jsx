@@ -2225,12 +2225,40 @@ function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onN
 
       {open && (
         <div className="order-detail">
-          {order.address && (
-  <div className="calc-row">
-    <span>آدرس</span>
-    <span>{order.address}</span>
-  </div>
-)}
+          <div className="calc-row">
+  <span>نام</span>
+  <span>{order.firstName || order.name || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>نام خانوادگی</span>
+  <span>{order.lastName || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>شماره موبایل</span>
+  <span className="mono">{order.phone || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>استان</span>
+  <span>{order.province || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>شهر</span>
+  <span>{order.city || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>آدرس کامل</span>
+  <span>{order.address || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>کد پستی</span>
+  <span className="mono">{order.postalCode || "-"}</span>
+</div>
           <div className="calc-row"><span>قیمت هر گرم</span><span className="mono">{toman(order.pricePerGram)}</span></div>
 
           {order.type === "buy" && order.lockExpiresAt && (
