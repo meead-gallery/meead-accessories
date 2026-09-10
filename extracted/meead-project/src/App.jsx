@@ -3311,7 +3311,7 @@ function GlobalStyles() {
       .field input, .textarea, select { background:#F6F7F8; border:1px solid rgba(30,40,50,0.1); border-radius:10px; padding:10px 12px; color:#1E242B; font-family:'JetBrains Mono', monospace; font-size:13.5px; direction:ltr; text-align:right; width:100%; box-sizing:border-box; max-width:100%; }
       .field input:focus, .textarea:focus { outline:none; border-color:#A9803A; }
       .textarea { font-family:'Vazirmatn', sans-serif; direction:rtl; text-align:right; width:100%; resize:vertical; }
-      .field-pair { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+      .field-pair { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:10px; }
       .error-text { color:#D6483F; font-size:11.5px; }
 
       .calc-row { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:#667085; padding:3px 0; }
