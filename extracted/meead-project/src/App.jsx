@@ -1572,37 +1572,33 @@ function OrderForm({ quote, product, productTitle, weight, setWeight, customer, 
     disabled={expired}
   >
     <option value="">انتخاب استان</option>
-    <option value="آذربایجان شرقی">آذربایجان شرقی</option>
-    <option value="آذربایجان غربی">آذربایجان غربی</option>
-    <option value="اردبیل">اردبیل</option>
-    <option value="اصفهان">اصفهان</option>
-    <option value="البرز">البرز</option>
-    <option value="ایلام">ایلام</option>
-    <option value="بوشهر">بوشهر</option>
-    <option value="تهران">تهران</option>
-    <option value="چهارمحال و بختیاری">چهارمحال و بختیاری</option>
-    <option value="خراسان جنوبی">خراسان جنوبی</option>
-    <option value="خراسان رضوی">خراسان رضوی</option>
-    <option value="خراسان شمالی">خراسان شمالی</option>
-    <option value="خوزستان">خوزستان</option>
-    <option value="زنجان">زنجان</option>
-    <option value="سمنان">سمنان</option>
-    <option value="سیستان و بلوچستان">سیستان و بلوچستان</option>
-    <option value="فارس">فارس</option>
-    <option value="قزوین">قزوین</option>
-    <option value="قم">قم</option>
-    <option value="کردستان">کردستان</option>
-    <option value="کرمان">کرمان</option>
-    <option value="کرمانشاه">کرمانشاه</option>
-    <option value="کهگیلویه و بویراحمد">کهگیلویه و بویراحمد</option>
-    <option value="گلستان">گلستان</option>
-    <option value="گیلان">گیلان</option>
-    <option value="لرستان">لرستان</option>
-    <option value="مازندران">مازندران</option>
-    <option value="مرکزی">مرکزی</option>
-    <option value="هرمزگان">هرمزگان</option>
-    <option value="همدان">همدان</option>
-    <option value="یزد">یزد</option>
+    {Object.keys(iranLocations).map((province) => (
+      <option key={province} value={province}>
+        {province}
+      </option>
+    ))}
+  </select>
+</label>
+
+<label className="field">
+  <span>شهر</span>
+  <select
+    value={customer.city}
+    onChange={(e) =>
+      setCustomer({ ...customer, city: e.target.value })
+    }
+    disabled={expired || !customer.province}
+  >
+    <option value="">
+      {customer.province ? "انتخاب شهر" : "ابتدا استان را انتخاب کنید"}
+    </option>
+
+    {customer.province &&
+      iranLocations[customer.province]?.map((city) => (
+        <option key={city} value={city}>
+          {city}
+        </option>
+      ))}
   </select>
 </label>
 
