@@ -1003,8 +1003,15 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   customer.firstName.trim() &&
   customer.lastName.trim() &&
   customer.phone.trim() &&
-  customer.address.trim();
-
+  (
+    quote.mode === "sell" ||
+    (
+      customer.province &&
+      customer.city &&
+      customer.address.trim() &&
+      /^\d{10}$/.test(customer.postalCode)
+    )
+  );
   const goToSummary = () => {
   if (!customer.firstName.trim()) {
     setToast("لطفاً نام را وارد کنید.");
