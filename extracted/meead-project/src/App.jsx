@@ -1230,6 +1230,14 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
       </main>
 
       {toast && <div className="toast">{toast}</div>}
+            {showPwaPrompt && (
+        <PwaInstallPrompt
+          onClose={() => {
+            localStorage.setItem("meead-pwa-install-dismissed", "1");
+            setShowPwaPrompt(false);
+          }}
+        />
+      )}
     </div>
   );
 }
