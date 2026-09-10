@@ -6,6 +6,7 @@ import {
   AlertTriangle, TrendingUp, TrendingDown, Package, History, LayoutDashboard,Headphones,Phone, PhoneCall,
   ShieldAlert ,
 } from "lucide-react";
+import { iranLocations } from "./iranLocations";
 function PwaInstallPrompt({ onClose }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isIOS, setIsIOS] = useState(false);
