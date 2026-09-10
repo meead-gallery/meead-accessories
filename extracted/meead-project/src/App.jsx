@@ -3308,7 +3308,7 @@ function GlobalStyles() {
       .expired-box { display:flex; align-items:center; justify-content:space-between; gap:10px; background: rgba(214,72,63,0.08); color:#B23A31; padding:10px 12px; border-radius:10px; font-size:12.5px; }
 
       .field { display:flex; flex-direction:column; gap:6px; font-size:12px; color:#667085; }
-      .field input, .textarea, select { background:#F6F7F8; border:1px solid rgba(30,40,50,0.1); border-radius:10px; padding:10px 12px; color:#1E242B; font-family:'JetBrains Mono', monospace; font-size:13.5px; direction:ltr; text-align:right; }
+      .field input, .textarea, select { background:#F6F7F8; border:1px solid rgba(30,40,50,0.1); border-radius:10px; padding:10px 12px; color:#1E242B; font-family:'JetBrains Mono', monospace; font-size:13.5px; direction:ltr; text-align:right; width:100%; box-sizing:border-box; max-width:100%; }
       .field input:focus, .textarea:focus { outline:none; border-color:#A9803A; }
       .textarea { font-family:'Vazirmatn', sans-serif; direction:rtl; text-align:right; width:100%; resize:vertical; }
       .field-pair { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
