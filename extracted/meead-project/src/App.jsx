@@ -2821,6 +2821,9 @@ function TabOrders({ orders, setOrders }) {
                       onNoteChange={
                         handleNoteChange
                       }
+                      onDelete={
+  handleDeleteOrder
+}
                     />
                   ))}
 
