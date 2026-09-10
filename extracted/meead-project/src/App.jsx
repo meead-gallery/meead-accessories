@@ -821,7 +821,10 @@ export default function App() {
   firstName: "",
   lastName: "",
   phone: "",
+  province: "",
+  city: "",
   address: "",
+  postalCode: "",
 });
   const [lastOrder, setLastOrder] = useState(null);
   const [adminEmail, setAdminEmail] = useState("");
