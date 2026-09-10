@@ -500,11 +500,27 @@ sellValidUntil:o.sell_valid_until,
   async updatePrices(productsForm) {
     const pricePayload = Object.fromEntries(Object.entries(productsForm).map(([key,v])=>[key,{buyPrice:Number(v.buyPrice),sellPrice:Number(v.sellPrice)}]));
     const limitPayload = Object.fromEntries(Object.entries(productsForm).map(([key,v])=>[key,{minWeight:Number(v.minWeight),maxWeight:Number(v.maxWeight)}]));
-    let r = await supabase.rpc("update_prices", {p_products:pricePayload});
-    if (r.error) throw r.error;
-    r = await supabase.rpc("update_product_limits", {p_products:limitPayload});
-    if (r.error) throw r.error;
-    return (await adminState()).settings;
+    let r = await supabase.rpc("update_prices", {
+  p_products: pricePayload
+});
+
+if (r.error || !r.data?.ok) {
+  throw r.error || new Error(
+    r.data?.reason || "ذخیره قیمت‌ها ناموفق بود"
+  );
+}
+
+r = await supabase.rpc("update_product_limits", {
+  p_products: limitPayload
+});
+
+if (r.error || !r.data?.ok) {
+  throw r.error || new Error(
+    r.data?.reason || "ذخیره محدوده وزن ناموفق بود"
+  );
+}
+
+return (await adminState()).settings;
   },
   async updateMarket(marketPatch) {
   const { data, error } = await supabase.rpc("update_market_settings", {
