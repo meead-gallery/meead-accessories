@@ -2503,7 +2503,19 @@ function TabOrders({ orders, setOrders }) {
       await api.updateOrderStatus(id, status)
     );
   };
+   const handleDeleteOrder = async (order) => {
+  if (!window.confirm(`آیا از حذف سفارش ${order.id} مطمئن هستید؟`)) {
+    return;
+  }
 
+  try {
+    const nextOrders = await api.deleteOrder(order);
+    setOrders(nextOrders);
+    setToast("سفارش با موفقیت حذف شد");
+  } catch (e) {
+    setToast(e.message || "حذف سفارش ناموفق بود");
+  }
+};
   const handleRecordWeight = async (id, weight) => {
     setOrders(
       await api.recordFinalWeight(id, weight)
