@@ -580,6 +580,19 @@ sellValidUntil:o.sell_valid_until,
     const {data,error}=await supabase.rpc("update_order_status", {p_order_id:dbId,p_status:status});
     if(error || !data?.ok) throw error || new Error(data?.reason || "خطا"); return (await adminState()).orders;
   },
+  async deleteOrder(order) {
+    const dbId = await this.resolveOrderId(order);
+
+    const { data, error } = await supabase.rpc("delete_order", {
+      p_order_id: dbId,
+    });
+
+    if (error || !data?.ok) {
+      throw error || new Error(data?.reason || "حذف سفارش ناموفق بود");
+    }
+
+    return (await adminState()).orders;
+  },
   async recordFinalWeight(order, finalWeight) {
     const dbId = await this.resolveOrderId(order);
     const {data,error}=await supabase.rpc("record_final_weight", {p_order_id:dbId,p_final_weight:Number(finalWeight)});
