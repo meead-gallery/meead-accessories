@@ -1028,6 +1028,7 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     return;
   }
 
+  if (quote.mode === "buy") {
   if (!customer.province) {
     setToast("لطفاً استان را انتخاب کنید.");
     return;
@@ -1047,6 +1048,7 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     setToast("لطفاً کد پستی ۱۰ رقمی را وارد کنید.");
     return;
   }
+}
 
   if (!canContinue) return;
 
