@@ -1641,62 +1641,53 @@ function OrderForm({ quote, product, productTitle, weight, setWeight, customer, 
     />
   </label>
 
-  <label className="field">
-  <span>استان</span>
-  <select
-    value={customer.province}
-    onChange={(e) =>
-      setCustomer({
-        ...customer,
-        province: e.target.value,
-        city: "",
-      })
-    }
-    disabled={expired}
-  >
-    <option value="">انتخاب استان</option>
-    {Object.keys(iranLocations).map((province) => (
-      <option key={province} value={province}>
-        {province}
-      </option>
-    ))}
-  </select>
-</label>
+{quote.mode === "buy" && (
+  <>
+    <label className="field">
+      <span>استان</span>
+      <select
+        value={customer.province}
+        onChange={(e) =>
+          setCustomer({
+            ...customer,
+            province: e.target.value,
+            city: "",
+          })
+        }
+        disabled={expired}
+      >
+        <option value="">انتخاب استان</option>
+        {Object.keys(iranLocations).map((province) => (
+          <option key={province} value={province}>
+            {province}
+          </option>
+        ))}
+      </select>
+    </label>
 
-<label className="field">
-  <span>شهر</span>
-  <select
-    value={customer.city}
-    onChange={(e) =>
-      setCustomer({ ...customer, city: e.target.value })
-    }
-    disabled={expired || !customer.province}
-  >
-    <option value="">
-      {customer.province ? "انتخاب شهر" : "ابتدا استان را انتخاب کنید"}
-    </option>
-
-    {customer.province &&
-      iranLocations[customer.province]?.map((city) => (
-        <option key={city} value={city}>
-          {city}
+    <label className="field">
+      <span>شهر</span>
+      <select
+        value={customer.city}
+        onChange={(e) =>
+          setCustomer({ ...customer, city: e.target.value })
+        }
+        disabled={expired || !customer.province}
+      >
+        <option value="">
+          {customer.province ? "انتخاب شهر" : "ابتدا استان را انتخاب کنید"}
         </option>
-      ))}
-  </select>
-</label>
 
-<label className="field">
-  <span>شهر</span>
-  <input
-    type="text"
-    value={customer.city}
-    onChange={(e) =>
-      setCustomer({ ...customer, city: e.target.value })
-    }
-    placeholder="نام شهر"
-    disabled={expired || !customer.province}
-  />
-</label>
+        {customer.province &&
+          iranLocations[customer.province]?.map((city) => (
+            <option key={city} value={city}>
+              {city}
+            </option>
+          ))}
+      </select>
+    </label>
+  </>
+)}
 
 <label className="field">
   <span>آدرس کامل</span>
