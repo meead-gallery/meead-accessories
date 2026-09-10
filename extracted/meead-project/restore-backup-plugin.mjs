@@ -3,7 +3,7 @@ import path from "node:path";
 export default function restoreBackupPlugin() {
   return {
     name: "meead-restore-backup-fix",
-    enforce: "post",
+    enforce: "pre",
     transform(code, id) {
       if (!id.endsWith(path.join("src", "App.jsx"))) return null;
 
