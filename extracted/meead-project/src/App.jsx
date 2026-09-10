@@ -970,7 +970,46 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   customer.phone.trim() &&
   customer.address.trim();
 
-  const goToSummary = () => { if (canContinue) setView("order-summary"); };
+  const goToSummary = () => {
+  if (!customer.firstName.trim()) {
+    setToast("لطفاً نام را وارد کنید.");
+    return;
+  }
+
+  if (!customer.lastName.trim()) {
+    setToast("لطفاً نام خانوادگی را وارد کنید.");
+    return;
+  }
+
+  if (!/^09\d{9}$/.test(customer.phone.trim())) {
+    setToast("لطفاً شماره موبایل معتبر ۱۱ رقمی وارد کنید.");
+    return;
+  }
+
+  if (!customer.province) {
+    setToast("لطفاً استان را انتخاب کنید.");
+    return;
+  }
+
+  if (!customer.city) {
+    setToast("لطفاً شهر را انتخاب کنید.");
+    return;
+  }
+
+  if (!customer.address.trim()) {
+    setToast("لطفاً آدرس کامل را وارد کنید.");
+    return;
+  }
+
+  if (!/^\d{10}$/.test(customer.postalCode)) {
+    setToast("لطفاً کد پستی ۱۰ رقمی را وارد کنید.");
+    return;
+  }
+
+  if (!canContinue) return;
+
+  setView("order-summary");
+};
 
   const submitOrder = async () => {
   const expiresAtMs = quote ? new Date(quote.expiresAt).getTime() : 0;
