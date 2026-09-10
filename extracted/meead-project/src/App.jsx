@@ -1689,36 +1689,40 @@ function OrderForm({ quote, product, productTitle, weight, setWeight, customer, 
   </>
 )}
 
-<label className="field">
-  <span>آدرس کامل</span>
-  <input
-    type="text"
-    value={customer.address}
-    onChange={(e) =>
-      setCustomer({ ...customer, address: e.target.value })
-    }
-    placeholder="خیابان، کوچه، پلاک، واحد"
-    disabled={expired}
-  />
-</label>
+      {quote.mode === "buy" && (
+  <>
+    <label className="field">
+      <span>آدرس کامل</span>
+      <input
+        type="text"
+        value={customer.address}
+        onChange={(e) =>
+          setCustomer({ ...customer, address: e.target.value })
+        }
+        placeholder="خیابان، کوچه، پلاک، واحد"
+        disabled={expired}
+      />
+    </label>
 
-<label className="field">
-  <span>کد پستی</span>
-  <input
-    type="tel"
-    inputMode="numeric"
-    maxLength={10}
-    value={customer.postalCode}
-    onChange={(e) =>
-      setCustomer({
-        ...customer,
-        postalCode: e.target.value.replace(/\D/g, ""),
-      })
-    }
-    placeholder="کد پستی ۱۰ رقمی"
-    disabled={expired}
-  />
-</label>
+    <label className="field">
+      <span>کد پستی</span>
+      <input
+        type="tel"
+        inputMode="numeric"
+        maxLength={10}
+        value={customer.postalCode}
+        onChange={(e) =>
+          setCustomer({
+            ...customer,
+            postalCode: e.target.value.replace(/\D/g, ""),
+          })
+        }
+        placeholder="کد پستی ۱۰ رقمی"
+        disabled={expired}
+      />
+    </label>
+  </>
+)}
 </div>
       <button className="primary-btn" onClick={onContinue} disabled={!canContinue}>ادامه و مشاهده خلاصه سفارش</button>
     </div>
