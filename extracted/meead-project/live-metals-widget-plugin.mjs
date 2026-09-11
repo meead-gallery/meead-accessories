@@ -42,7 +42,7 @@ function LiveMetalsPrices() {
   const formatChange = (value) => {
     const n = Number(value);
     if (!Number.isFinite(n)) return null;
-    return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+    return (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
   };
   const formatTime = (value) => {
     if (!value) return "اکنون";
@@ -55,7 +55,7 @@ function LiveMetalsPrices() {
     const n = Number(value);
     if (!Number.isFinite(n)) return null;
     const up = n >= 0;
-    return <span className={`live-metal-change ${up ? "is-up" : "is-down"}`}>{up ? "▲" : "▼"} {formatChange(n)}</span>;
+    return <span className={"live-metal-change " + (up ? "is-up" : "is-down")}>{up ? "▲" : "▼"} {formatChange(n)}</span>;
   };
 
   return (
