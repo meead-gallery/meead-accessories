@@ -65,7 +65,7 @@ export default function restoreBackupPlugin() {
     const row = data.order || data;
     const order = mapOrder(row, []);
     return { ok: true, order, orders: [], settings: mapSettings({}) };
-  }`;
+  },`;
           next = next.slice(0, submitStart) + replacement + next.slice(submitEnd + "\n  },".length);
           changed = true;
         }
