@@ -15,28 +15,16 @@ export default function restoreBackupPlugin() {
         const restoreEnd = next.indexOf("\n  },\n};", restoreStart);
         if (restoreEnd !== -1) {
           const replacement = `  async restoreBackup(data) {
-    if (!data || typeof data !== "object") {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
       throw new Error("فایل پشتیبان قابل خواندن نیست");
     }
 
-    // Backward-compatible normalization: orders/log are optional in older backups.
+    // Normalize optional legacy fields without rejecting an otherwise readable backup.
     const backup = {
       ...data,
       orders: Array.isArray(data.orders) ? data.orders : [],
       log: Array.isArray(data.log) ? data.log : [],
     };
-
-    if (!backup.settings || typeof backup.settings !== "object" || Array.isArray(backup.settings)) {
-      throw new Error("ساختار تنظیمات فایل پشتیبان نامعتبر است");
-    }
-
-    if (!backup.settings.products || typeof backup.settings.products !== "object" || Array.isArray(backup.settings.products)) {
-      throw new Error("اطلاعات محصولات در فایل پشتیبان نامعتبر است");
-    }
-
-    if (!backup.settings.market || typeof backup.settings.market !== "object" || Array.isArray(backup.settings.market)) {
-      throw new Error("اطلاعات بازار در فایل پشتیبان نامعتبر است");
-    }
 
     const { data: result, error } = await supabase.rpc("restore_backup", {
       p_backup: backup,
@@ -160,6 +148,31 @@ export default function restoreBackupPlugin() {
   }
 };`;
           next = next.slice(0, uiStart) + replacement + next.slice(uiEnd);
+          changed = true;
+        }
+      }
+
+      // Replace the backup UI handler so it never masks the real restore error as
+      // “فایل پشتیبان معتبر نیست”. The backend is now the single source of truth
+      // for backup validation.
+      const backupRestoreStart = next.indexOf("  const restore = async (file) => {");
+      if (backupRestoreStart !== -1) {
+        const backupRestoreEnd = next.indexOf("\n\n  return (", backupRestoreStart);
+        if (backupRestoreEnd !== -1) {
+          const replacement = `  const restore = async (file) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const state = await api.restoreBackup(data);
+      setSettings(state.settings);
+      setOrders(state.orders);
+      setToast("بازیابی با موفقیت انجام شد");
+    } catch (e) {
+      console.error("Backup restore failed:", e);
+      setToast(e?.message || "بازیابی نسخه پشتیبان ناموفق بود");
+    }
+  };`;
+          next = next.slice(0, backupRestoreStart) + replacement + next.slice(backupRestoreEnd);
           changed = true;
         }
       }
