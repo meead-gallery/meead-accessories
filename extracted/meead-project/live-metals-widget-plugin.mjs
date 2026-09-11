@@ -39,11 +39,23 @@ function LiveMetalsPrices() {
   }, [loadPrices]);
 
   const formatUsd = (value) => Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatChange = (value) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+  };
   const formatTime = (value) => {
     if (!value) return "اکنون";
     const date = typeof value === "number" ? new Date(value < 10000000000 ? value * 1000 : value) : new Date(value);
     if (Number.isNaN(date.getTime())) return "اکنون";
     return date.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const ChangeBadge = ({ value }) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    const up = n >= 0;
+    return <span className={`live-metal-change ${up ? "is-up" : "is-down"}`}>{up ? "▲" : "▼"} {formatChange(n)}</span>;
   };
 
   return (
@@ -61,12 +73,12 @@ function LiveMetalsPrices() {
       <div className="live-metals-grid">
         <div className="live-metal-item gold-metal">
           <div className="live-metal-label"><span className="metal-symbol">Au</span><span>طلا</span><small>XAU / USD</small></div>
-          <div className="live-metal-value">{data ? "$" + formatUsd(data.gold) : "—"}</div>
+          <div className="live-metal-price-row"><div className="live-metal-value">{data ? "$" + formatUsd(data.gold) : "—"}</div><ChangeBadge value={data?.goldChange24h} /></div>
         </div>
         <div className="live-metal-divider" />
         <div className="live-metal-item silver-metal">
           <div className="live-metal-label"><span className="metal-symbol">Ag</span><span>نقره</span><small>XAG / USD</small></div>
-          <div className="live-metal-value">{data ? "$" + formatUsd(data.silver) : "—"}</div>
+          <div className="live-metal-price-row"><div className="live-metal-value">{data ? "$" + formatUsd(data.silver) : "—"}</div><ChangeBadge value={data?.silverChange24h} /></div>
         </div>
       </div>
 
@@ -83,7 +95,6 @@ function LiveMetalsPrices() {
       let next = code;
       const homeMarker = "function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, startQuote, setView }) {";
       if (!next.includes(homeMarker)) return null;
-
       next = next.replace(homeMarker, component + homeMarker);
 
       const oldPlacement = "      <MarketBanner closedByHours={closedByHours} market={settings.market} />\n      <LiveMetalsPrices />\n";
@@ -91,14 +102,11 @@ function LiveMetalsPrices() {
       if (next.includes(oldPlacement)) next = next.replace(oldPlacement, bottomPlacement);
 
       const trackButton = "      <button className=\"track-link\" onClick={() => setView(\"track\")}>\n        <Search size={14} /> پیگیری سفارش با کد رهگیری\n      </button>";
-      if (next.includes(trackButton)) {
-        next = next.replace(trackButton, trackButton + "\n\n      <LiveMetalsPrices />");
-      }
+      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      <LiveMetalsPrices />");
 
       const styleMarker = "      .update-row {";
-      const styles = `      .live-metals-card { background: linear-gradient(145deg,#FFFFFF 0%,#F8F9FA 100%); border:1px solid rgba(169,128,58,0.22); border-radius:16px; padding:13px 14px 10px; margin-top:14px; box-shadow:0 5px 18px rgba(20,30,45,0.06); }\n      .live-metals-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }\n      .live-metals-title { font-size:13px; font-weight:800; color:#1E242B; }\n      .live-metals-subtitle { margin-top:2px; font-size:9.5px; color:#93A0AF; }\n      .live-metals-status { display:flex; align-items:center; gap:5px; padding:4px 8px; border-radius:999px; background:#F0F2F4; color:#8A94A2; font-size:9.5px; font-weight:700; white-space:nowrap; }\n      .live-metals-status.is-live { background:rgba(18,145,91,0.08); color:#0F7A4C; }\n      .live-metals-dot { width:6px; height:6px; border-radius:50%; background:#AAB2BC; }\n      .live-metals-status.is-live .live-metals-dot { background:#12915B; box-shadow:0 0 0 3px rgba(18,145,91,0.10); }\n      .live-metals-grid { display:grid; grid-template-columns:1fr 1px 1fr; align-items:center; gap:12px; margin-top:12px; }\n      .live-metal-divider { height:34px; background:rgba(30,40,50,0.08); }\n      .live-metal-item { min-width:0; }\n      .live-metal-label { display:flex; align-items:center; gap:6px; color:#667085; font-size:11px; font-weight:700; }\n      .live-metal-label small { margin-right:auto; font-family:'JetBrains Mono',monospace; direction:ltr; font-size:8px; color:#A0A8B3; font-weight:500; }\n      .metal-symbol { width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; }\n      .gold-metal .metal-symbol { background:rgba(169,128,58,0.12); color:#A9803A; border:1px solid rgba(169,128,58,0.28); }\n      .silver-metal .metal-symbol { background:rgba(102,112,133,0.10); color:#667085; border:1px solid rgba(102,112,133,0.18); }\n      .live-metal-value { margin-top:5px; font-family:'JetBrains Mono',monospace; direction:ltr; text-align:right; font-size:16px; font-weight:800; letter-spacing:-0.4px; color:#1E242B; }\n      .gold-metal .live-metal-value { color:#9A732F; }\n      .live-metals-footer { display:flex; justify-content:space-between; gap:8px; margin-top:10px; padding-top:8px; border-top:1px solid rgba(30,40,50,0.06); color:#9AA3AE; font-size:8.5px; }\n      @media (max-width:380px) { .live-metal-label small { display:none; } .live-metals-footer { font-size:8px; } .live-metal-value { font-size:14px; } }\n\n`;
+      const styles = `      .live-metals-card { background: linear-gradient(145deg,#FFFFFF 0%,#F8F9FA 100%); border:1px solid rgba(169,128,58,0.22); border-radius:16px; padding:13px 14px 10px; margin-top:14px; box-shadow:0 5px 18px rgba(20,30,45,0.06); }\n      .live-metals-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }\n      .live-metals-title { font-size:13px; font-weight:800; color:#1E242B; }\n      .live-metals-subtitle { margin-top:2px; font-size:9.5px; color:#93A0AF; }\n      .live-metals-status { display:flex; align-items:center; gap:5px; padding:4px 8px; border-radius:999px; background:#F0F2F4; color:#8A94A2; font-size:9.5px; font-weight:700; white-space:nowrap; }\n      .live-metals-status.is-live { background:rgba(18,145,91,0.08); color:#0F7A4C; }\n      .live-metals-dot { width:6px; height:6px; border-radius:50%; background:#AAB2BC; }\n      .live-metals-status.is-live .live-metals-dot { background:#12915B; box-shadow:0 0 0 3px rgba(18,145,91,0.10); }\n      .live-metals-grid { display:grid; grid-template-columns:1fr 1px 1fr; align-items:center; gap:12px; margin-top:12px; }\n      .live-metal-divider { height:42px; background:rgba(30,40,50,0.08); }\n      .live-metal-item { min-width:0; }\n      .live-metal-label { display:flex; align-items:center; gap:6px; color:#667085; font-size:11px; font-weight:700; }\n      .live-metal-label small { margin-right:auto; font-family:'JetBrains Mono',monospace; direction:ltr; font-size:8px; color:#A0A8B3; font-weight:500; }\n      .metal-symbol { width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; }\n      .gold-metal .metal-symbol { background:rgba(169,128,58,0.12); color:#A9803A; border:1px solid rgba(169,128,58,0.28); }\n      .silver-metal .metal-symbol { background:rgba(102,112,133,0.10); color:#667085; border:1px solid rgba(102,112,133,0.18); }\n      .live-metal-price-row { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:5px; }\n      .live-metal-value { font-family:'JetBrains Mono',monospace; direction:ltr; text-align:right; font-size:16px; font-weight:800; letter-spacing:-0.4px; color:#1E242B; }\n      .gold-metal .live-metal-value { color:#9A732F; }\n      .live-metal-change { direction:ltr; white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:800; padding:3px 5px; border-radius:6px; }\n      .live-metal-change.is-up { color:#0F7A4C; background:rgba(18,145,91,0.08); }\n      .live-metal-change.is-down { color:#B54747; background:rgba(181,71,71,0.08); }\n      .live-metals-footer { display:flex; justify-content:space-between; gap:8px; margin-top:10px; padding-top:8px; border-top:1px solid rgba(30,40,50,0.06); color:#9AA3AE; font-size:8.5px; }\n      @media (max-width:380px) { .live-metal-label small { display:none; } .live-metals-footer { font-size:8px; } .live-metal-value { font-size:14px; } .live-metal-change { font-size:8px; } }\n\n`;
       if (next.includes(styleMarker)) next = next.replace(styleMarker, styles + styleMarker);
-
       return { code: next, map: null };
     },
   };
