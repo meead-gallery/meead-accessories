@@ -15,16 +15,47 @@ export default function restoreBackupPlugin() {
         const restoreEnd = next.indexOf("\n  },\n};", restoreStart);
         if (restoreEnd !== -1) {
           const replacement = `  async restoreBackup(data) {
-    if (!data?.settings || !Array.isArray(data?.orders) || !Array.isArray(data?.log)) {
-      throw new Error("نسخه پشتیبان نامعتبر است");
+    if (!data || typeof data !== "object") {
+      throw new Error("فایل پشتیبان قابل خواندن نیست");
+    }
+
+    // Backward-compatible normalization: orders/log are optional in older backups.
+    const backup = {
+      ...data,
+      orders: Array.isArray(data.orders) ? data.orders : [],
+      log: Array.isArray(data.log) ? data.log : [],
+    };
+
+    if (!backup.settings || typeof backup.settings !== "object" || Array.isArray(backup.settings)) {
+      throw new Error("ساختار تنظیمات فایل پشتیبان نامعتبر است");
+    }
+
+    if (!backup.settings.products || typeof backup.settings.products !== "object" || Array.isArray(backup.settings.products)) {
+      throw new Error("اطلاعات محصولات در فایل پشتیبان نامعتبر است");
+    }
+
+    if (!backup.settings.market || typeof backup.settings.market !== "object" || Array.isArray(backup.settings.market)) {
+      throw new Error("اطلاعات بازار در فایل پشتیبان نامعتبر است");
     }
 
     const { data: result, error } = await supabase.rpc("restore_backup", {
-      p_backup: data,
+      p_backup: backup,
     });
 
-    if (error || !result?.ok) {
-      throw error || new Error(result?.reason || "بازیابی نسخه پشتیبان ناموفق بود");
+    if (error) {
+      throw new Error(error.message || "خطا در ارتباط با سرور بازیابی");
+    }
+
+    if (!result?.ok) {
+      const reasonMap = {
+        not_admin: "دسترسی مدیریت برای بازیابی وجود ندارد",
+        invalid_backup: "ساختار فایل پشتیبان نامعتبر است",
+        invalid_settings: "ساختار تنظیمات فایل پشتیبان نامعتبر است",
+        invalid_orders: "ساختار سفارش‌های فایل پشتیبان نامعتبر است",
+        invalid_log: "ساختار لاگ فایل پشتیبان نامعتبر است",
+        restore_failed: result?.error || "بازیابی اطلاعات در سرور ناموفق بود",
+      };
+      throw new Error(reasonMap[result?.reason] || result?.reason || "بازیابی نسخه پشتیبان ناموفق بود");
     }
 
     return await adminState();
@@ -133,7 +164,6 @@ export default function restoreBackupPlugin() {
         }
       }
 
-      // Accept Persian and Arabic-Indic digits in phone, postal code and weight.
       const normalizeHelper = `function normalizeDigits(value) {
   return String(value ?? "")
     .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
