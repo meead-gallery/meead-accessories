@@ -156,6 +156,14 @@ export default function restoreBackupPlugin() {
         ['Number(weight) > 0', 'Number(normalizedWeight) > 0'],
         ['customer.phone.trim()', 'normalizedPhone.trim()'],
         ['/^\\d{10}$/.test(customer.postalCode)', '/^\\d{10}$/.test(normalizedPostalCode)'],
+        [
+          '<input type="number" inputMode="decimal" min={product?.minWeight} max={product?.maxWeight} step="0.01"',
+          '<input type="text" inputMode="decimal" min={product?.minWeight} max={product?.maxWeight} step="0.01"'
+        ],
+        [
+          'postalCode: e.target.value.replace(/\\D/g, ""),',
+          'postalCode: e.target.value,'
+        ],
       ];
 
       for (const [from, to] of replacements) {
