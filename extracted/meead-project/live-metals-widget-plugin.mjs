@@ -53,7 +53,7 @@ function LiveMetalsPrices() {
           <div className="live-metals-title">بازار جهانی</div>
           <div className="live-metals-subtitle">قیمت لحظه‌ای هر انس به دلار</div>
         </div>
-        <span className={`live-metals-status ${data ? "is-live" : ""}`}>
+        <span className={"live-metals-status " + (data ? "is-live" : "")}>
           <span className="live-metals-dot" /> {data ? "آنلاین" : "در حال دریافت"}
         </span>
       </div>
@@ -72,7 +72,7 @@ function LiveMetalsPrices() {
 
       <div className="live-metals-footer">
         <span>● بروزرسانی خودکار هر ۳۰ ثانیه</span>
-        <span>{data ? `آخرین داده: ${formatTime(data.updatedAt)}` : loading ? "در حال اتصال…" : "قیمت موقتاً در دسترس نیست"}</span>
+        <span>{data ? "آخرین داده: " + formatTime(data.updatedAt) : loading ? "در حال اتصال…" : "قیمت موقتاً در دسترس نیست"}</span>
       </div>
     </section>
   );
