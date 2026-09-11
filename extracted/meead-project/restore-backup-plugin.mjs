@@ -158,6 +158,8 @@ export default function restoreBackupPlugin() {
         ['/^\\d{10}$/.test(customer.postalCode)', '/^\\d{10}$/.test(normalizedPostalCode)'],
         ['/^09\\d{9}$/.test(normalizedPhone.trim())', '/^09\\d{9}$/.test(normalizeDigits(customer.phone).trim())'],
         ['/^09\\d{9}$/.test(customer.phone.trim())', '/^09\\d{9}$/.test(normalizeDigits(customer.phone).trim())'],
+        ['/^\\d{10}$/.test(normalizedPostalCode)', '/^\\d{10}$/.test(normalizeDigits(customer.postalCode).trim())'],
+        ['/^\\d{10}$/.test(customer.postalCode)', '/^\\d{10}$/.test(normalizeDigits(customer.postalCode).trim())'],
         [
           '<input type="number" inputMode="decimal" min={product?.minWeight} max={product?.maxWeight} step="0.01"',
           '<input type="text" inputMode="decimal" min={product?.minWeight} max={product?.maxWeight} step="0.01"'
