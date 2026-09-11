@@ -1829,7 +1829,6 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
   </span>
 </div>
 
-<button className="primary-btn" onClick={onConfirm} disabled={expired}>تأیید و ثبت نهایی سفارش</button>
       <button className="primary-btn" onClick={onConfirm} disabled={expired}>تأیید و ثبت نهایی سفارش</button>
     </div>
   );
