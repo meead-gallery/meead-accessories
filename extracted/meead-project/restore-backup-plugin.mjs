@@ -57,16 +57,71 @@ export default function restoreBackupPlugin() {
       const recovery = await supabase.rpc("recover_order_by_quote", { p_quote: quote }).catch(() => ({ data: null }));
       if (recovery?.data?.ok && recovery.data.order) {
         const order = mapOrder(recovery.data.order, []);
-        return { ok: true, order, orders: [], settings: mapSettings((await publicSettings().catch(() => null)) || {}) };
+        return { ok: true, order, orders: [], settings: mapSettings({}) };
       }
       return { ok: false, reason: data?.reason || error?.message || "ثبت سفارش ناموفق بود" };
     }
 
     const row = data.order || data;
     const order = mapOrder(row, []);
-    return { ok: true, order, orders: [], settings: mapSettings((await publicSettings().catch(() => null)) || {}) };
+    return { ok: true, order, orders: [], settings: mapSettings({}) };
   }`;
           next = next.slice(0, submitStart) + replacement + next.slice(submitEnd + "\n  },".length);
+          changed = true;
+        }
+      }
+
+      const uiStart = next.indexOf("  const submitOrder = async () => {");
+      if (uiStart !== -1) {
+        const uiEnd = next.indexOf("\n\n    \n  const attachReceipt", uiStart);
+        if (uiEnd !== -1) {
+          const replacement = `  const submitOrder = async () => {
+  const expiresAtMs = quote ? new Date(quote.expiresAt).getTime() : 0;
+
+  if (!quote || !Number.isFinite(expiresAtMs) || Date.now() >= expiresAtMs) {
+    setNow(Date.now());
+    setToast("اعتبار قیمت تمام شده است. لطفاً قیمت جدید دریافت کنید.");
+    return;
+  }
+
+  try {
+    const res = await api.submitOrder(quote, weight, customer);
+
+    if (!res.ok) {
+      if (res.code === "quote_expired" || res.reason === "quote_expired") {
+        setNow(Date.now());
+        setToast("اعتبار قیمت تمام شده است. لطفاً قیمت جدید دریافت کنید.");
+        return;
+      }
+      setToast(res.reason || "ثبت سفارش ناموفق بود");
+      return;
+    }
+
+    setLastOrder(res.order);
+    setView(res.order.type === "buy" ? "buy-payment" : "sell-submitted");
+
+    try {
+      const pub = await api.getState();
+      setSettings(pub.settings);
+    } catch (e) {
+      console.warn("Public settings refresh after order failed:", e);
+    }
+  } catch (e) {
+    try {
+      const recovery = await supabase.rpc("recover_order_by_quote", { p_quote: quote });
+      if (recovery?.data?.ok && recovery.data.order) {
+        const order = mapOrder(recovery.data.order, []);
+        setLastOrder(order);
+        setView(order.type === "buy" ? "buy-payment" : "sell-submitted");
+        return;
+      }
+    } catch (recoveryError) {
+      console.warn("Order recovery failed:", recoveryError);
+    }
+    setToast(e?.message || "ثبت سفارش ناموفق بود");
+  }
+};`;
+          next = next.slice(0, uiStart) + replacement + next.slice(uiEnd);
           changed = true;
         }
       }
