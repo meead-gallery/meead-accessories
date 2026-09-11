@@ -3293,19 +3293,29 @@ function TabBackup({ setSettings, setOrders, setToast }) {
     }
   };
 
-  const restore = async (file) => {
+  
+const restore = async (file) => {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
+
       const state = await api.restoreBackup(data);
+
       setSettings(state.settings);
       setOrders(state.orders);
       setToast("بازیابی با موفقیت انجام شد");
     } catch (e) {
-      setToast("فایل پشتیبان معتبر نیست");
+      console.error("Backup restore failed:", e);
+
+      const message =
+        e?.message ||
+        e?.error_description ||
+        e?.details ||
+        "بازیابی نسخه پشتیبان ناموفق بود";
+
+      setToast(message);
     }
   };
-
   return (
     <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
       <p className="pay-note">
