@@ -1806,6 +1806,15 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
         </div>
       )}
 
+        {view === "buy-form" && Number(weight) < 100 && (
+  <div className="shipping-note">
+    <span>💡</span>
+    <span>
+      <strong>نکته:</strong> در سفارش‌های کمتر از <strong>۱۰۰ گرم</strong>،
+      هزینه ارسال بر عهده مشتری است.
+    </span>
+  </div>
+)} 
       <button className="primary-btn" onClick={onConfirm} disabled={expired}>تأیید و ثبت نهایی سفارش</button>
     </div>
   );
