@@ -14,38 +14,19 @@ function LiveMetalsPrices() {
   const [loading, setLoading] = useState(true);
 
   const loadPrices = useCallback(async () => {
-    const fetchJson = async (url, timeoutMs = 7000) => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const response = await fetch(url, { signal: controller.signal, cache: "no-store" });
-        if (!response.ok) throw new Error("price_api_error");
-        return await response.json();
-      } finally {
-        clearTimeout(timer);
-      }
-    };
-
     try {
-      const [gold, silver] = await Promise.all([
-        fetchJson("https://api.gold-api.com/price/XAU"),
-        fetchJson("https://api.gold-api.com/price/XAG"),
-      ]);
-      const goldPrice = Number(gold?.price);
-      const silverPrice = Number(silver?.price);
-      if (!Number.isFinite(goldPrice) || !Number.isFinite(silverPrice)) throw new Error("invalid_price");
-      setData({ gold: goldPrice, silver: silverPrice, updatedAt: gold?.updatedAt || gold?.timestamp || null, source: "Gold API" });
-      return;
-    } catch (primaryError) {
-      try {
-        const backup = await fetchJson("https://xaus.com/api/v1/spot?compact=1&fresh=" + Date.now());
-        const goldPrice = Number(backup?.spot_usd_oz);
-        const silverPrice = Number(backup?.silver_usd_oz);
-        if (!Number.isFinite(goldPrice) || !Number.isFinite(silverPrice)) throw new Error("invalid_backup_price");
-        setData({ gold: goldPrice, silver: silverPrice, updatedAt: backup?.price_as_of || backup?.updated_at || null, source: "XAUS" });
-      } catch (backupError) {
-        console.warn("Live metals price refresh failed:", backupError);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 7000);
+      const response = await fetch("/api/metals", { signal: controller.signal, cache: "no-store" });
+      clearTimeout(timer);
+      if (!response.ok) throw new Error("metals_unavailable");
+      const result = await response.json();
+      if (!result?.ok || !Number.isFinite(Number(result.gold)) || !Number.isFinite(Number(result.silver))) {
+        throw new Error("invalid_metals_data");
       }
+      setData(result);
+    } catch (error) {
+      console.warn("Live metals price refresh failed:", error);
     } finally {
       setLoading(false);
     }
