@@ -80,7 +80,12 @@ export default function restoreBackupPlugin() {
     const { data, error } = await supabase.rpc("submit_order", payload);
 
     if (error || !data?.ok) {
-      const recovery = await supabase.rpc("recover_order_by_quote", { p_quote: quote }).catch(() => ({ data: null }));
+      let recovery = null;
+      try {
+        recovery = await supabase.rpc("recover_order_by_quote", { p_quote: quote });
+      } catch (recoveryError) {
+        console.warn("Order recovery RPC failed:", recoveryError);
+      }
       if (recovery?.data?.ok && recovery.data.order) {
         const order = mapOrder(recovery.data.order, []);
         return { ok: true, order, orders: [], settings: mapSettings({}) };
