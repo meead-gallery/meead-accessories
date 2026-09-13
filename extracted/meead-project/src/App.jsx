@@ -1390,7 +1390,7 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
 
       <div className="update-row">
         <span>آخرین به‌روزرسانی قیمت</span>
-        <span className="mono">{settings.lastPriceUpdate ? fmtTime(settings.lastPriceUpdate).replace("،", " | ") : "—"}</span>
+        <span className="mono">{settings.lastPriceUpdate ? new Date(settings.lastPriceUpdate).toLocaleDateString("fa-IR") + " — " + new Date(settings.lastPriceUpdate).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }) : "—"}</span>
       </div>
 
       <div className="section-head">
