@@ -3023,6 +3023,7 @@ useEffect(() => {
 }, [settings.market, dirty]);
 
   const save = async () => {
+  try {
     const next = await api.updateMarket({
       closeStart: form.closeStart,
       closeEnd: form.closeEnd,
@@ -3035,8 +3036,11 @@ useEffect(() => {
     setForm(next.market);
     setDirty(false);
     setToast("تنظیمات بازار ذخیره شد");
-  };
-
+  } catch (error) {
+    console.error("Update market failed:", error);
+    setToast(error?.message || "ذخیره تنظیمات بازار ناموفق بود");
+  }
+};
   const toggleEmergency = async () => {
     const next = await api.setEmergencyStop(!form.emergencyStop);
     setSettings(next);
