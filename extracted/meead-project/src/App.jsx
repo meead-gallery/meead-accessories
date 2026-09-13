@@ -3084,9 +3084,11 @@ useEffect(() => {
         <input
           type="checkbox"
           checked={form.sellEnabled}
-          onChange={(e) =>
-            setForm({ ...form, sellEnabled: e.target.checked })
-          }
+          
+          onChange={(e) => {
+  setDirty(true);
+  setForm({ ...form, sellEnabled: e.target.checked });
+}}
         />
         فروش فعال باشد
       </label>
