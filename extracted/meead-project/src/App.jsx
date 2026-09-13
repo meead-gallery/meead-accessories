@@ -3072,9 +3072,10 @@ useEffect(() => {
         <input
           type="checkbox"
           checked={form.buyEnabled}
-          onChange={(e) =>
-            setForm({ ...form, buyEnabled: e.target.checked })
-          }
+          onChange={(e) => {
+  setDirty(true);
+  setForm({ ...form, buyEnabled: e.target.checked });
+}}
         />
         خرید فعال باشد
       </label>
