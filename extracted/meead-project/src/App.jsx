@@ -3022,6 +3022,7 @@ useEffect(() => {
 
     setSettings(next);
     setForm(next.market);
+    setDirty(false);
     setToast("تنظیمات بازار ذخیره شد");
   };
 
