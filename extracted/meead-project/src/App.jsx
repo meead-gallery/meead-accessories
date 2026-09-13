@@ -1390,7 +1390,7 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
 
       <div className="update-row">
         <span>آخرین به‌روزرسانی قیمت</span>
-        <span className="mono">{settings.lastPriceUpdate ? fmtTime(settings.lastPriceUpdate) : "—"}</span>
+        <span className="mono">{settings.lastPriceUpdate ? fmtTime(settings.lastPriceUpdate).replace("،", " | ") : "—"}</span>
       </div>
 
       <div className="section-head">
