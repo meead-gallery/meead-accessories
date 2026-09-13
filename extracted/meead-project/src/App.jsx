@@ -3047,9 +3047,10 @@ useEffect(() => {
           <input
             type="time"
             value={form.closeStart}
-            onChange={(e) =>
-              setForm({ ...form, closeStart: e.target.value })
-            }
+            onChange={(e) => {
+  setDirty(true);
+  setForm({ ...form, closeStart: e.target.value });
+}}
           />
         </label>
 
