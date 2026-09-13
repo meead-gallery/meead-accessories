@@ -1395,7 +1395,7 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
 
       <div className="section-head">
         <span className="section-title">ساچمه نقره</span>
-        <span className="section-caption">قیمت به ازای هر گرم</span>
+        
       </div>
 
       <div className="purity-list">
