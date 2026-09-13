@@ -2434,7 +2434,7 @@ function TabPrices({ settings, setSettings, setToast }) {
   );
 }
 
-function TabOrders({ orders, setOrders }) {
+function TabOrders({ orders, setOrders, setToast }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
