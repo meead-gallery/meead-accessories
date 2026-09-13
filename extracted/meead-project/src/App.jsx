@@ -3003,7 +3003,13 @@ function TabCustomers({ orders }) {
 
 function TabMarket({ settings, setSettings, setToast }) {
   const [form, setForm] = useState(settings.market);
-  useEffect(() => setForm(settings.market), [settings.market]);
+const [dirty, setDirty] = useState(false);
+
+useEffect(() => {
+  if (!dirty) {
+    setForm(settings.market);
+  }
+}, [settings.market, dirty]);
 
   const save = async () => {
     const next = await api.updateMarket({
