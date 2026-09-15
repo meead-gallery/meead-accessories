@@ -28,7 +28,7 @@ function pointTimeMs(value) {
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
-async function get24hChanges() {
+async function getDailyChanges(currentGold, currentSilver) {
   try {
     const [g, s] = await Promise.all([
       fetchJson("https://xaus.com/api/v1/intraday?symbol=xau&hours=48"),
@@ -43,25 +43,26 @@ async function get24hChanges() {
             .sort((a, b) => a._timeMs - b._timeMs)
         : [];
 
-      if (points.length < 2) return null;
+      if (!points.length) return null;
 
-      const latest = points[points.length - 1];
-      const latestDay = new Date(latest._timeMs).toISOString().slice(0, 10);
+      const today = new Date().toISOString().slice(0, 10);
 
-      for (let i = points.length - 2; i >= 0; i--) {
+      // Use the latest quote from a calendar day before today.
+      // This gives Tuesday -> Monday and Monday -> Friday when Friday is inside the 48h feed.
+      for (let i = points.length - 1; i >= 0; i--) {
         const day = new Date(points[i]._timeMs).toISOString().slice(0, 10);
-        if (day !== latestDay) return { current: latest, previous: points[i] };
+        if (day < today) return points[i];
       }
 
       return null;
     };
 
-    const gold = previousTradingPoint(g);
-    const silver = previousTradingPoint(s);
+    const goldPrevious = previousTradingPoint(g);
+    const silverPrevious = previousTradingPoint(s);
 
     return {
-      goldChange24h: gold ? changePct(gold.current.p, gold.previous.p) : null,
-      silverChange24h: silver ? changePct(silver.current.p, silver.previous.p) : null,
+      goldChange24h: goldPrevious ? changePct(currentGold, goldPrevious.p) : null,
+      silverChange24h: silverPrevious ? changePct(currentSilver, silverPrevious.p) : null,
     };
   } catch {
     return { goldChange24h: null, silverChange24h: null };
@@ -73,21 +74,23 @@ async function getMetals(request, ctx) {
   const cacheKey = new Request(METALS_CACHE_KEY, { method: "GET" });
   const cached = await cache.match(cacheKey);
   try {
-    const [[gold, silver], changes] = await Promise.all([
-      Promise.all([fetchJson("https://api.gold-api.com/price/XAU"), fetchJson("https://api.gold-api.com/price/XAG")]),
-      get24hChanges(),
+    const [gold, silver] = await Promise.all([
+      fetchJson("https://api.gold-api.com/price/XAU"),
+      fetchJson("https://api.gold-api.com/price/XAG")
     ]);
     const goldPrice = Number(gold?.price), silverPrice = Number(silver?.price);
     if (!Number.isFinite(goldPrice) || !Number.isFinite(silverPrice)) throw new Error("invalid_primary_price");
+    const changes = await getDailyChanges(goldPrice, silverPrice);
     const body = JSON.stringify({ ok: true, source: "Gold API", gold: goldPrice, silver: silverPrice, ...changes, updatedAt: gold?.updatedAt || gold?.timestamp || new Date().toISOString(), fetchedAt: new Date().toISOString() });
     const response = new Response(body, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=20, stale-if-error=300", "Access-Control-Allow-Origin": "*" } });
     ctx.waitUntil(cache.put(cacheKey, response.clone()));
     return response;
   } catch {
     try {
-      const [backup, changes] = await Promise.all([fetchJson(`https://xaus.com/api/v1/spot?compact=1&fresh=${Date.now()}`), get24hChanges()]);
+      const backup = await fetchJson(`https://xaus.com/api/v1/spot?compact=1&fresh=${Date.now()}`);
       const goldPrice = Number(backup?.spot_usd_oz), silverPrice = Number(backup?.silver_usd_oz);
       if (!Number.isFinite(goldPrice) || !Number.isFinite(silverPrice)) throw new Error("invalid_backup_price");
+      const changes = await getDailyChanges(goldPrice, silverPrice);
       const body = JSON.stringify({ ok: true, source: "XAUS", gold: goldPrice, silver: silverPrice, ...changes, updatedAt: backup?.price_as_of || backup?.updated_at || new Date().toISOString(), fetchedAt: new Date().toISOString(), stale: !!backup?.stale });
       const response = new Response(body, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=20, stale-if-error=300", "Access-Control-Allow-Origin": "*" } });
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
