@@ -488,8 +488,12 @@ p_postal_code: customer.postalCode,
   }
 
   if (!data?.ok || !data?.order) {
-    return null;
-  }
+  throw new Error(
+    data?.reason ||
+    data?.message ||
+    "find_order پاسخ نامعتبر برگرداند: " + JSON.stringify(data)
+  );
+}
 
   const o = data.order;
 
