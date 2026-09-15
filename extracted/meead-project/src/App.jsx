@@ -1486,8 +1486,6 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
 }
 
 /* ------------------------------- Track order ------------------------------ */
-
-
 function TrackOrder({ onAttachReceipt, onBack }) {
   const [code, setCode] = useState("");
   const [phone, setPhone] = useState("");
@@ -1495,56 +1493,34 @@ function TrackOrder({ onAttachReceipt, onBack }) {
   const [searched, setSearched] = useState(false);
 
   const search = async () => {
-  setSearched(false);
-  setResult(null);
-
-  const normalizeDigits = (value) =>
-    String(value || "")
-      .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
-      .trim();
-
-  const normalizedCode = normalizeDigits(code);
-  const normalizedPhone = normalizeDigits(phone);
-
-  if (!normalizedCode || !normalizedPhone) {
-    setSearched(true);
-    return;
-  }
-
-  try {
-    const found = await api.findOrder(normalizedCode, normalizedPhone);
-    setResult(found);
-  } catch (error) {
-    console.error("Find order failed:", error);
-    alert("خطای پیگیری سفارش:\n" + (error?.message || error));
-  } finally {
-    setSearched(true);
-  }
-};
-
-  const normalizeDigits = (value) =>
-    String(value || "")
-      .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
-      .trim();
-
-  const normalizedCode = normalizeDigits(code);
-  const normalizedPhone = normalizeDigits(phone);
-
-  if (!normalizedCode || !normalizedPhone) {
-    setSearched(true);
-    return;
-  }
-
-  try {
-    const found = await api.findOrder(normalizedCode, normalizedPhone);
-    setResult(found);
-  } catch (error) {
-    console.error("Find order failed:", error);
+    setSearched(false);
     setResult(null);
-  } finally {
-    setSearched(true);
-  }
-};
+
+    const normalizeDigits = (value) =>
+      String(value || "")
+        .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+        .trim();
+
+    const normalizedCode = normalizeDigits(code);
+    const normalizedPhone = normalizeDigits(phone);
+
+    if (!normalizedCode || !normalizedPhone) {
+      setSearched(true);
+      return;
+    }
+
+    try {
+      const found = await api.findOrder(normalizedCode, normalizedPhone);
+      setResult(found);
+    } catch (error) {
+      console.error("Find order failed:", error);
+      alert("خطای پیگیری سفارش:\n" + (error?.message || error));
+    } finally {
+      setSearched(true);
+    }
+  };
+
+
 
   return (
     <div className="panel">
