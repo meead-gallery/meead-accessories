@@ -1,6 +1,7 @@
 const METALS_CACHE_KEY = "https://meead-accessories.local/api/metals-cache";
 const GOLD_API = "https://api.gold-api.com/price";
 const XAUS_INTRADAY = "https://xaus.com/api/v1/intraday";
+const XAUS_CHART = "https://xaus.com/api/v1/chart";
 const XAUS_HISTORY = "https://xaus.com/api/v1/history";
 const DAY_SECONDS = 24 * 60 * 60;
 
@@ -67,6 +68,42 @@ function intradayPoints(data) {
     .sort((a, b) => a.t - b.t);
 }
 
+function chartPoints(data) {
+  const rawPoints = Array.isArray(data?.points)
+    ? data.points
+    : Array.isArray(data?.data?.points)
+      ? data.data.points
+      : [];
+
+  return rawPoints
+    .map((point) => ({
+      t: timestampSeconds(point?.t ?? point?.time ?? point?.timestamp),
+      p: number(point?.c ?? point?.close ?? point?.price ?? point?.p),
+    }))
+    .filter((point) => point.t !== null && point.p !== null && point.p > 0)
+    .sort((a, b) => a.t - b.t);
+}
+
+function nearest24hChange(points) {
+  if (points.length < 2) return null;
+
+  const latest = points[points.length - 1];
+  const target = latest.t - DAY_SECONDS;
+  let previous = null;
+  let distance = Infinity;
+
+  for (const point of points) {
+    const d = Math.abs(point.t - target);
+    if (d < distance) {
+      distance = d;
+      previous = point;
+    }
+  }
+
+  if (!previous || distance > 3 * 60 * 60) return null;
+  return percentChange(latest.p, previous.p);
+}
+
 async function intraday24h(symbol) {
   try {
     const data = await fetchJson(
@@ -74,31 +111,19 @@ async function intraday24h(symbol) {
     );
 
     const points = intradayPoints(data);
-    if (points.length < 2) return null;
+    const change = nearest24hChange(points);
+    if (change !== null) return change;
+  } catch {}
 
-    const latest = points[points.length - 1];
-    const earliest = points[0];
-    const pointCoverage = latest.t - earliest.t;
-    const documentedCoverage = number(data?.coverage_seconds);
-    const coverage = documentedCoverage !== null ? documentedCoverage : pointCoverage;
+  // XAUS also exposes an OHLC chart feed. Use it as a real-data fallback
+  // when the first-party intraday series is unavailable or too short.
+  try {
+    const chartSymbol = symbol === "xag" ? "silver" : "xau";
+    const data = await fetchJson(
+      `${XAUS_CHART}?symbol=${chartSymbol}&range=5d&interval=1h&fresh=${Date.now()}`
+    );
 
-    if (coverage < 20 * 60 * 60) return null;
-
-    const target = latest.t - DAY_SECONDS;
-    let previous = null;
-    let distance = Infinity;
-
-    for (const point of points) {
-      const d = Math.abs(point.t - target);
-      if (d < distance) {
-        distance = d;
-        previous = point;
-      }
-    }
-
-    if (!previous || distance > 2 * 60 * 60) return null;
-
-    return percentChange(latest.p, previous.p);
+    return nearest24hChange(chartPoints(data));
   } catch {
     return null;
   }
