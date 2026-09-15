@@ -466,28 +466,64 @@ p_postal_code: customer.postalCode,
   }
 },
   async findOrder(code, phone) {
-    const { data, error } = await supabase.rpc("find_order", { p_order_number:code.trim(), p_phone:phone.trim() });
-    if (error || !data?.ok || !data?.order) return null;
-    const o = data.order;
-    return {
-      id:o.order_number || code.trim(), dbId:Number(o.id), type:o.type, purity:o.purity, weight:Number(o.weight),
-      pricePerGram:Number(o.price_per_gram ?? 0), total:o.total == null ? null : Number(o.total), approxTotal:o.approx_total == null ? null : Number(o.approx_total),
-      name:o.name,
-firstName:o.first_name || "",
-lastName:o.last_name || "",
-phone:o.phone,
-address:o.address || "",
-createdAt:o.created_at,
-lockExpiresAt:o.lock_expires_at,
-sellValidUntil:o.sell_valid_until,
-      bankSnapshot:o.bank_snapshot || {}, receiptPath:o.receipt_url || null, receiptImage:null, status:o.status, adminNote:o.admin_note || "",
-      finalWeight:o.final_weight == null ? null : Number(o.final_weight), finalPricePerGram:o.final_price_per_gram == null ? null : Number(o.final_price_per_gram), finalTotal:o.final_total == null ? null : Number(o.final_total),
-      history:(Array.isArray(o.history) ? o.history : []).map(h=>({
-  status:h.status,
-  time:h.created_at || h.time
-}))
-    };
-  },
+  const normalizedCode = String(code || "").trim();
+  const normalizedPhone = String(phone || "")
+    .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .trim();
+
+  const { data, error } = await supabase.rpc("find_order", {
+    p_order_number: normalizedCode,
+    p_phone: normalizedPhone
+  });
+
+  console.log("Meead find_order:", {
+    code: normalizedCode,
+    phone: normalizedPhone,
+    data,
+    error
+  });
+
+  if (error) {
+    throw new Error(error.message || "خطا در پیگیری سفارش");
+  }
+
+  if (!data?.ok || !data?.order) {
+    return null;
+  }
+
+  const o = data.order;
+
+  return {
+    id: o.order_number || normalizedCode,
+    dbId: Number(o.id),
+    type: o.type,
+    purity: o.purity,
+    weight: Number(o.weight),
+    pricePerGram: Number(o.price_per_gram ?? 0),
+    total: o.total == null ? null : Number(o.total),
+    approxTotal: o.approx_total == null ? null : Number(o.approx_total),
+    name: o.name,
+    firstName: o.first_name || "",
+    lastName: o.last_name || "",
+    phone: o.phone,
+    address: o.address || "",
+    createdAt: o.created_at,
+    lockExpiresAt: o.lock_expires_at,
+    sellValidUntil: o.sell_valid_until,
+    bankSnapshot: o.bank_snapshot || {},
+    receiptPath: o.receipt_url || null,
+    receiptImage: null,
+    status: o.status,
+    adminNote: o.admin_note || "",
+    finalWeight: o.final_weight == null ? null : Number(o.final_weight),
+    finalPricePerGram: o.final_price_per_gram == null ? null : Number(o.final_price_per_gram),
+    finalTotal: o.final_total == null ? null : Number(o.final_total),
+    history: (Array.isArray(o.history) ? o.history : []).map(h => ({
+      status: h.status,
+      time: h.created_at || h.time
+    }))
+  };
+},
   async login(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email:email.trim(), password });
     if (error || !data.session) return {ok:false, reason:error?.message || "ورود ناموفق بود"};
