@@ -1,163 +1,243 @@
 const METALS_CACHE_KEY = "https://meead-accessories.local/api/metals-cache";
+const GOLD_API = "https://api.gold-api.com/price";
+const XAUS_INTRADAY = "https://xaus.com/api/v1/intraday";
+const XAUS_HISTORY = "https://xaus.com/api/v1/history";
+const DAY_SECONDS = 24 * 60 * 60;
 
-async function fetchJson(url, timeoutMs = 7000, extraHeaders = {}) {
+async function fetchJson(url, timeoutMs = 7000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch(url, {
-      headers: { "Accept": "application/json", ...extraHeaders },
+      method: "GET",
+      headers: { Accept: "application/json" },
       signal: controller.signal,
     });
+
     if (!response.ok) throw new Error(`upstream_${response.status}`);
     return await response.json();
-  } finally { clearTimeout(timer); }
-}
-
-function changePct(current, previous) {
-  const now = Number(current), old = Number(previous);
-  if (!Number.isFinite(now) || !Number.isFinite(old) || old <= 0) return null;
-  return ((now - old) / old) * 100;
-}
-
-function findPercentChange(value) {
-  if (!value || typeof value !== "object") return null;
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = findPercentChange(item);
-      if (Number.isFinite(found)) return found;
-    }
-    return null;
-  }
-
-  for (const [key, raw] of Object.entries(value)) {
-    const normalizedKey = key.toLowerCase().replace(/[_-]/g, "");
-    const isPercentField = normalizedKey.includes("percent") || normalizedKey.includes("pct") || normalizedKey.includes("percentage");
-    const isChangeField = normalizedKey.includes("change") || normalizedKey.includes("dailyreturn") || normalizedKey.includes("return");
-    const numeric = Number(raw);
-    if (isPercentField && isChangeField && Number.isFinite(numeric)) return numeric;
-  }
-
-  for (const child of Object.values(value)) {
-    const found = findPercentChange(child);
-    if (Number.isFinite(found)) return found;
-  }
-  return null;
-}
-
-async function getAlyawmDailyChange(symbol) {
-  try {
-    const data = await fetchJson(`https://alyawmgold.com/api/v1/spot/latest?country=USD&fresh=${Date.now()}`);
-    const metal = symbol === "xau" ? data?.metals?.gold : data?.metals?.silver;
-    return findPercentChange(metal);
-  } catch {
-    return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-async function getIntraday24hChange(symbol) {
+function number(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function percentChange(current, previous) {
+  const a = number(current);
+  const b = number(previous);
+  if (a === null || b === null || b <= 0) return null;
+  return ((a - b) / b) * 100;
+}
+
+function timestampSeconds(value) {
+  const n = number(value);
+  if (n === null || n <= 0) return null;
+  return n > 10000000000 ? n / 1000 : n;
+}
+
+function intradayPoints(data) {
+  if (!Array.isArray(data?.points)) return [];
+
+  return data.points
+    .map((point) => ({
+      t: timestampSeconds(point?.t),
+      p: number(point?.p),
+    }))
+    .filter((point) => point.t !== null && point.p !== null && point.p > 0)
+    .sort((a, b) => a.t - b.t);
+}
+
+async function intraday24h(symbol) {
   try {
     const data = await fetchJson(
-      `https://xaus.com/api/v1/intraday?symbol=${symbol}&hours=48`
+      `${XAUS_INTRADAY}?symbol=${symbol}&hours=48&fresh=${Date.now()}`
     );
 
-    const points = Array.isArray(data?.points) ? data.points : [];
-    const normalized = points
-      .map(point => ({
-        timestamp: Number(point?.t),
-        price: Number(point?.p),
-      }))
-      .filter(point => Number.isFinite(point.timestamp) && Number.isFinite(point.price) && point.price > 0)
-      .sort((a, b) => a.timestamp - b.timestamp);
+    const points = intradayPoints(data);
+    if (points.length < 2) return null;
 
-    if (normalized.length < 2) return null;
+    const latest = points[points.length - 1];
+    const earliest = points[0];
+    const coverage = latest.t - earliest.t;
 
-    const latest = normalized[normalized.length - 1];
-    const target = latest.timestamp - 24 * 60 * 60;
+    // XAUS records every two minutes. Require enough real history for a
+    // genuine 24h comparison, but allow normal short gaps in the feed.
+    if (coverage < 20 * 60 * 60) return null;
+
+    const target = latest.t - DAY_SECONDS;
     let previous = null;
-    let bestDistance = Infinity;
+    let distance = Infinity;
 
-    for (const point of normalized) {
-      const distance = Math.abs(point.timestamp - target);
-      if (distance < bestDistance) {
+    for (const point of points) {
+      const d = Math.abs(point.t - target);
+      if (d < distance) {
+        distance = d;
         previous = point;
-        bestDistance = distance;
       }
     }
 
-    if (!previous) return null;
+    // Never manufacture a 24h value from a point that is too far away.
+    if (!previous || distance > 2 * 60 * 60) return null;
 
-    const coverageSeconds = Number(data?.coverage_seconds);
-    if (Number.isFinite(coverageSeconds) && coverageSeconds < 20 * 60 * 60) return null;
-
-    return changePct(latest.price, previous.price);
+    return percentChange(latest.p, previous.p);
   } catch {
     return null;
   }
 }
 
-async function getPreviousTradingDayChange(symbol, currentPrice) {
+async function goldPreviousTradingDay(currentPrice) {
   try {
-    const chartSymbol = symbol === "xau" ? "xau" : "silver";
     const data = await fetchJson(
-      `https://xaus.com/api/v1/chart?symbol=${chartSymbol}&range=5d&interval=1d`
+      `${XAUS_HISTORY}?range=5d&fresh=${Date.now()}`
     );
-    const points = Array.isArray(data?.points) ? data.points : [];
-    const closes = points
-      .map(point => Number(point?.c))
-      .filter(price => Number.isFinite(price) && price > 0);
+
+    const closes = (Array.isArray(data?.points) ? data.points : [])
+      .map((point) => ({
+        d: String(point?.d || ""),
+        c: number(point?.c),
+      }))
+      .filter((point) => point.d && point.c !== null && point.c > 0)
+      .sort((a, b) => a.d.localeCompare(b.d));
 
     if (closes.length < 2) return null;
-    return changePct(currentPrice, closes[closes.length - 2]);
+    return percentChange(currentPrice, closes[closes.length - 2].c);
   } catch {
     return null;
   }
 }
 
-async function get24hChange(symbol, currentPrice) {
-  const providerChange = await getAlyawmDailyChange(symbol);
-  if (Number.isFinite(providerChange)) return providerChange;
+async function readPrimaryPrices() {
+  const [gold, silver] = await Promise.all([
+    fetchJson(`${GOLD_API}/XAU`),
+    fetchJson(`${GOLD_API}/XAG`),
+  ]);
 
-  const intraday = await getIntraday24hChange(symbol);
-  if (Number.isFinite(intraday)) return intraday;
+  const goldPrice = number(gold?.price);
+  const silverPrice = number(silver?.price);
 
-  return getPreviousTradingDayChange(symbol, currentPrice);
+  if (goldPrice === null || silverPrice === null) {
+    throw new Error("invalid_primary_price");
+  }
+
+  return {
+    gold: goldPrice,
+    silver: silverPrice,
+    updatedAt: gold?.updatedAt || gold?.timestamp || new Date().toISOString(),
+  };
 }
 
-async function getMetals(request, ctx) {
+async function readXausPrices() {
+  const data = await fetchJson(
+    `https://xaus.com/api/v1/spot?compact=1&fresh=${Date.now()}`
+  );
+
+  const goldPrice = number(data?.spot_usd_oz);
+  const silverPrice = number(data?.silver_usd_oz);
+
+  if (goldPrice === null || silverPrice === null) {
+    throw new Error("invalid_xaus_price");
+  }
+
+  return {
+    gold: goldPrice,
+    silver: silverPrice,
+    updatedAt: data?.price_as_of || data?.updated_at || new Date().toISOString(),
+    stale: !!data?.stale,
+  };
+}
+
+async function calculateChanges(prices) {
+  const [goldIntraday, silverIntraday] = await Promise.all([
+    intraday24h("xau"),
+    intraday24h("xag"),
+  ]);
+
+  // Gold has an additional documented daily-history fallback.
+  const goldChange24h =
+    goldIntraday !== null
+      ? goldIntraday
+      : await goldPreviousTradingDay(prices.gold);
+
+  return {
+    goldChange24h,
+    silverChange24h: silverIntraday,
+  };
+}
+
+function response(body, headers = {}) {
+  return new Response(JSON.stringify(body), {
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+      ...headers,
+    },
+  });
+}
+
+async function getMetals(ctx) {
   const cache = caches.default;
   const cacheKey = new Request(METALS_CACHE_KEY, { method: "GET" });
   const cached = await cache.match(cacheKey);
+
   try {
-    const [gold, silver] = await Promise.all([
-      fetchJson("https://api.gold-api.com/price/XAU"),
-      fetchJson("https://api.gold-api.com/price/XAG"),
-    ]);
-    const goldPrice = Number(gold?.price), silverPrice = Number(silver?.price);
-    if (!Number.isFinite(goldPrice) || !Number.isFinite(silverPrice)) throw new Error("invalid_primary_price");
-    const [goldChange24h, silverChange24h] = await Promise.all([
-      get24hChange("xau", goldPrice),
-      get24hChange("xag", silverPrice),
-    ]);
-    const body = JSON.stringify({ ok: true, source: "Gold API + AlyawmGold/XAUS", gold: goldPrice, silver: silverPrice, goldChange24h, silverChange24h, updatedAt: gold?.updatedAt || gold?.timestamp || new Date().toISOString(), fetchedAt: new Date().toISOString() });
-    const response = new Response(body, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=20, stale-if-error=300", "Access-Control-Allow-Origin": "*" } });
-    ctx.waitUntil(cache.put(cacheKey, response.clone()));
-    return response;
+    const prices = await readPrimaryPrices();
+    const changes = await calculateChanges(prices);
+
+    const body = {
+      ok: true,
+      source: "Gold API + XAUS",
+      ...prices,
+      ...changes,
+      fetchedAt: new Date().toISOString(),
+    };
+
+    const result = response(body, {
+      "Cache-Control": "public, max-age=20, stale-if-error=300",
+    });
+
+    ctx.waitUntil(cache.put(cacheKey, result.clone()));
+    return result;
   } catch {
     try {
-      const backup = await fetchJson(`https://xaus.com/api/v1/spot?compact=1&fresh=${Date.now()}`);
-      const goldPrice = Number(backup?.spot_usd_oz), silverPrice = Number(backup?.silver_usd_oz);
-      if (!Number.isFinite(goldPrice) || !Number.isFinite(silverPrice)) throw new Error("invalid_backup_price");
-      const [goldChange24h, silverChange24h] = await Promise.all([
-        get24hChange("xau", goldPrice),
-        get24hChange("xag", silverPrice),
-      ]);
-      const body = JSON.stringify({ ok: true, source: "XAUS", gold: goldPrice, silver: silverPrice, goldChange24h, silverChange24h, updatedAt: backup?.price_as_of || backup?.updated_at || new Date().toISOString(), fetchedAt: new Date().toISOString(), stale: !!backup?.stale });
-      const response = new Response(body, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=20, stale-if-error=300", "Access-Control-Allow-Origin": "*" } });
-      ctx.waitUntil(cache.put(cacheKey, response.clone()));
-      return response;
+      const prices = await readXausPrices();
+      const changes = await calculateChanges(prices);
+
+      const body = {
+        ok: true,
+        source: "XAUS",
+        ...prices,
+        ...changes,
+        fetchedAt: new Date().toISOString(),
+      };
+
+      const result = response(body, {
+        "Cache-Control": "public, max-age=20, stale-if-error=300",
+      });
+
+      ctx.waitUntil(cache.put(cacheKey, result.clone()));
+      return result;
     } catch {
-      if (cached) return new Response(cached.body, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-cache", "Access-Control-Allow-Origin": "*", "X-Metals-Source": "cache" } });
-      return new Response(JSON.stringify({ ok: false, reason: "metals_unavailable" }), { status: 503, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } });
+      if (cached) {
+        return new Response(cached.body, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-cache",
+            "Access-Control-Allow-Origin": "*",
+            "X-Metals-Source": "cache",
+          },
+        });
+      }
+
+      return response(
+        { ok: false, reason: "metals_unavailable" },
+        { "Cache-Control": "no-store" }
+      );
     }
   }
 }
@@ -165,11 +245,28 @@ async function getMetals(request, ctx) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
     if (url.pathname === "/api/metals") {
-      if (request.method === "OPTIONS") return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } });
-      if (request.method !== "GET") return new Response(JSON.stringify({ ok: false, reason: "method_not_allowed" }), { status: 405, headers: { "Content-Type": "application/json; charset=utf-8", "Allow": "GET, OPTIONS", "Access-Control-Allow-Origin": "*" } });
-      return getMetals(request, ctx);
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+          },
+        });
+      }
+
+      if (request.method !== "GET") {
+        return response(
+          { ok: false, reason: "method_not_allowed" },
+          { Allow: "GET, OPTIONS" }
+        );
+      }
+
+      return getMetals(ctx);
     }
+
     return env.ASSETS.fetch(request);
   },
 };
