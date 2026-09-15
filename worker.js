@@ -19,6 +19,39 @@ function changePct(current, previous) {
   return ((now - old) / old) * 100;
 }
 
+async function getIntraday24hChange(symbol, currentPrice) {
+  const data = await fetchJson(
+    `https://xaus.com/api/v1/intraday?symbol=${symbol}&hours=48&fresh=${Date.now()}`
+  );
+
+  const points = Array.isArray(data?.points) ? data.points : [];
+  const normalized = points
+    .map(point => ({
+      timestamp: Number(point?.t),
+      price: Number(point?.p),
+    }))
+    .filter(point => Number.isFinite(point.timestamp) && Number.isFinite(point.price) && point.price > 0)
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  if (!normalized.length) return null;
+
+  const latest = normalized[normalized.length - 1];
+  const target = latest.timestamp - 24 * 60 * 60;
+
+  let previous = normalized[0];
+  let bestDistance = Math.abs(previous.timestamp - target);
+
+  for (const point of normalized) {
+    const distance = Math.abs(point.timestamp - target);
+    if (distance < bestDistance) {
+      previous = point;
+      bestDistance = distance;
+    }
+  }
+
+  return changePct(currentPrice, previous.price);
+}
+
 async function getMetals(request, ctx) {
   const cache = caches.default;
   const cacheKey = new Request(METALS_CACHE_KEY, { method: "GET" });
@@ -32,12 +65,14 @@ async function getMetals(request, ctx) {
     const goldPrice = Number(gold?.price), silverPrice = Number(silver?.price);
     if (!Number.isFinite(goldPrice) || !Number.isFinite(silverPrice)) throw new Error("invalid_primary_price");
 
-    const goldChange24h = changePct(goldPrice, gold?.prev_close_price);
-    const silverChange24h = changePct(silverPrice, silver?.prev_close_price);
+    const [goldChange24h, silverChange24h] = await Promise.all([
+      getIntraday24hChange("xau", goldPrice),
+      getIntraday24hChange("xag", silverPrice),
+    ]);
 
     const body = JSON.stringify({
       ok: true,
-      source: "Gold API",
+      source: "Gold API + XAUS intraday",
       gold: goldPrice,
       silver: silverPrice,
       goldChange24h,
@@ -53,7 +88,17 @@ async function getMetals(request, ctx) {
       const backup = await fetchJson(`https://xaus.com/api/v1/spot?compact=1&fresh=${Date.now()}`);
       const goldPrice = Number(backup?.spot_usd_oz), silverPrice = Number(backup?.silver_usd_oz);
       if (!Number.isFinite(goldPrice) || !Number.isFinite(silverPrice)) throw new Error("invalid_backup_price");
-      const body = JSON.stringify({ ok: true, source: "XAUS", gold: goldPrice, silver: silverPrice, goldChange24h: null, silverChange24h: null, updatedAt: backup?.price_as_of || backup?.updated_at || new Date().toISOString(), fetchedAt: new Date().toISOString(), stale: !!backup?.stale });
+
+      let goldChange24h = null;
+      let silverChange24h = null;
+      try {
+        [goldChange24h, silverChange24h] = await Promise.all([
+          getIntraday24hChange("xau", goldPrice),
+          getIntraday24hChange("xag", silverPrice),
+        ]);
+      } catch {}
+
+      const body = JSON.stringify({ ok: true, source: "XAUS", gold: goldPrice, silver: silverPrice, goldChange24h, silverChange24h, updatedAt: backup?.price_as_of || backup?.updated_at || new Date().toISOString(), fetchedAt: new Date().toISOString(), stale: !!backup?.stale });
       const response = new Response(body, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=20, stale-if-error=300", "Access-Control-Allow-Origin": "*" } });
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
       return response;
