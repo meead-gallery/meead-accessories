@@ -19,6 +19,41 @@ function changePct(current, previous) {
   return ((now - old) / old) * 100;
 }
 
+function findPercentChange(value) {
+  if (!value || typeof value !== "object") return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findPercentChange(item);
+      if (Number.isFinite(found)) return found;
+    }
+    return null;
+  }
+
+  for (const [key, raw] of Object.entries(value)) {
+    const normalizedKey = key.toLowerCase().replace(/[_-]/g, "");
+    const isPercentField = normalizedKey.includes("percent") || normalizedKey.includes("pct") || normalizedKey.includes("percentage");
+    const isChangeField = normalizedKey.includes("change") || normalizedKey.includes("dailyreturn") || normalizedKey.includes("return");
+    const numeric = Number(raw);
+    if (isPercentField && isChangeField && Number.isFinite(numeric)) return numeric;
+  }
+
+  for (const child of Object.values(value)) {
+    const found = findPercentChange(child);
+    if (Number.isFinite(found)) return found;
+  }
+  return null;
+}
+
+async function getAlyawmDailyChange(symbol) {
+  try {
+    const data = await fetchJson(`https://alyawmgold.com/api/v1/spot/latest?country=USD&fresh=${Date.now()}`);
+    const metal = symbol === "xau" ? data?.metals?.gold : data?.metals?.silver;
+    return findPercentChange(metal);
+  } catch {
+    return null;
+  }
+}
+
 async function getIntraday24hChange(symbol) {
   try {
     const data = await fetchJson(
@@ -51,7 +86,6 @@ async function getIntraday24hChange(symbol) {
 
     if (!previous) return null;
 
-    // Do not show a fake 24h value when XAUS has less than ~20h of coverage.
     const coverageSeconds = Number(data?.coverage_seconds);
     if (Number.isFinite(coverageSeconds) && coverageSeconds < 20 * 60 * 60) return null;
 
@@ -80,8 +114,12 @@ async function getPreviousTradingDayChange(symbol, currentPrice) {
 }
 
 async function get24hChange(symbol, currentPrice) {
+  const providerChange = await getAlyawmDailyChange(symbol);
+  if (Number.isFinite(providerChange)) return providerChange;
+
   const intraday = await getIntraday24hChange(symbol);
   if (Number.isFinite(intraday)) return intraday;
+
   return getPreviousTradingDayChange(symbol, currentPrice);
 }
 
@@ -100,7 +138,7 @@ async function getMetals(request, ctx) {
       get24hChange("xau", goldPrice),
       get24hChange("xag", silverPrice),
     ]);
-    const body = JSON.stringify({ ok: true, source: "Gold API + XAUS intraday/chart", gold: goldPrice, silver: silverPrice, goldChange24h, silverChange24h, updatedAt: gold?.updatedAt || gold?.timestamp || new Date().toISOString(), fetchedAt: new Date().toISOString() });
+    const body = JSON.stringify({ ok: true, source: "Gold API + AlyawmGold/XAUS", gold: goldPrice, silver: silverPrice, goldChange24h, silverChange24h, updatedAt: gold?.updatedAt || gold?.timestamp || new Date().toISOString(), fetchedAt: new Date().toISOString() });
     const response = new Response(body, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=20, stale-if-error=300", "Access-Control-Allow-Origin": "*" } });
     ctx.waitUntil(cache.put(cacheKey, response.clone()));
     return response;
