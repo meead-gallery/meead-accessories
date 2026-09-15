@@ -35,9 +35,23 @@ function percentChange(current, previous) {
 }
 
 function timestampSeconds(value) {
+  // Unix timestamp in seconds or milliseconds
   const n = number(value);
-  if (n === null || n <= 0) return null;
-  return n > 10000000000 ? n / 1000 : n;
+
+  if (n !== null && n > 0) {
+    return n > 10000000000 ? n / 1000 : n;
+  }
+
+  // ISO/date-string timestamp
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Date.parse(value);
+
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed / 1000;
+    }
+  }
+
+  return null;
 }
 
 function intradayPoints(data) {
