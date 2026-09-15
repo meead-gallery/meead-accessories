@@ -1,8 +1,7 @@
 const METALS_CACHE_KEY = "https://meead-accessories.local/api/metals-cache";
 const GOLD_API = "https://api.gold-api.com/price";
 const XAUS_INTRADAY = "https://xaus.com/api/v1/intraday";
-const XAUS_CHART = "https://xaus.com/api/v1/chart";
-const XAUS_HISTORY = "https://xaus.com/api/v1/history";
+const YAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart";
 const DAY_SECONDS = 24 * 60 * 60;
 
 async function fetchJson(url, timeoutMs = 7000) {
@@ -28,19 +27,9 @@ function number(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-function percentChange(current, previous) {
-  const a = number(current);
-  const b = number(previous);
-  if (a === null || b === null || b <= 0) return null;
-  return ((a - b) / b) * 100;
-}
-
 function timestampSeconds(value) {
   const n = number(value);
-
-  if (n !== null && n > 0) {
-    return n > 10000000000 ? n / 1000 : n;
-  }
+  if (n !== null && n > 0) return n > 10000000000 ? n / 1000 : n;
 
   if (typeof value === "string" && value.trim()) {
     const parsed = Date.parse(value);
@@ -50,49 +39,31 @@ function timestampSeconds(value) {
   return null;
 }
 
-function intradayPoints(data) {
-  const rawPoints = Array.isArray(data?.points)
-    ? data.points
-    : Array.isArray(data?.data?.points)
-      ? data.data.points
-      : Array.isArray(data?.series)
-        ? data.series
-        : [];
-
-  return rawPoints
-    .map((point) => ({
-      t: timestampSeconds(point?.t ?? point?.time ?? point?.timestamp),
-      p: number(point?.p ?? point?.price ?? point?.value),
-    }))
-    .filter((point) => point.t !== null && point.p !== null && point.p > 0)
-    .sort((a, b) => a.t - b.t);
-}
-
-function chartPoints(data) {
-  const rawPoints = Array.isArray(data?.points)
-    ? data.points
-    : Array.isArray(data?.data?.points)
-      ? data.data.points
-      : [];
-
-  return rawPoints
-    .map((point) => ({
-      t: timestampSeconds(point?.t ?? point?.time ?? point?.timestamp),
-      p: number(point?.c ?? point?.close ?? point?.price ?? point?.p),
-    }))
-    .filter((point) => point.t !== null && point.p !== null && point.p > 0)
-    .sort((a, b) => a.t - b.t);
+function percentChange(current, previous) {
+  const a = number(current);
+  const b = number(previous);
+  if (a === null || b === null || b <= 0) return null;
+  return ((a - b) / b) * 100;
 }
 
 function nearest24hChange(points) {
-  if (points.length < 2) return null;
+  const clean = points
+    .map((point) => ({
+      t: timestampSeconds(point?.t),
+      p: number(point?.p),
+    }))
+    .filter((point) => point.t !== null && point.p !== null && point.p > 0)
+    .sort((a, b) => a.t - b.t);
 
-  const latest = points[points.length - 1];
+  if (clean.length < 2) return null;
+
+  const latest = clean[clean.length - 1];
   const target = latest.t - DAY_SECONDS;
+
   let previous = null;
   let distance = Infinity;
 
-  for (const point of points) {
+  for (const point of clean) {
     const d = Math.abs(point.t - target);
     if (d < distance) {
       distance = d;
@@ -104,47 +75,40 @@ function nearest24hChange(points) {
   return percentChange(latest.p, previous.p);
 }
 
-async function intraday24h(symbol) {
+async function xaus24h(symbol) {
   try {
     const data = await fetchJson(
       `${XAUS_INTRADAY}?symbol=${symbol}&hours=48&fresh=${Date.now()}`
     );
 
-    const points = intradayPoints(data);
-    const change = nearest24hChange(points);
-    if (change !== null) return change;
-  } catch {}
+    const points = Array.isArray(data?.points)
+      ? data.points
+      : Array.isArray(data?.data?.points)
+        ? data.data.points
+        : [];
 
-  // XAUS also exposes an OHLC chart feed. Use it as a real-data fallback
-  // when the first-party intraday series is unavailable or too short.
-  try {
-    const chartSymbol = symbol === "xag" ? "silver" : "xau";
-    const data = await fetchJson(
-      `${XAUS_CHART}?symbol=${chartSymbol}&range=5d&interval=1h&fresh=${Date.now()}`
-    );
-
-    return nearest24hChange(chartPoints(data));
+    return nearest24hChange(points);
   } catch {
     return null;
   }
 }
 
-async function goldPreviousTradingDay(currentPrice) {
+async function yahoo24h(symbol) {
   try {
-    const data = await fetchJson(
-      `${XAUS_HISTORY}?range=5d&fresh=${Date.now()}`
-    );
+    const url = `${YAHOO_CHART}/${encodeURIComponent(symbol)}?range=5d&interval=5m&includePrePost=true`;
+    const data = await fetchJson(url);
+    const chart = data?.chart?.result?.[0];
+    const timestamps = Array.isArray(chart?.timestamp) ? chart.timestamp : [];
+    const closes = chart?.indicators?.quote?.[0]?.close;
 
-    const closes = (Array.isArray(data?.points) ? data.points : [])
-      .map((point) => ({
-        d: String(point?.d || ""),
-        c: number(point?.c),
-      }))
-      .filter((point) => point.d && point.c !== null && point.c > 0)
-      .sort((a, b) => a.d.localeCompare(b.d));
+    if (!Array.isArray(closes) || timestamps.length !== closes.length) return null;
 
-    if (closes.length < 2) return null;
-    return percentChange(currentPrice, closes[closes.length - 2].c);
+    const points = timestamps.map((t, i) => ({
+      t,
+      p: closes[i],
+    }));
+
+    return nearest24hChange(points);
   } catch {
     return null;
   }
@@ -190,20 +154,20 @@ async function readXausPrices() {
   };
 }
 
-async function calculateChanges(prices) {
-  const [goldIntraday, silverIntraday] = await Promise.all([
-    intraday24h("xau"),
-    intraday24h("xag"),
+async function calculateChanges() {
+  const [goldXaus, silverXaus] = await Promise.all([
+    xaus24h("xau"),
+    xaus24h("xag"),
   ]);
 
-  const goldChange24h =
-    goldIntraday !== null
-      ? goldIntraday
-      : await goldPreviousTradingDay(prices.gold);
+  const [goldYahoo, silverYahoo] = await Promise.all([
+    goldXaus === null ? yahoo24h("XAUUSD=X") : Promise.resolve(null),
+    silverXaus === null ? yahoo24h("XAGUSD=X") : Promise.resolve(null),
+  ]);
 
   return {
-    goldChange24h,
-    silverChange24h: silverIntraday,
+    goldChange24h: goldXaus ?? goldYahoo,
+    silverChange24h: silverXaus ?? silverYahoo,
   };
 }
 
@@ -224,11 +188,11 @@ async function getMetals(ctx) {
 
   try {
     const prices = await readPrimaryPrices();
-    const changes = await calculateChanges(prices);
+    const changes = await calculateChanges();
 
     const body = {
       ok: true,
-      source: "Gold API + XAUS",
+      source: "Gold API + 24h market history",
       ...prices,
       ...changes,
       fetchedAt: new Date().toISOString(),
@@ -243,11 +207,11 @@ async function getMetals(ctx) {
   } catch {
     try {
       const prices = await readXausPrices();
-      const changes = await calculateChanges(prices);
+      const changes = await calculateChanges();
 
       const body = {
         ok: true,
-        source: "XAUS",
+        source: "XAUS + 24h market history",
         ...prices,
         ...changes,
         fetchedAt: new Date().toISOString(),
