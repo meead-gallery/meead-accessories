@@ -35,32 +35,31 @@ function percentChange(current, previous) {
 }
 
 function timestampSeconds(value) {
-  // Unix timestamp in seconds or milliseconds
   const n = number(value);
 
   if (n !== null && n > 0) {
     return n > 10000000000 ? n / 1000 : n;
   }
 
-  // ISO/date-string timestamp
   if (typeof value === "string" && value.trim()) {
     const parsed = Date.parse(value);
-
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return parsed / 1000;
-    }
+    if (Number.isFinite(parsed) && parsed > 0) return parsed / 1000;
   }
 
   return null;
 }
 
 function intradayPoints(data) {
-  if (!Array.isArray(data?.points)) return [];
+  const rawPoints = Array.isArray(data?.points)
+    ? data.points
+    : Array.isArray(data?.data?.points)
+      ? data.data.points
+      : [];
 
-  return data.points
+  return rawPoints
     .map((point) => ({
-      t: timestampSeconds(point?.t),
-      p: number(point?.p),
+      t: timestampSeconds(point?.t ?? point?.timestamp ?? point?.time),
+      p: number(point?.p ?? point?.price ?? point?.close ?? point?.c),
     }))
     .filter((point) => point.t !== null && point.p !== null && point.p > 0)
     .sort((a, b) => a.t - b.t);
@@ -77,11 +76,11 @@ async function intraday24h(symbol) {
 
     const latest = points[points.length - 1];
     const earliest = points[0];
-    const coverage = latest.t - earliest.t;
+    const pointCoverage = latest.t - earliest.t;
+    const reportedCoverage = number(data?.coverage_seconds ?? data?.data?.coverage_seconds);
+    const coverage = Math.max(pointCoverage, reportedCoverage || 0);
 
-    // XAUS records every two minutes. Require enough real history for a
-    // genuine 24h comparison, but allow normal short gaps in the feed.
-    if (coverage < 20 * 60 * 60) return null;
+    if (coverage < DAY_SECONDS) return null;
 
     const target = latest.t - DAY_SECONDS;
     let previous = null;
@@ -95,8 +94,7 @@ async function intraday24h(symbol) {
       }
     }
 
-    // Never manufacture a 24h value from a point that is too far away.
-    if (!previous || distance > 2 * 60 * 60) return null;
+    if (!previous || distance > 3 * 60 * 60) return null;
 
     return percentChange(latest.p, previous.p);
   } catch {
@@ -171,7 +169,6 @@ async function calculateChanges(prices) {
     intraday24h("xag"),
   ]);
 
-  // Gold has an additional documented daily-history fallback.
   const goldChange24h =
     goldIntraday !== null
       ? goldIntraday
