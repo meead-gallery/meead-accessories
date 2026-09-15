@@ -66,8 +66,50 @@ function priceSaveSessionPlugin() {
   };`;
       const newSave = `const save = async () => {
     try {
-      const nextSettings = await api.updatePrices(form);
+      const pricePayload = Object.fromEntries(
+        Object.entries(form).map(([key, v]) => [key, {
+          buyPrice: Number(v.buyPrice),
+          sellPrice: Number(v.sellPrice)
+        }])
+      );
+
+      const limitPayload = Object.fromEntries(
+        Object.entries(form).map(([key, v]) => [key, {
+          minWeight: Number(v.minWeight),
+          maxWeight: Number(v.maxWeight)
+        }])
+      );
+
+      const sessionResult = await supabase.auth.refreshSession();
+      if (sessionResult.error) throw sessionResult.error;
+      if (!sessionResult.data?.session) {
+        throw new Error("نشست مدیریت منقضی شده است؛ دوباره وارد پنل شوید");
+      }
+
+      let result = await supabase.rpc("update_prices", {
+        p_products: pricePayload
+      });
+
+      if (result.error || !result.data?.ok) {
+        throw result.error || new Error(
+          result.data?.reason || "ذخیره قیمت‌ها ناموفق بود"
+        );
+      }
+
+      result = await supabase.rpc("update_product_limits", {
+        p_products: limitPayload
+      });
+
+      if (result.error || !result.data?.ok) {
+        throw result.error || new Error(
+          result.data?.reason || "ذخیره محدوده وزن ناموفق بود"
+        );
+      }
+
+      const publicData = await publicSettings();
+      const nextSettings = mapSettings(publicData);
       setSettings(nextSettings);
+      setForm(nextSettings.products);
       setToast("تنظیمات قیمت ذخیره شد");
     } catch (error) {
       console.error("Price save failed:", error);
