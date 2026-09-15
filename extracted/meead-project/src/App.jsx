@@ -1253,10 +1253,44 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
 };
 
   const tryAdminLogin = async () => {
+  setAdminError("");
+
+  try {
     const res = await api.login(adminEmail, adminPw);
-    if (res.ok) { setAdminError(""); setAdminPw(""); setIsAdmin(true); setView("admin"); const st=await api.getAdminState(); setSettings(st.settings); setOrders(st.orders); setLog(st.log); }
-    else setAdminError(res.reason || "ورود ناموفق بود");
-  };
+
+    if (!res.ok) {
+      setAdminError(res.reason || "ورود ناموفق بود");
+      return;
+    }
+
+    setAdminPw("");
+    setIsAdmin(true);
+    setView("admin");
+
+    try {
+      const st = await api.getAdminState();
+      setSettings(st.settings);
+      setOrders(st.orders);
+      setLog(st.log);
+    } catch (error) {
+      console.error("Admin state load failed:", error);
+
+      const publicState = await api.getState();
+      setSettings(publicState.settings);
+      setOrders([]);
+      setLog([]);
+
+      setAdminError(
+        "ورود مدیر موفق بود، اما اطلاعات پنل کامل بارگذاری نشد. لطفاً دوباره تلاش کنید."
+      );
+    }
+  } catch (error) {
+    console.error("Admin login failed:", error);
+    setAdminError(
+      error?.message || "خطا در ورود به پنل مدیریت"
+    );
+  }
+};
 
   if (!ready) {
     return (
