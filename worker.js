@@ -19,21 +19,41 @@ function changePct(current, previous) {
 async function get24hChanges() {
   try {
     const [g, s] = await Promise.all([
-      fetchJson("https://xaus.com/api/v1/intraday?symbol=xau&hours=24"),
-      fetchJson("https://xaus.com/api/v1/intraday?symbol=xag&hours=24"),
+      fetchJson("https://xaus.com/api/v1/intraday?symbol=xau&hours=168"),
+      fetchJson("https://xaus.com/api/v1/intraday?symbol=xag&hours=168"),
     ]);
-    const oldest = (payload) => {
-      const points = Array.isArray(payload?.points) ? payload.points.filter(p => Number.isFinite(Number(p?.p))) : [];
-      return points.reduce((a, p) => !a || Number(p.t) < Number(a.t) ? p : a, null);
+
+    const previousTradingPoint = (payload) => {
+      const points = Array.isArray(payload?.points)
+        ? payload.points
+            .filter(p => Number.isFinite(Number(p?.p)) && Number.isFinite(Number(p?.t)))
+            .sort((a, b) => Number(a.t) - Number(b.t))
+        : [];
+
+      if (points.length < 2) return null;
+
+      const latest = points[points.length - 1];
+      const latestDay = new Date(Number(latest.t) * 1000).toISOString().slice(0, 10);
+
+      // Find the last quote from the most recent earlier trading day.
+      for (let i = points.length - 2; i >= 0; i--) {
+        const day = new Date(Number(points[i].t) * 1000).toISOString().slice(0, 10);
+        if (day !== latestDay) return { current: latest, previous: points[i] };
+      }
+
+      return null;
     };
-    const gp = Array.isArray(g?.points) ? g.points : [];
-    const sp = Array.isArray(s?.points) ? s.points : [];
-    const go = oldest(g), so = oldest(s);
+
+    const gold = previousTradingPoint(g);
+    const silver = previousTradingPoint(s);
+
     return {
-      goldChange24h: go && gp.length ? changePct(gp[gp.length - 1]?.p, go.p) : null,
-      silverChange24h: so && sp.length ? changePct(sp[sp.length - 1]?.p, so.p) : null,
+      goldChange24h: gold ? changePct(gold.current.p, gold.previous.p) : null,
+      silverChange24h: silver ? changePct(silver.current.p, silver.previous.p) : null,
     };
-  } catch { return { goldChange24h: null, silverChange24h: null }; }
+  } catch {
+    return { goldChange24h: null, silverChange24h: null };
+  }
 }
 
 async function getMetals(request, ctx) {
