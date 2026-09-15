@@ -1303,34 +1303,48 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   setAdminError("");
 
   try {
-    const res = await api.login(adminEmail, adminPw);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: adminEmail.trim(),
+      password: adminPw,
+    });
 
-    if (!res.ok) {
-      setAdminError(res.reason || "ورود ناموفق بود");
+    if (error || !data?.session) {
+      setAdminError(
+        error?.message || "ورود ناموفق بود"
+      );
+      return;
+    }
+
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+
+    if (sessionError || !sessionData?.session) {
+      setAdminError(
+        sessionError?.message || "نشست کاربری ایجاد نشد"
+      );
+      return;
+    }
+
+    const { data: admin, error: adminError } =
+      await supabase.rpc("is_admin");
+
+    if (adminError) {
+      console.error("Admin check failed:", adminError);
+      setAdminError(
+        adminError.message || "خطا در بررسی دسترسی مدیر"
+      );
+      return;
+    }
+
+    if (admin !== true) {
+      await supabase.auth.signOut();
+      setAdminError("این حساب دسترسی مدیریت ندارد");
       return;
     }
 
     setAdminPw("");
     setIsAdmin(true);
     setView("admin");
-
-    try {
-      const st = await api.getAdminState();
-      setSettings(st.settings);
-      setOrders(st.orders);
-      setLog(st.log);
-    } catch (error) {
-      console.error("Admin state load failed:", error);
-
-      const publicState = await api.getState();
-      setSettings(publicState.settings);
-      setOrders([]);
-      setLog([]);
-
-      setAdminError(
-        "ورود مدیر موفق بود، اما اطلاعات پنل کامل بارگذاری نشد. لطفاً دوباره تلاش کنید."
-      );
-    }
   } catch (error) {
     console.error("Admin login failed:", error);
     setAdminError(
@@ -1338,7 +1352,6 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     );
   }
 };
-
   if (!ready) {
     return (
       <div className="app-root" dir="rtl">
