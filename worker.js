@@ -21,28 +21,23 @@ function changePct(current, previous) {
 
 async function getPreviousTradingClose(symbol) {
   const data = await fetchJson(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=5d&interval=1d&includePrePost=false&events=history`,
-    7000,
-    { "User-Agent": "Mozilla/5.0" }
+    `https://xaus.com/api/v1/chart?symbol=${encodeURIComponent(symbol)}&range=5d&interval=1d&fresh=${Date.now()}`
   );
 
-  const result = data?.chart?.result?.[0];
-  const timestamps = Array.isArray(result?.timestamp) ? result.timestamp : [];
-  const closes = result?.indicators?.quote?.[0]?.close;
-  if (!Array.isArray(closes)) return null;
-
+  const points = Array.isArray(data?.points) ? data.points : [];
   const todayUtc = new Date().toISOString().slice(0, 10);
-  const points = timestamps
-    .map((timestamp, index) => ({
-      timestamp: Number(timestamp),
-      close: Number(closes[index]),
+
+  const normalized = points
+    .map(point => ({
+      timestamp: Number(point?.t),
+      close: Number(point?.c),
     }))
     .filter(point => Number.isFinite(point.timestamp) && Number.isFinite(point.close) && point.close > 0)
     .sort((a, b) => a.timestamp - b.timestamp);
 
-  for (let i = points.length - 1; i >= 0; i--) {
-    const day = new Date(points[i].timestamp * 1000).toISOString().slice(0, 10);
-    if (day !== todayUtc) return points[i].close;
+  for (let i = normalized.length - 1; i >= 0; i--) {
+    const day = new Date(normalized[i].timestamp * 1000).toISOString().slice(0, 10);
+    if (day !== todayUtc) return normalized[i].close;
   }
 
   return null;
@@ -50,12 +45,12 @@ async function getPreviousTradingClose(symbol) {
 
 async function get24hChanges() {
   try {
-    const [goldPrevious, silverPrevious] = await Promise.all([
-      getPreviousTradingClose("XAUUSD=X"),
-      getPreviousTradingClose("XAGUSD=X"),
+    const [goldPrevious, silverPrevious, live] = await Promise.all([
+      getPreviousTradingClose("xau"),
+      getPreviousTradingClose("silver"),
+      fetchJson(`https://xaus.com/api/v1/spot?compact=1&fresh=${Date.now()}`),
     ]);
 
-    const live = await fetchJson(`https://xaus.com/api/v1/spot?compact=1&fresh=${Date.now()}`);
     const goldCurrent = Number(live?.spot_usd_oz);
     const silverCurrent = Number(live?.silver_usd_oz);
 
