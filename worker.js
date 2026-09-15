@@ -19,8 +19,8 @@ function changePct(current, previous) {
 async function get24hChanges() {
   try {
     const [g, s] = await Promise.all([
-      fetchJson("https://xaus.com/api/v1/intraday?symbol=xau&hours=168"),
-      fetchJson("https://xaus.com/api/v1/intraday?symbol=xag&hours=168"),
+      fetchJson("https://xaus.com/api/v1/intraday?symbol=xau&hours=48"),
+      fetchJson("https://xaus.com/api/v1/intraday?symbol=xag&hours=48"),
     ]);
 
     const previousTradingPoint = (payload) => {
