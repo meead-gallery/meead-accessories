@@ -19,71 +19,41 @@ function changePct(current, previous) {
   return ((now - old) / old) * 100;
 }
 
-async function getPreviousTradingClose(symbol) {
-  const data = await fetchJson(
-    `https://xaus.com/api/v1/chart?symbol=${encodeURIComponent(symbol)}&range=5d&interval=1d&fresh=${Date.now()}`
-  );
-
-  const points = Array.isArray(data?.points) ? data.points : [];
-  const todayUtc = new Date().toISOString().slice(0, 10);
-
-  const normalized = points
-    .map(point => ({
-      timestamp: Number(point?.t),
-      close: Number(point?.c),
-    }))
-    .filter(point => Number.isFinite(point.timestamp) && Number.isFinite(point.close) && point.close > 0)
-    .sort((a, b) => a.timestamp - b.timestamp);
-
-  for (let i = normalized.length - 1; i >= 0; i--) {
-    const day = new Date(normalized[i].timestamp * 1000).toISOString().slice(0, 10);
-    if (day !== todayUtc) return normalized[i].close;
-  }
-
-  return null;
-}
-
-async function get24hChanges() {
-  try {
-    const [goldPrevious, silverPrevious, live] = await Promise.all([
-      getPreviousTradingClose("xau"),
-      getPreviousTradingClose("silver"),
-      fetchJson(`https://xaus.com/api/v1/spot?compact=1&fresh=${Date.now()}`),
-    ]);
-
-    const goldCurrent = Number(live?.spot_usd_oz);
-    const silverCurrent = Number(live?.silver_usd_oz);
-
-    return {
-      goldChange24h: goldPrevious ? changePct(goldCurrent, goldPrevious) : null,
-      silverChange24h: silverPrevious ? changePct(silverCurrent, silverPrevious) : null,
-    };
-  } catch {
-    return { goldChange24h: null, silverChange24h: null };
-  }
-}
-
 async function getMetals(request, ctx) {
   const cache = caches.default;
   const cacheKey = new Request(METALS_CACHE_KEY, { method: "GET" });
   const cached = await cache.match(cacheKey);
   try {
-    const [[gold, silver], changes] = await Promise.all([
-      Promise.all([fetchJson("https://api.gold-api.com/price/XAU"), fetchJson("https://api.gold-api.com/price/XAG")]),
-      get24hChanges(),
+    const [gold, silver] = await Promise.all([
+      fetchJson("https://api.gold-api.com/price/XAU"),
+      fetchJson("https://api.gold-api.com/price/XAG"),
     ]);
+
     const goldPrice = Number(gold?.price), silverPrice = Number(silver?.price);
     if (!Number.isFinite(goldPrice) || !Number.isFinite(silverPrice)) throw new Error("invalid_primary_price");
-    const body = JSON.stringify({ ok: true, source: "Gold API", gold: goldPrice, silver: silverPrice, ...changes, updatedAt: gold?.updatedAt || gold?.timestamp || new Date().toISOString(), fetchedAt: new Date().toISOString() });
+
+    const goldChange24h = changePct(goldPrice, gold?.prev_close_price);
+    const silverChange24h = changePct(silverPrice, silver?.prev_close_price);
+
+    const body = JSON.stringify({
+      ok: true,
+      source: "Gold API",
+      gold: goldPrice,
+      silver: silverPrice,
+      goldChange24h,
+      silverChange24h,
+      updatedAt: gold?.updatedAt || gold?.timestamp || new Date().toISOString(),
+      fetchedAt: new Date().toISOString(),
+    });
     const response = new Response(body, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=20, stale-if-error=300", "Access-Control-Allow-Origin": "*" } });
     ctx.waitUntil(cache.put(cacheKey, response.clone()));
     return response;
   } catch {
     try {
-      const [backup, changes] = await Promise.all([fetchJson(`https://xaus.com/api/v1/spot?compact=1&fresh=${Date.now()}`), get24hChanges()]);
+      const backup = await fetchJson(`https://xaus.com/api/v1/spot?compact=1&fresh=${Date.now()}`);
       const goldPrice = Number(backup?.spot_usd_oz), silverPrice = Number(backup?.silver_usd_oz);
       if (!Number.isFinite(goldPrice) || !Number.isFinite(silverPrice)) throw new Error("invalid_backup_price");
-      const body = JSON.stringify({ ok: true, source: "XAUS", gold: goldPrice, silver: silverPrice, ...changes, updatedAt: backup?.price_as_of || backup?.updated_at || new Date().toISOString(), fetchedAt: new Date().toISOString(), stale: !!backup?.stale });
+      const body = JSON.stringify({ ok: true, source: "XAUS", gold: goldPrice, silver: silverPrice, goldChange24h: null, silverChange24h: null, updatedAt: backup?.price_as_of || backup?.updated_at || new Date().toISOString(), fetchedAt: new Date().toISOString(), stale: !!backup?.stale });
       const response = new Response(body, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=20, stale-if-error=300", "Access-Control-Allow-Origin": "*" } });
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
       return response;
