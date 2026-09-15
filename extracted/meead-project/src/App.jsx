@@ -529,13 +529,60 @@ p_postal_code: customer.postalCode,
   };
 },
   async login(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email:email.trim(), password });
-    if (error || !data.session) return {ok:false, reason:error?.message || "ورود ناموفق بود"};
-    const { data:admin, error:ae } = await supabase.rpc("is_admin");
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
 
-    if (ae || admin !== true) { await supabase.auth.signOut(); return {ok:false, reason:"این حساب دسترسی مدیریت ندارد"}; }
-    return {ok:true};
-  },
+    if (error || !data?.session) {
+      return {
+        ok: false,
+        reason: error?.message || "ورود ناموفق بود",
+      };
+    }
+
+    // اطمینان از اینکه session جدید واقعاً روی کلاینت ثبت شده است
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+
+    if (sessionError || !sessionData?.session) {
+      return {
+        ok: false,
+        reason: sessionError?.message || "نشست کاربری ایجاد نشد",
+      };
+    }
+
+    const { data: admin, error: adminError } =
+      await supabase.rpc("is_admin");
+
+    if (adminError) {
+      console.error("Admin check failed:", adminError);
+      return {
+        ok: false,
+        reason: adminError.message || "خطا در بررسی دسترسی مدیر",
+      };
+    }
+
+    if (admin !== true) {
+      await supabase.auth.signOut();
+
+      return {
+        ok: false,
+        reason: "این حساب دسترسی مدیریت ندارد",
+      };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Admin login error:", error);
+
+    return {
+      ok: false,
+      reason: error?.message || "خطا در ورود به پنل مدیریت",
+    };
+  }
+},
   async logout() { await supabase.auth.signOut(); },
   async updatePrices(productsForm) {
     const pricePayload = Object.fromEntries(Object.entries(productsForm).map(([key,v])=>[key,{buyPrice:Number(v.buyPrice),sellPrice:Number(v.sellPrice)}]));
