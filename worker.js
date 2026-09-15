@@ -16,6 +16,18 @@ function changePct(current, previous) {
   return ((now - old) / old) * 100;
 }
 
+function pointTimeMs(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value < 10000000000 ? value * 1000 : value;
+  }
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    return numeric < 10000000000 ? numeric * 1000 : numeric;
+  }
+  const parsed = Date.parse(String(value || ""));
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
 async function get24hChanges() {
   try {
     const [g, s] = await Promise.all([
@@ -26,18 +38,18 @@ async function get24hChanges() {
     const previousTradingPoint = (payload) => {
       const points = Array.isArray(payload?.points)
         ? payload.points
-            .filter(p => Number.isFinite(Number(p?.p)) && Number.isFinite(Number(p?.t)))
-            .sort((a, b) => Number(a.t) - Number(b.t))
+            .map(p => ({ ...p, _timeMs: pointTimeMs(p?.t) }))
+            .filter(p => Number.isFinite(Number(p?.p)) && Number.isFinite(p._timeMs))
+            .sort((a, b) => a._timeMs - b._timeMs)
         : [];
 
       if (points.length < 2) return null;
 
       const latest = points[points.length - 1];
-      const latestDay = new Date(Number(latest.t) * 1000).toISOString().slice(0, 10);
+      const latestDay = new Date(latest._timeMs).toISOString().slice(0, 10);
 
-      // Find the last quote from the most recent earlier trading day.
       for (let i = points.length - 2; i >= 0; i--) {
-        const day = new Date(Number(points[i].t) * 1000).toISOString().slice(0, 10);
+        const day = new Date(points[i]._timeMs).toISOString().slice(0, 10);
         if (day !== latestDay) return { current: latest, previous: points[i] };
       }
 
