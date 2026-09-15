@@ -54,12 +54,14 @@ function intradayPoints(data) {
     ? data.points
     : Array.isArray(data?.data?.points)
       ? data.data.points
-      : [];
+      : Array.isArray(data?.series)
+        ? data.series
+        : [];
 
   return rawPoints
     .map((point) => ({
-      t: timestampSeconds(point?.t ?? point?.timestamp ?? point?.time),
-      p: number(point?.p ?? point?.price ?? point?.close ?? point?.c),
+      t: timestampSeconds(point?.t ?? point?.time ?? point?.timestamp),
+      p: number(point?.p ?? point?.price ?? point?.value),
     }))
     .filter((point) => point.t !== null && point.p !== null && point.p > 0)
     .sort((a, b) => a.t - b.t);
@@ -77,10 +79,10 @@ async function intraday24h(symbol) {
     const latest = points[points.length - 1];
     const earliest = points[0];
     const pointCoverage = latest.t - earliest.t;
-    const reportedCoverage = number(data?.coverage_seconds ?? data?.data?.coverage_seconds);
-    const coverage = Math.max(pointCoverage, reportedCoverage || 0);
+    const documentedCoverage = number(data?.coverage_seconds);
+    const coverage = documentedCoverage !== null ? documentedCoverage : pointCoverage;
 
-    if (coverage < DAY_SECONDS) return null;
+    if (coverage < 20 * 60 * 60) return null;
 
     const target = latest.t - DAY_SECONDS;
     let previous = null;
@@ -94,7 +96,7 @@ async function intraday24h(symbol) {
       }
     }
 
-    if (!previous || distance > 3 * 60 * 60) return null;
+    if (!previous || distance > 2 * 60 * 60) return null;
 
     return percentChange(latest.p, previous.p);
   } catch {
