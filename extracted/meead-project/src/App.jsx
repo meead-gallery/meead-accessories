@@ -1455,10 +1455,32 @@ function TrackOrder({ onAttachReceipt, onBack }) {
   const [searched, setSearched] = useState(false);
 
   const search = async () => {
-    const found = await api.findOrder(code, phone);
-    setResult(found);
+  setSearched(false);
+  setResult(null);
+
+  const normalizeDigits = (value) =>
+    String(value || "")
+      .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+      .trim();
+
+  const normalizedCode = normalizeDigits(code);
+  const normalizedPhone = normalizeDigits(phone);
+
+  if (!normalizedCode || !normalizedPhone) {
     setSearched(true);
-  };
+    return;
+  }
+
+  try {
+    const found = await api.findOrder(normalizedCode, normalizedPhone);
+    setResult(found);
+  } catch (error) {
+    console.error("Find order failed:", error);
+    setResult(null);
+  } finally {
+    setSearched(true);
+  }
+};
 
   return (
     <div className="panel">
