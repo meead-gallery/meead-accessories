@@ -2371,7 +2371,7 @@ function TabDashboard({ settings, orders }) {
 
 function TabPrices({ settings, setSettings, setToast }) {
   const [form, setForm] = useState(settings.products);
-  useEffect(() => setForm(settings.products), [settings.products]);
+  
   const [openHistory, setOpenHistory] = useState(null);
 
   const update = (key, field, val) => setForm({ ...form, [key]: { ...form[key], [field]: val } });
