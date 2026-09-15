@@ -1516,6 +1516,30 @@ function TrackOrder({ onAttachReceipt, onBack }) {
     setResult(found);
   } catch (error) {
     console.error("Find order failed:", error);
+    alert("خطای پیگیری سفارش:\n" + (error?.message || error));
+  } finally {
+    setSearched(true);
+  }
+};
+
+  const normalizeDigits = (value) =>
+    String(value || "")
+      .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+      .trim();
+
+  const normalizedCode = normalizeDigits(code);
+  const normalizedPhone = normalizeDigits(phone);
+
+  if (!normalizedCode || !normalizedPhone) {
+    setSearched(true);
+    return;
+  }
+
+  try {
+    const found = await api.findOrder(normalizedCode, normalizedPhone);
+    setResult(found);
+  } catch (error) {
+    console.error("Find order failed:", error);
     setResult(null);
   } finally {
     setSearched(true);
