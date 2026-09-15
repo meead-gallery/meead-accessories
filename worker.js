@@ -73,7 +73,18 @@ function findDailyPercent(value) {
 function findHistoricalPrice(item) {
   if (!item || typeof item !== "object") return null;
 
-  const keys = ["close", "price", "value", "spot", "usd_per_oz", "usdPerOz"];
+  const keys = [
+    "close",
+    "price",
+    "value",
+    "spot",
+    "usd_per_oz",
+    "usdPerOz",
+    "average",
+    "avg",
+    "mean",
+  ];
+
   for (const key of keys) {
     const candidate = number(item?.[key]);
     if (candidate !== null && candidate > 0) return candidate;
@@ -87,6 +98,15 @@ function findHistoricalPrice(item) {
   }
 
   return null;
+}
+
+function historyRows(data) {
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.history)) return data.history;
+  if (Array.isArray(data?.prices)) return data.prices;
+  if (Array.isArray(data?.observations)) return data.observations;
+  if (Array.isArray(data?.rows)) return data.rows;
+  return [];
 }
 
 async function alyawm24h(symbol, currentPrice) {
@@ -105,21 +125,15 @@ async function alyawm24h(symbol, currentPrice) {
       `${ALYAWM_HISTORY}?metal=${symbol}&interval=daily&limit=3&fresh=${Date.now()}`
     );
 
-    const rows = Array.isArray(data?.data)
-      ? data.data
-      : Array.isArray(data?.history)
-        ? data.history
-        : Array.isArray(data?.prices)
-          ? data.prices
-          : [];
-
-    const prices = rows
+    const prices = historyRows(data)
       .map(findHistoricalPrice)
       .filter((value) => value !== null && value > 0);
 
-    if (!prices.length) return null;
+    if (prices.length < 2) return null;
 
-    const previous = prices[prices.length - 1];
+    // AlyawmGold returns historical observations oldest -> newest.
+    // Use the previous completed daily observation, not the newest row.
+    const previous = prices[prices.length - 2];
     return percentChange(currentPrice, previous);
   } catch {
     return null;
