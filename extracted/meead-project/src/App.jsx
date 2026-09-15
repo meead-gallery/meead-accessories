@@ -606,7 +606,8 @@ if (r.error || !r.data?.ok) {
     r.data?.reason || "ذخیره محدوده وزن ناموفق بود"
   );
 }
-    return (await adminState()).settings;
+    const publicData = await publicSettings();
+return mapSettings(publicData);
 },
    async updateMarket(marketPatch) {
   const { data, error } = await supabase.rpc("update_market_settings", {
