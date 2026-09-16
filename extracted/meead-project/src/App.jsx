@@ -402,11 +402,7 @@ p_postal_code: customer.postalCode,
     const result = await new Promise((resolve) => {
       xhr.open("POST", `${SUPABASE_URL}/functions/v1/upload-receipt`);
 
-      xhr.setRequestHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
-      xhr.setRequestHeader(
-        "Authorization",
-        `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
-      );
+      
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable && onProgress) {
