@@ -392,72 +392,84 @@ p_postal_code: customer.postalCode,
   
   async attachReceipt(order, file, onProgress) {
   try {
-    const fd = new FormData();
-    fd.append("orderNumber", order.id);
-    fd.append("phone", order.phone);
-    fd.append("file", file);
+    if (!order?.id || !order?.phone || !file) {
+      return {
+        ok: false,
+        reason: "اطلاعات سفارش یا فایل رسید ناقص است",
+      };
+    }
 
-    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append("orderNumber", String(order.id));
+    formData.append("phone", String(order.phone));
+    formData.append("file", file);
 
-    const result = await new Promise((resolve) => {
-      xhr.open("POST", `${SUPABASE_URL}/functions/v1/upload-receipt`);
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/upload-receipt`,
+      {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: formData,
+      }
+    );
 
-      
+    let data = {};
 
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable && onProgress) {
-          const percent = Math.round(
-            (event.loaded / event.total) * 100
-          );
-          onProgress(percent);
-        }
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+
+    if (!response.ok || data?.ok === false) {
+      console.error("Receipt upload failed:", {
+        status: response.status,
+        data,
+      });
+
+      const reasons = {
+        invalid_input: "اطلاعات ارسال رسید ناقص است",
+        file_too_large: "حجم فایل رسید بیشتر از حد مجاز است",
+        invalid_file_type: "فرمت فایل رسید مجاز نیست",
+        order_lookup_error: "بررسی سفارش با خطا مواجه شد",
+        order_not_found: "سفارش مربوط به این رسید پیدا نشد",
+        storage_upload_error: "ذخیره فایل رسید با خطا مواجه شد",
+        receipt_update_error: "ثبت رسید روی سفارش با خطا مواجه شد",
+        server_configuration_error: "خطای تنظیمات سرور",
+        server_error: "خطای داخلی سرور",
       };
 
-      xhr.onload = async () => {
-        let data = {};
-
-        try {
-          data = JSON.parse(xhr.responseText || "{}");
-        } catch (e) {}
-
-        if (xhr.status < 200 || xhr.status >= 300 || data.ok === false) {
-          resolve({
-            ok: false,
-            reason: data.reason || "آپلود رسید ناموفق بود",
-          });
-          return;
-        }
-
-        resolve({
-          ok: true,
-          order: {
-            ...order,
-            status:
-              data.status || "در انتظار تأیید پرداخت",
-            receiptPath:
-              data.receiptPath ||
-              order.receiptPath ||
-              null,
-          },
-          orders: [],
-        });
+      return {
+        ok: false,
+        reason:
+          reasons[data?.reason] ||
+          data?.reason ||
+          `آپلود رسید ناموفق بود (${response.status})`,
       };
+    }
 
-      xhr.onerror = () => {
-        resolve({
-          ok: false,
-          reason: "آپلود رسید ناموفق بود",
-        });
-      };
+    return {
+      ok: true,
+      order: {
+        ...order,
+        status:
+          data?.status ||
+          "در انتظار تأیید پرداخت",
+        receiptPath:
+          data?.receiptPath ||
+          order.receiptPath ||
+          null,
+      },
+      orders: [],
+    };
+  } catch (error) {
+    console.error("Receipt upload network error:", error);
 
-      xhr.send(fd);
-    });
-
-    return result;
-  } catch (e) {
     return {
       ok: false,
-      reason: "آپلود رسید ناموفق بود",
+      reason: "ارتباط با سرور برای ارسال رسید برقرار نشد",
     };
   }
 },
