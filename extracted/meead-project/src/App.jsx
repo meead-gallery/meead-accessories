@@ -399,17 +399,30 @@ p_postal_code: customer.postalCode,
 
     const xhr = new XMLHttpRequest();
 
-    const result = await new Promise((resolve) => {
-      xhr.open("POST", `${SUPABASE_URL}/functions/v1/upload-receipt`);
-      xhr.setRequestHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable && onProgress) {
-          const percent = Math.round(
-            (event.loaded / event.total) * 100
-          );
-          onProgress(percent);
-        }
-      };
+const result = await new Promise((resolve) => {
+  xhr.open(
+    "POST",
+    `${SUPABASE_URL}/functions/v1/upload-receipt`
+  );
+
+  xhr.setRequestHeader(
+    "apikey",
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+  xhr.setRequestHeader(
+    "x-client-info",
+    "meead-accessories"
+  );
+
+  xhr.upload.onprogress = (event) => {
+    if (event.lengthComputable && onProgress) {
+      const percent = Math.round(
+        (event.loaded / event.total) * 100
+      );
+      onProgress(percent);
+    }
+  };
 
       xhr.onload = async () => {
         let data = {};
