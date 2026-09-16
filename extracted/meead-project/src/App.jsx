@@ -389,95 +389,63 @@ p_postal_code: customer.postalCode,
     const pub = await publicSettings().catch(()=>null);
     return { ok:true, order, orders:[], settings:mapSettings(pub || {}) };
   },
-  
   async attachReceipt(order, file, onProgress) {
   try {
     const fd = new FormData();
-    console.log("RECEIPT_UPLOAD_START", {
-  order,
-  fileName: file?.name,
-  fileType: file?.type,
-  fileSize: file?.size,
-});
+
     fd.append("orderNumber", order.id);
     fd.append("phone", order.phone);
     fd.append("file", file);
 
-    const xhr = new XMLHttpRequest();
+    if (onProgress) onProgress(0);
 
-const result = await new Promise((resolve) => {
-  xhr.open(
-    "POST",
-    `${SUPABASE_URL}/functions/v1/upload-receipt`
-  );
+    const { data, error } = await supabase.functions.invoke(
+      "upload-receipt",
+      {
+        body: fd,
+      }
+    );
 
-  xhr.setRequestHeader(
-    "apikey",
-    SUPABASE_PUBLISHABLE_KEY
-  );
+    if (error || data?.ok === false) {
+      console.error("Receipt upload failed:", error, data);
 
-  xhr.setRequestHeader(
-    "x-client-info",
-    "meead-accessories"
-  );
-
-  xhr.upload.onprogress = (event) => {
-    if (event.lengthComputable && onProgress) {
-      const percent = Math.round(
-        (event.loaded / event.total) * 100
-      );
-      onProgress(percent);
+      return {
+        ok: false,
+        reason:
+          data?.reason ||
+          error?.message ||
+          "آپلود رسید ناموفق بود",
+      };
     }
-  };
 
-      xhr.onload = async () => {
-        let data = {};
+    if (onProgress) onProgress(100);
 
-        try {
-          data = JSON.parse(xhr.responseText || "{}");
-        } catch (e) {}
-
-        if (xhr.status < 200 || xhr.status >= 300 || data.ok === false) {
-          resolve({
-            ok: false,
-            reason: data.reason || "آپلود رسید ناموفق بود",
-          });
-          return;
-        }
-
-        resolve({
-          ok: true,
-          order: {
-            ...order,
-            status:
-              data.status || "در انتظار تأیید پرداخت",
-            receiptPath:
-              data.receiptPath ||
-              order.receiptPath ||
-              null,
-          },
-          orders: [],
-        });
-      };
-
-      xhr.onerror = () => {
-        resolve({
-          ok: false,
-          reason: "آپلود رسید ناموفق بود",
-        });
-      };
-
-      xhr.send(fd);
-    });
-
-    return result;
+    return {
+      ok: true,
+      order: {
+        ...order,
+        status:
+          data?.status ||
+          "در انتظار تأیید پرداخت",
+        receiptPath:
+          data?.receiptPath ||
+          order.receiptPath ||
+          null,
+      },
+      orders: [],
+    };
   } catch (e) {
+    console.error("Receipt upload error:", e);
+
     return {
       ok: false,
-      reason: "آپلود رسید ناموفق بود",
+      reason:
+        e?.message ||
+        "آپلود رسید ناموفق بود",
     };
   }
 },
+  
   async findOrder(code, phone) {
   const normalizedCode = String(code || "").trim();
   const normalizedPhone = String(phone || "")
