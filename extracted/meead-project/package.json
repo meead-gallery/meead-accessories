@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node patch-receipt-upload.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },
