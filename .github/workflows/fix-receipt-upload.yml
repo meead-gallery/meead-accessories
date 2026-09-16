@@ -24,75 +24,8 @@ jobs:
           path = Path('extracted/meead-project/src/App.jsx')
           text = path.read_text(encoding='utf-8')
 
-          old = '''  async attachReceipt(order, file, onProgress) {
-  try {
-    const fd = new FormData();
-    fd.append("orderNumber", order.id);
-    fd.append("phone", order.phone);
-    fd.append("file", file);
-
-    const xhr = new XMLHttpRequest();
-
-    const result = await new Promise((resolve) => {
-      xhr.open("POST", `${SUPABASE_URL}/functions/v1/upload-receipt`);
-      xhr.setRequestHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable && onProgress) {
-          const percent = Math.round(
-            (event.loaded / event.total) * 100
-          );
-          onProgress(percent);
-        }
-      };
-
-      xhr.onload = async () => {
-        let data = {};
-
-        try {
-          data = JSON.parse(xhr.responseText || "{}");
-        } catch (e) {}
-
-        if (xhr.status < 200 || xhr.status >= 300 || data.ok === false) {
-          resolve({
-            ok: false,
-            reason: data.reason || "آپلود رسید ناموفق بود",
-          });
-          return;
-        }
-
-        resolve({
-          ok: true,
-          order: {
-            ...order,
-            status:
-              data.status || "در انتظار تأیید پرداخت",
-            receiptPath:
-              data.receiptPath ||
-              order.receiptPath ||
-              null,
-          },
-          orders: [],
-        });
-      };
-
-      xhr.onerror = () => {
-        resolve({
-          ok: false,
-          reason: "آپلود رسید ناموفق بود",
-        });
-      };
-
-      xhr.send(fd);
-    });
-
-    return result;
-  } catch (e) {
-    return {
-      ok: false,
-      reason: "آپلود رسید ناموفق بود",
-    };
-  }
-},'''
+          start = text.index('  async attachReceipt(order, file, onProgress) {')
+          end = text.index('\n  },', start) + len('\n  },')
 
           new = '''  async attachReceipt(order, file, onProgress) {
   try {
@@ -134,10 +67,7 @@ jobs:
   }
 },'''
 
-          if old not in text:
-              raise SystemExit('Expected attachReceipt block was not found; no changes made.')
-
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          path.write_text(text[:start] + new + text[end:], encoding='utf-8')
           PY
 
       - name: Verify only App.jsx changed
