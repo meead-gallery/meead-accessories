@@ -424,11 +424,16 @@ p_postal_code: customer.postalCode,
     }
 
     if (!response.ok || data?.ok === false) {
-      console.error("Receipt upload failed:", {
-        status: response.status,
-        data,
-      });
+  console.error("Receipt upload failed:", {
+    status: response.status,
+    data,
+  });
 
+  alert(
+    `خطای واقعی آپلود\nStatus: ${response.status}\nReason: ${
+      data?.reason || "نامشخص"
+    }`
+  );
       const reasons = {
         invalid_input: "اطلاعات ارسال رسید ناقص است",
         file_too_large: "حجم فایل رسید بیشتر از حد مجاز است",
