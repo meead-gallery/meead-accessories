@@ -393,7 +393,7 @@ p_postal_code: customer.postalCode,
   async attachReceipt(order, file, onProgress) {
   try {
     const fd = new FormData();
-    fd.append("orderNumber", order.id);
+    fd.append("orderNumber", order.orderNumber);
     fd.append("phone", order.phone);
     fd.append("file", file);
 
