@@ -470,13 +470,19 @@ p_postal_code: customer.postalCode,
       orders: [],
     };
   } catch (error) {
-    console.error("Receipt upload network error:", error);
+  console.error("Receipt upload network error:", error);
 
-    return {
-      ok: false,
-      reason: "ارتباط با سرور برای ارسال رسید برقرار نشد",
-    };
-  }
+  alert(
+    `خطای واقعی اتصال آپلود\n\n${
+      error?.message || String(error) || "خطای نامشخص"
+    }`
+  );
+
+  return {
+    ok: false,
+    reason: "ارتباط با سرور برای ارسال رسید برقرار نشد",
+  };
+}
 },
   async findOrder(code, phone) {
   const normalizedCode = String(code || "").trim();
