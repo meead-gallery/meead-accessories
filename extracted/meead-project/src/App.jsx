@@ -566,29 +566,114 @@ p_postal_code: customer.postalCode,
 },
   async logout() { await supabase.auth.signOut(); },
   async updatePrices(productsForm) {
-    const pricePayload = Object.fromEntries(Object.entries(productsForm).map(([key,v])=>[key,{buyPrice:Number(v.buyPrice),sellPrice:Number(v.sellPrice),buyActive:!!v.buyActive,sellActive:!!v.sellActive}]));
-    const limitPayload = Object.fromEntries(Object.entries(productsForm).map(([key,v])=>[key,{minWeight:Number(v.minWeight),maxWeight:Number(v.maxWeight)}]));
-    let r = await supabase.rpc("update_prices", {
-  p_products: pricePayload
-});
+  const productKeys = PRODUCTS.map((p) => p.key);
 
-if (r.error || !r.data?.ok) {
-  throw r.error || new Error(
-    r.data?.reason || "ذخیره قیمت‌ها ناموفق بود"
+  const payload = Object.fromEntries(
+    productKeys.map((key) => {
+      const product = productsForm?.[key];
+
+      if (!product) {
+        throw new Error(`اطلاعات محصول ${key} پیدا نشد`);
+      }
+
+      return [
+        key,
+        {
+          buyPrice: Number(product.buyPrice),
+          sellPrice: Number(product.sellPrice),
+          minWeight: Number(product.minWeight),
+          maxWeight: Number(product.maxWeight),
+          buyActive: Boolean(product.buyActive),
+          sellActive: Boolean(product.sellActive),
+        },
+      ];
+    })
   );
-}
 
-r = await supabase.rpc("update_product_limits", {
-  p_products: limitPayload
-});
-
-if (r.error || !r.data?.ok) {
-  throw r.error || new Error(
-    r.data?.reason || "ذخیره محدوده وزن ناموفق بود"
+  const { data, error } = await supabase.rpc(
+    "update_product_settings",
+    {
+      p_products: payload,
+    }
   );
-}
-    const publicData = await publicSettings();
-return mapSettings(publicData);
+
+  if (error) {
+    console.error("update_product_settings RPC error:", error);
+    throw new Error(
+      error.message || "ذخیره تنظیمات قیمت ناموفق بود"
+    );
+  }
+
+  if (!data?.ok) {
+    console.error("update_product_settings rejected:", data);
+    throw new Error(
+      data?.reason || "ذخیره تنظیمات قیمت ناموفق بود"
+    );
+  }
+
+  // بررسی مستقیم دیتابیس بعد از ذخیره
+  const { data: rows, error: verifyError } = await supabase
+    .from("products")
+    .select(
+      "key,buy_price,sell_price,min_weight,max_weight,buy_active,sell_active"
+    )
+    .order("key");
+
+  if (verifyError) {
+    console.error(
+      "Price settings verification error:",
+      verifyError
+    );
+
+    throw new Error(
+      verifyError.message ||
+      "بررسی ذخیره تنظیمات ناموفق بود"
+    );
+  }
+
+  const savedRows = rows || [];
+
+  for (const key of productKeys) {
+    const expected = payload[key];
+
+    const actual = savedRows.find(
+      (row) => String(row.key) === String(key)
+    );
+
+    if (!actual) {
+      throw new Error(
+        `محصول ${key} بعد از ذخیره پیدا نشد`
+      );
+    }
+
+    const matches =
+      Number(actual.buy_price) === Number(expected.buyPrice) &&
+      Number(actual.sell_price) === Number(expected.sellPrice) &&
+      Number(actual.min_weight) === Number(expected.minWeight) &&
+      Number(actual.max_weight) === Number(expected.maxWeight) &&
+      Boolean(actual.buy_active) === Boolean(expected.buyActive) &&
+      Boolean(actual.sell_active) === Boolean(expected.sellActive);
+
+    if (!matches) {
+      console.error(
+        "Price settings verification mismatch:",
+        {
+          key,
+          expected,
+          actual,
+        }
+      );
+
+      throw new Error(
+        `ذخیره تنظیمات محصول ${key} تأیید نشد`
+      );
+    }
+  }
+
+  // بعد از تأیید واقعی دیتابیس، وضعیت کامل پنل مدیریت را دوباره می‌خوانیم
+  const admin = await adminState();
+
+  return admin.settings;
 },
    async updateMarket(marketPatch) {
   const { data, error } = await supabase.rpc("update_market_settings", {
