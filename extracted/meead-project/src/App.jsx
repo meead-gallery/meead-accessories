@@ -2437,57 +2437,243 @@ function TabDashboard({ settings, orders }) {
 }
 
 function TabPrices({ settings, setSettings, setToast }) {
-  const [form, setForm] = useState(settings.products);
-  
+  const [form, setForm] = useState(() => settings.products);
   const [openHistory, setOpenHistory] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const update = (key, field, val) => setForm({ ...form, [key]: { ...form[key], [field]: val } });
+  useEffect(() => {
+    if (!saving) {
+      setForm(settings.products);
+    }
+  }, [settings.products, saving]);
+
+  const update = (key, field, value) => {
+    setForm((current) => ({
+      ...current,
+      [key]: {
+        ...current[key],
+        [field]: value,
+      },
+    }));
+  };
 
   const save = async () => {
-    const nextSettings = await api.updatePrices(form);
-    setSettings(nextSettings);
-    setToast("تنظیمات قیمت ذخیره شد");
+    if (saving) return;
+
+    setSaving(true);
+
+    try {
+      const nextSettings = await api.updatePrices(form);
+
+      setSettings(nextSettings);
+      setForm(nextSettings.products);
+
+      setToast(
+        "تنظیمات قیمت با موفقیت ذخیره شد"
+      );
+    } catch (error) {
+      console.error(
+        "Save price settings failed:",
+        error
+      );
+
+      setToast(
+        error?.message ||
+        "ذخیره تنظیمات قیمت ناموفق بود"
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
-      {PRODUCTS.map((p) => (
-        <div key={p.key} className="price-edit-card">
-          <div className="price-edit-head">
-            <span className="purity-name">{p.title}</span>
-            <label className="toggle-row">
-              <input type="checkbox" checked={form[p.key].buyActive} onChange={(e) => update(p.key, "buyActive", e.target.checked)} /> خرید فعال
-            </label>
-            <label className="toggle-row">
-              <input type="checkbox" checked={form[p.key].sellActive} onChange={(e) => update(p.key, "sellActive", e.target.checked)} /> فروش فعال
-            </label>
-          </div>
-          <div className="admin-grid">
-            <label className="field"><span>قیمت خرید (تومان/گرم)</span><input type="number" value={form[p.key].buyPrice} onChange={(e) => update(p.key, "buyPrice", e.target.value)} /></label>
-            <label className="field"><span>قیمت فروش (تومان/گرم)</span><input type="number" value={form[p.key].sellPrice} onChange={(e) => update(p.key, "sellPrice", e.target.value)} /></label>
-            <label className="field"><span>حداقل وزن (گرم)</span><input type="number" value={form[p.key].minWeight} onChange={(e) => update(p.key, "minWeight", e.target.value)} /></label>
-            <label className="field"><span>حداکثر وزن (گرم)</span><input type="number" value={form[p.key].maxWeight} onChange={(e) => update(p.key, "maxWeight", e.target.value)} /></label>
-          </div>
-          <button className="ghost-btn small-btn" onClick={() => setOpenHistory(openHistory === p.key ? null : p.key)}>
-            <History size={13} /> تاریخچه قیمت ({(settings.products[p.key].priceHistory || []).length})
-          </button>
-          {openHistory === p.key && (
-            <div className="history-list">
-              {(settings.products[p.key].priceHistory || []).length === 0 && <span className="pay-note">تاریخچه‌ای ثبت نشده.</span>}
-              {(settings.products[p.key].priceHistory || []).map((h, i) => (
-                <div key={i} className="history-row mono">
-                  {fmtTime(h.time)} — خرید {h.buyPrice.toLocaleString("fa-IR")} — فروش {h.sellPrice.toLocaleString("fa-IR")}
-                </div>
-              ))}
+    <div
+      className="admin-section"
+      style={{
+        borderTop: "none",
+        paddingTop: 0,
+      }}
+    >
+      {PRODUCTS.map((p) => {
+        const product = form?.[p.key] || {};
+
+        return (
+          <div
+            key={p.key}
+            className="price-edit-card"
+          >
+            <div className="price-edit-head">
+              <span className="purity-name">
+                {p.title}
+              </span>
+
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={Boolean(product.buyActive)}
+                  disabled={saving}
+                  onChange={(e) =>
+                    update(
+                      p.key,
+                      "buyActive",
+                      e.target.checked
+                    )
+                  }
+                />
+                خرید فعال
+              </label>
+
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={Boolean(product.sellActive)}
+                  disabled={saving}
+                  onChange={(e) =>
+                    update(
+                      p.key,
+                      "sellActive",
+                      e.target.checked
+                    )
+                  }
+                />
+                فروش فعال
+              </label>
             </div>
-          )}
-        </div>
-      ))}
-      <button className="primary-btn" onClick={save}>ذخیره تنظیمات قیمت</button>
+
+            <div className="admin-grid">
+              <label className="field">
+                <span>
+                  قیمت خرید (تومان/گرم)
+                </span>
+
+                <input
+                  type="number"
+                  value={product.buyPrice ?? ""}
+                  disabled={saving}
+                  onChange={(e) =>
+                    update(
+                      p.key,
+                      "buyPrice",
+                      e.target.value
+                    )
+                  }
+                />
+              </label>
+
+              <label className="field">
+                <span>
+                  قیمت فروش (تومان/گرم)
+                </span>
+
+                <input
+                  type="number"
+                  value={product.sellPrice ?? ""}
+                  disabled={saving}
+                  onChange={(e) =>
+                    update(
+                      p.key,
+                      "sellPrice",
+                      e.target.value
+                    )
+                  }
+                />
+              </label>
+
+              <label className="field">
+                <span>
+                  حداقل وزن (گرم)
+                </span>
+
+                <input
+                  type="number"
+                  value={product.minWeight ?? ""}
+                  disabled={saving}
+                  onChange={(e) =>
+                    update(
+                      p.key,
+                      "minWeight",
+                      e.target.value
+                    )
+                  }
+                />
+              </label>
+
+              <label className="field">
+                <span>
+                  حداکثر وزن (گرم)
+                </span>
+
+                <input
+                  type="number"
+                  value={product.maxWeight ?? ""}
+                  disabled={saving}
+                  onChange={(e) =>
+                    update(
+                      p.key,
+                      "maxWeight",
+                      e.target.value
+                    )
+                  }
+                />
+              </label>
+            </div>
+
+            <button
+              className="ghost-btn small-btn"
+              disabled={saving}
+              onClick={() =>
+                setOpenHistory(
+                  openHistory === p.key
+                    ? null
+                    : p.key
+                )
+              }
+            >
+              <History size={13} />
+              تاریخچه قیمت (
+              {(settings.products[p.key].priceHistory || []).length}
+              )
+            </button>
+
+            {openHistory === p.key && (
+              <div className="history-list">
+                {(settings.products[p.key].priceHistory || []).length === 0 && (
+                  <span className="pay-note">
+                    تاریخچه‌ای ثبت نشده.
+                  </span>
+                )}
+
+                {(settings.products[p.key].priceHistory || []).map(
+                  (h, i) => (
+                    <div
+                      key={i}
+                      className="history-row mono"
+                    >
+                      {fmtTime(h.time)} — خرید{" "}
+                      {h.buyPrice.toLocaleString("fa-IR")}{" "}
+                      — فروش{" "}
+                      {h.sellPrice.toLocaleString("fa-IR")}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      <button
+        className="primary-btn"
+        onClick={save}
+        disabled={saving}
+      >
+        {saving
+          ? "در حال ذخیره و بررسی…"
+          : "ذخیره تنظیمات قیمت"}
+      </button>
     </div>
   );
 }
-
   function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onNoteChange, onDelete }) {
   const [open, setOpen] = useState(false);
   const [finalWeight, setFinalWeight] = useState(order.finalWeight ?? "");
