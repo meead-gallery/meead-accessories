@@ -566,7 +566,7 @@ p_postal_code: customer.postalCode,
 },
   async logout() { await supabase.auth.signOut(); },
   async updatePrices(productsForm) {
-    const pricePayload = Object.fromEntries(Object.entries(productsForm).map(([key,v])=>[key,{buyPrice:Number(v.buyPrice),sellPrice:Number(v.sellPrice)}]));
+    const pricePayload = Object.fromEntries(Object.entries(productsForm).map(([key,v])=>[key,{buyPrice:Number(v.buyPrice),sellPrice:Number(v.sellPrice),buyActive:!!v.buyActive,sellActive:!!v.sellActive}]));
     const limitPayload = Object.fromEntries(Object.entries(productsForm).map(([key,v])=>[key,{minWeight:Number(v.minWeight),maxWeight:Number(v.maxWeight)}]));
     let r = await supabase.rpc("update_prices", {
   p_products: pricePayload
