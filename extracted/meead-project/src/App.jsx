@@ -2359,11 +2359,43 @@ function TabPrices({ settings, setSettings, setToast }) {
   
   const [openHistory, setOpenHistory] = useState(null);
 
-  const update = (key, field, val) => setForm({ ...form, [key]: { ...form[key], [field]: val } });
+  const update = (key, field, val) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: val,
+      },
+    }));
+  };
 
   const save = async () => {
     const nextSettings = await api.updatePrices(form);
-    setSettings(nextSettings);
+
+    // The API response is the server snapshot, but the just-submitted form
+    // must remain the source of truth for the current editor state.
+    // This prevents a stale read from immediately restoring an old checkbox value.
+    const savedProducts = Object.fromEntries(
+      PRODUCTS.map((p) => [
+        p.key,
+        {
+          ...(nextSettings.products?.[p.key] || {}),
+          buyPrice: Number(form[p.key].buyPrice),
+          sellPrice: Number(form[p.key].sellPrice),
+          minWeight: Number(form[p.key].minWeight),
+          maxWeight: Number(form[p.key].maxWeight),
+          buyActive: !!form[p.key].buyActive,
+          sellActive: !!form[p.key].sellActive,
+        },
+      ])
+    );
+
+    setSettings({
+      ...nextSettings,
+      products: savedProducts,
+    });
+
+    setForm(savedProducts);
     setToast("تنظیمات قیمت ذخیره شد");
   };
 
