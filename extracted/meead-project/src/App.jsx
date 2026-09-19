@@ -2357,47 +2357,31 @@ function TabDashboard({ settings, orders }) {
 
 function TabPrices({ settings, setSettings, setToast }) {
   const [form, setForm] = useState(settings.products);
+  const formRef = useRef(settings.products);
   const [openHistory, setOpenHistory] = useState(null);
 
-  // Every time the Prices tab is mounted, load the real admin-side
-  // product state again. This prevents a stale parent snapshot from
-  // restoring old checkbox values when returning to this tab.
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const fresh = await api.getAdminState();
-        if (!cancelled) {
-          setSettings(fresh.settings);
-          setForm(fresh.settings.products);
-        }
-      } catch (error) {
-        console.error("Prices tab refresh failed:", error);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [setSettings]);
-
   const update = (key, field, val) => {
-    setForm((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        [field]: val,
-      },
-    }));
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        [key]: {
+          ...prev[key],
+          [field]: val,
+        },
+      };
+      formRef.current = next;
+      return next;
+    });
   };
 
   const save = async () => {
-    const nextSettings = await api.updatePrices(form);
+    const currentForm = formRef.current;
+    const nextSettings = await api.updatePrices(currentForm);
 
     // The returned state comes directly from the admin-side products table,
     // so the editor and parent state are both synchronized with persisted data.
     setSettings(nextSettings);
+    formRef.current = nextSettings.products;
     setForm(nextSettings.products);
     setToast("تنظیمات قیمت ذخیره شد");
   };
