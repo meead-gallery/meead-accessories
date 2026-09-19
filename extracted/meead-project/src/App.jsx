@@ -590,8 +590,9 @@ p_postal_code: customer.postalCode,
       );
     }
 
-    const publicData = await publicSettings();
-    return mapSettings(publicData);
+    // Read the admin source of truth directly from the products table.
+    // Do not rebuild the editor state from the public-settings snapshot here.
+    return (await adminState()).settings;
 },
    async updateMarket(marketPatch) {
   const { data, error } = await supabase.rpc("update_market_settings", {
@@ -2356,8 +2357,30 @@ function TabDashboard({ settings, orders }) {
 
 function TabPrices({ settings, setSettings, setToast }) {
   const [form, setForm] = useState(settings.products);
-  
   const [openHistory, setOpenHistory] = useState(null);
+
+  // Every time the Prices tab is mounted, load the real admin-side
+  // product state again. This prevents a stale parent snapshot from
+  // restoring old checkbox values when returning to this tab.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const fresh = await api.getAdminState();
+        if (!cancelled) {
+          setSettings(fresh.settings);
+          setForm(fresh.settings.products);
+        }
+      } catch (error) {
+        console.error("Prices tab refresh failed:", error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setSettings]);
 
   const update = (key, field, val) => {
     setForm((prev) => ({
@@ -2372,30 +2395,10 @@ function TabPrices({ settings, setSettings, setToast }) {
   const save = async () => {
     const nextSettings = await api.updatePrices(form);
 
-    // The API response is the server snapshot, but the just-submitted form
-    // must remain the source of truth for the current editor state.
-    // This prevents a stale read from immediately restoring an old checkbox value.
-    const savedProducts = Object.fromEntries(
-      PRODUCTS.map((p) => [
-        p.key,
-        {
-          ...(nextSettings.products?.[p.key] || {}),
-          buyPrice: Number(form[p.key].buyPrice),
-          sellPrice: Number(form[p.key].sellPrice),
-          minWeight: Number(form[p.key].minWeight),
-          maxWeight: Number(form[p.key].maxWeight),
-          buyActive: !!form[p.key].buyActive,
-          sellActive: !!form[p.key].sellActive,
-        },
-      ])
-    );
-
-    setSettings({
-      ...nextSettings,
-      products: savedProducts,
-    });
-
-    setForm(savedProducts);
+    // The returned state comes directly from the admin-side products table,
+    // so the editor and parent state are both synchronized with persisted data.
+    setSettings(nextSettings);
+    setForm(nextSettings.products);
     setToast("تنظیمات قیمت ذخیره شد");
   };
 
