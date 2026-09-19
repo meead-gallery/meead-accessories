@@ -566,29 +566,32 @@ p_postal_code: customer.postalCode,
 },
   async logout() { await supabase.auth.signOut(); },
   async updatePrices(productsForm) {
-    const pricePayload = Object.fromEntries(Object.entries(productsForm).map(([key,v])=>[key,{buyPrice:Number(v.buyPrice),sellPrice:Number(v.sellPrice)}]));
-    const limitPayload = Object.fromEntries(Object.entries(productsForm).map(([key,v])=>[key,{minWeight:Number(v.minWeight),maxWeight:Number(v.maxWeight)}]));
-    let r = await supabase.rpc("update_prices", {
-  p_products: pricePayload
-});
+    const productPayload = Object.fromEntries(
+      Object.entries(productsForm).map(([key, v]) => [
+        key,
+        {
+          buyPrice: Number(v.buyPrice),
+          sellPrice: Number(v.sellPrice),
+          minWeight: Number(v.minWeight),
+          maxWeight: Number(v.maxWeight),
+          buyActive: !!v.buyActive,
+          sellActive: !!v.sellActive,
+        },
+      ])
+    );
 
-if (r.error || !r.data?.ok) {
-  throw r.error || new Error(
-    r.data?.reason || "ذخیره قیمت‌ها ناموفق بود"
-  );
-}
+    const { data, error } = await supabase.rpc("update_product_settings", {
+      p_products: productPayload,
+    });
 
-r = await supabase.rpc("update_product_limits", {
-  p_products: limitPayload
-});
+    if (error || !data?.ok) {
+      throw error || new Error(
+        data?.reason || "ذخیره تنظیمات قیمت ناموفق بود"
+      );
+    }
 
-if (r.error || !r.data?.ok) {
-  throw r.error || new Error(
-    r.data?.reason || "ذخیره محدوده وزن ناموفق بود"
-  );
-}
     const publicData = await publicSettings();
-return mapSettings(publicData);
+    return mapSettings(publicData);
 },
    async updateMarket(marketPatch) {
   const { data, error } = await supabase.rpc("update_market_settings", {
