@@ -1,0 +1,23 @@
+name: Meead analytics isolated build test
+
+on:
+  push:
+    branches:
+      - feature/site-analytics-isolated
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extracted/meead-project
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: extracted/meead-project/package.json
+      - run: npm install
+      - run: npm run build
