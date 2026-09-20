@@ -1025,7 +1025,20 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     return;
   }
 
+      const product = settings.products[purityKey];
+
+  if (mode === "buy" && !product?.buyActive) {
+    setToast("خرید این عیار در حال حاضر فعال نیست.");
+    return;
+  }
+
+  if (mode === "sell" && !product?.sellActive) {
+    setToast("فروش این عیار در حال حاضر فعال نیست.");
+    return;
+  }
+
   const res = await api.createQuote(purityKey, mode);
+    const res = await api.createQuote(purityKey, mode);
 
   if (!res.ok) {
   const message =
