@@ -2367,7 +2367,7 @@ function Admin({ settings, setSettings, orders, setOrders, log, onExit, setToast
 
       {tab === "dashboard" && <TabDashboard settings={settings} orders={orders} />}
       {tab === "analytics" && <TabAnalytics supabase={supabase} setToast={setToast} />}
-      {tab === "prices" && <TabPrices settings={settings} setSettings={setSettings} setToast={setToast} />
+      {tab === "prices" && <TabPrices settings={settings} setSettings={setSettings} setToast={setToast} />}
       {tab === "orders" && <TabOrders orders={orders} setOrders={setOrders} setToast={setToast} />}
       {tab === "customers" && <TabCustomers orders={orders} />}
       {tab === "market" && <TabMarket settings={settings} setSettings={setSettings} setToast={setToast} />}
