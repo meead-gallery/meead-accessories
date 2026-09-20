@@ -3,8 +3,8 @@ import { fetchSiteAnalytics } from "./siteAnalytics";
 
 function formatDay(value) {
   return new Date(value).toLocaleDateString("fa-IR", {
-    month: "2-digit",
-    day: "2-digit",
+    day: "numeric",
+    month: "long",
   });
 }
 
@@ -13,6 +13,109 @@ function formatHour(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString("fa-IR");
+}
+
+function AnalyticsRow({ label, row }) {
+  return (
+    <div
+      className="history-row"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(64px, 0.7fr) 1fr 1fr",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 14px",
+        borderRadius: 12,
+      }}
+    >
+      <span className="mono" style={{ fontWeight: 700 }}>
+        {label}
+      </span>
+
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          minWidth: 0,
+          textAlign: "center",
+        }}
+      >
+        <strong>{formatNumber(row.uniqueVisitors)}</strong>
+        <span style={{ opacity: 0.65, fontSize: 12 }}>یکتا</span>
+      </span>
+
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          minWidth: 0,
+          textAlign: "center",
+        }}
+      >
+        <strong>{formatNumber(row.events)}</strong>
+        <span style={{ opacity: 0.65, fontSize: 12 }}>بازدید</span>
+      </span>
+    </div>
+  );
+}
+
+function AnalyticsSection({ title, subtitle, rows, emptyText, formatter }) {
+  return (
+    <div
+      className="admin-section"
+      style={{
+        marginTop: 18,
+        padding: 0,
+        overflow: "hidden",
+      }}
+    >
+      <div style={{ padding: "16px 16px 10px" }}>
+        <h3 style={{ margin: 0 }}>{title}</h3>
+        <div className="section-caption" style={{ marginTop: 4 }}>
+          {subtitle}
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="pay-note" style={{ margin: "0 16px 16px" }}>
+          {emptyText}
+        </div>
+      ) : (
+        <div style={{ padding: "0 8px 8px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(64px, 0.7fr) 1fr 1fr",
+              gap: 12,
+              padding: "0 14px 8px",
+              fontSize: 11,
+              opacity: 0.55,
+            }}
+          >
+            <span />
+            <span style={{ textAlign: "center" }}>بازدیدکننده یکتا</span>
+            <span style={{ textAlign: "center" }}>تعداد بازدید</span>
+          </div>
+
+          {rows.map((row) => (
+            <AnalyticsRow
+              key={row.bucket}
+              label={formatter(row.bucket)}
+              row={row}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function TabAnalytics({ supabase, setToast }) {
@@ -55,6 +158,7 @@ export default function TabAnalytics({ supabase, setToast }) {
             بدون ثبت‌نام و بدون نمایش چیزی به مشتری
           </div>
         </div>
+
         <button className="ghost-btn small-btn" onClick={load} disabled={loading}>
           {loading ? "در حال بروزرسانی…" : "بروزرسانی"}
         </button>
@@ -67,53 +171,48 @@ export default function TabAnalytics({ supabase, setToast }) {
           <div className="stat-grid">
             <div className="stat-card">
               <span className="stat-label">بازدیدکننده یکتا امروز</span>
-              <span className="stat-value mono">{Number(data?.summary?.todayUniqueVisitors || 0).toLocaleString("fa-IR")}</span>
+              <span className="stat-value mono">
+                {formatNumber(data?.summary?.todayUniqueVisitors)}
+              </span>
             </div>
+
             <div className="stat-card">
               <span className="stat-label">بازدیدکننده یکتا در ۲۴ ساعت</span>
-              <span className="stat-value mono">{Number(data?.summary?.last24UniqueVisitors || 0).toLocaleString("fa-IR")}</span>
+              <span className="stat-value mono">
+                {formatNumber(data?.summary?.last24UniqueVisitors)}
+              </span>
             </div>
+
             <div className="stat-card">
-              <span className="stat-label">حضورهای ثبت‌شده امروز</span>
-              <span className="stat-value mono">{Number(data?.summary?.todayEvents || 0).toLocaleString("fa-IR")}</span>
+              <span className="stat-label">بازدید امروز</span>
+              <span className="stat-value mono">
+                {formatNumber(data?.summary?.todayEvents)}
+              </span>
             </div>
+
             <div className="stat-card">
-              <span className="stat-label">حضورهای ثبت‌شده ۲۴ ساعت</span>
-              <span className="stat-value mono">{Number(data?.summary?.last24Events || 0).toLocaleString("fa-IR")}</span>
+              <span className="stat-label">بازدید در ۲۴ ساعت</span>
+              <span className="stat-value mono">
+                {formatNumber(data?.summary?.last24Events)}
+              </span>
             </div>
           </div>
 
-          <div className="admin-section">
-            <h3>ساعت به ساعت — ۲۴ ساعت اخیر</h3>
-            <div className="history-list">
-              {recentHours.length === 0 ? (
-                <span className="pay-note">هنوز داده‌ای ثبت نشده است.</span>
-              ) : (
-                recentHours.map((row) => (
-                  <div className="history-row" key={row.bucket}>
-                    <span className="mono">{formatHour(row.bucket)}</span>
-                    <span> {Number(row.uniqueVisitors || 0).toLocaleString("fa-IR")} نفر یکتا · {Number(row.events || 0).toLocaleString("fa-IR")} حضور</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <AnalyticsSection
+            title="بازدید ساعتی"
+            subtitle="۲۴ ساعت اخیر"
+            rows={recentHours}
+            emptyText="هنوز داده‌ای ثبت نشده است."
+            formatter={formatHour}
+          />
 
-          <div className="admin-section">
-            <h3>روز به روز — ۷ روز اخیر</h3>
-            <div className="history-list">
-              {daily.length === 0 ? (
-                <span className="pay-note">هنوز داده‌ای ثبت نشده است.</span>
-              ) : (
-                daily.map((row) => (
-                  <div className="history-row" key={row.bucket}>
-                    <span className="mono">{formatDay(row.bucket)}</span>
-                    <span> {Number(row.uniqueVisitors || 0).toLocaleString("fa-IR")} نفر یکتا · {Number(row.events || 0).toLocaleString("fa-IR")} حضور</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <AnalyticsSection
+            title="بازدید روزانه"
+            subtitle="۷ روز اخیر"
+            rows={daily}
+            emptyText="هنوز داده‌ای ثبت نشده است."
+            formatter={formatDay}
+          />
 
           <p className="admin-footnote">
             آمار «بازدیدکننده یکتا» بر اساس یک شناسه تصادفی ذخیره‌شده در همان مرورگر محاسبه می‌شود؛ ورود یا ثبت‌نام مشتری لازم نیست.
