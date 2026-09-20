@@ -1037,7 +1037,7 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     return;
   }
 
-  const res = await api.createQuote(purityKey, mode);
+  
     const res = await api.createQuote(purityKey, mode);
 
   if (!res.ok) {
