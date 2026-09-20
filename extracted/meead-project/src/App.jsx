@@ -566,6 +566,9 @@ p_postal_code: customer.postalCode,
 },
   async logout() { await supabase.auth.signOut(); },
   async updatePrices(productsForm) {
+    const toBoolean = (value) =>
+      value === true || value === "true" || value === 1 || value === "1";
+
     const productPayload = Object.fromEntries(
       Object.entries(productsForm).map(([key, v]) => [
         key,
@@ -574,8 +577,8 @@ p_postal_code: customer.postalCode,
           sellPrice: Number(v.sellPrice),
           minWeight: Number(v.minWeight),
           maxWeight: Number(v.maxWeight),
-          buyActive: !!v.buyActive,
-          sellActive: !!v.sellActive,
+          buyActive: toBoolean(v.buyActive),
+          sellActive: toBoolean(v.sellActive),
         },
       ])
     );
@@ -590,8 +593,63 @@ p_postal_code: customer.postalCode,
       );
     }
 
+    // Verify the two active flags against the actual products table.
+    // This prevents a stale/incorrect editor value from being reported as saved.
+    const { data: savedRows, error: verifyError } = await supabase
+      .from("products")
+      .select("key,buy_active,sell_active")
+      .in("key", Object.keys(productPayload));
+
+    if (verifyError) throw verifyError;
+
+    for (const [key, value] of Object.entries(productPayload)) {
+      const row = (savedRows || []).find(
+        (item) => String(item.key) === String(key)
+      );
+
+      if (!row) {
+        throw new Error("محصول برای بررسی ذخیره تنظیمات پیدا نشد");
+      }
+
+      if (
+        row.buy_active !== value.buyActive ||
+        row.sell_active !== value.sellActive
+      ) {
+        const { error: repairError } = await supabase
+          .from("products")
+          .update({
+            buy_active: value.buyActive,
+            sell_active: value.sellActive,
+          })
+          .eq("key", key);
+
+        if (repairError) throw repairError;
+      }
+    }
+
+    // Final verification: the database must contain exactly the values submitted.
+    const { data: finalRows, error: finalVerifyError } = await supabase
+      .from("products")
+      .select("key,buy_active,sell_active")
+      .in("key", Object.keys(productPayload));
+
+    if (finalVerifyError) throw finalVerifyError;
+
+    for (const [key, value] of Object.entries(productPayload)) {
+      const row = (finalRows || []).find(
+        (item) => String(item.key) === String(key)
+      );
+
+      if (
+        !row ||
+        row.buy_active !== value.buyActive ||
+        row.sell_active !== value.sellActive
+      ) {
+        throw new Error("ذخیره وضعیت فعال/غیرفعال محصول تأیید نشد");
+      }
+    }
+
     // Read the admin source of truth directly from the products table.
-    // Do not rebuild the editor state from the public-settings snapshot here.
     return (await adminState()).settings;
 },
    async updateMarket(marketPatch) {
