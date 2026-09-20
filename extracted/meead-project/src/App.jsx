@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
   Lock, Unlock, Copy, Check, CheckCircle2, X, ChevronRight,
@@ -570,20 +570,23 @@ p_postal_code: customer.postalCode,
       value === true || value === "true" || value === 1 || value === "1";
 
     const productPayload = Object.fromEntries(
-      Object.entries(productsForm).map(([key, v]) => [
-        key,
-        {
-          buyPrice: Number(v.buyPrice),
-          sellPrice: Number(v.sellPrice),
-          minWeight: Number(v.minWeight),
-          maxWeight: Number(v.maxWeight),
-          buyActive: toBoolean(v.buyActive),
-          sellActive: toBoolean(v.sellActive),
-        },
-      ])
+      PRODUCTS.map((p) => {
+        const v = productsForm[p.key] || {};
+        return [
+          p.key,
+          {
+            buyPrice: Number(v.buyPrice),
+            sellPrice: Number(v.sellPrice),
+            minWeight: Number(v.minWeight),
+            maxWeight: Number(v.maxWeight),
+            buyActive: toBoolean(v.buyActive),
+            sellActive: toBoolean(v.sellActive),
+          },
+        ];
+      })
     );
 
-    const { data, error } = await supabase.rpc("update_product_settings", {
+    const { data, error } = await supabase.rpc("save_product_settings", {
       p_products: productPayload,
     });
 
@@ -593,95 +596,7 @@ p_postal_code: customer.postalCode,
       );
     }
 
-    // Verify the two active flags against the actual products table.
-    // This prevents a stale/incorrect editor value from being reported as saved.
-    const { data: savedRows, error: verifyError } = await supabase
-      .from("products")
-      .select("key,buy_active,sell_active")
-      .in("key", Object.keys(productPayload));
-
-    if (verifyError) throw verifyError;
-
-    for (const [key, value] of Object.entries(productPayload)) {
-      const row = (savedRows || []).find(
-        (item) => String(item.key) === String(key)
-      );
-
-      if (!row) {
-        throw new Error("محصول برای بررسی ذخیره تنظیمات پیدا نشد");
-      }
-
-      if (
-        row.buy_active !== value.buyActive ||
-        row.sell_active !== value.sellActive
-      ) {
-        const { error: repairError } = await supabase
-          .from("products")
-          .update({
-            buy_active: value.buyActive,
-            sell_active: value.sellActive,
-          })
-          .eq("key", key);
-
-        if (repairError) throw repairError;
-      }
-    }
-
-    // Final verification: the database must contain exactly the values submitted.
-    const { data: finalRows, error: finalVerifyError } = await supabase
-      .from("products")
-      .select("key,buy_active,sell_active")
-      .in("key", Object.keys(productPayload));
-
-    if (finalVerifyError) throw finalVerifyError;
-
-    for (const [key, value] of Object.entries(productPayload)) {
-      const row = (finalRows || []).find(
-        (item) => String(item.key) === String(key)
-      );
-
-      if (
-        !row ||
-        row.buy_active !== value.buyActive ||
-        row.sell_active !== value.sellActive
-      ) {
-        throw new Error("ذخیره وضعیت فعال/غیرفعال محصول تأیید نشد");
-      }
-    }
-
-    // Read the admin source of truth directly from the products table.
-    return (await adminState()).settings;
-},
-   async updateMarket(marketPatch) {
-  const { data, error } = await supabase.rpc("update_market_settings", {
-    p_close_start: marketPatch.closeStart,
-    p_close_end: marketPatch.closeEnd,
-    p_buy_enabled: !!marketPatch.buyEnabled,
-    p_sell_enabled: !!marketPatch.sellEnabled,
-    p_emergency_stop: !!marketPatch.emergencyStop
-  });
-
-  if (error) throw error;
-
-  if (!data?.ok) {
-    throw new Error(data?.reason || "ذخیره تنظیمات بازار ناموفق بود");
-  }
-
-  return mergeSettings({
-    market: {
-      closeStart: data.closeStart,
-      closeEnd: data.closeEnd,
-      buyEnabled: data.buyEnabled,
-      sellEnabled: data.sellEnabled,
-      emergencyStop: data.emergencyStop,
-    },
-  });
-},
-  
-  async setEmergencyStop(flag) {
-    const s=(await adminState()).settings.market;
-    const {error}=await supabase.rpc("update_market_settings", {p_close_start:s.closeStart,p_close_end:s.closeEnd,p_buy_enabled:s.buyEnabled,p_sell_enabled:s.sellEnabled,p_emergency_stop:!!flag});
-    if(error) throw error; return (await adminState()).settings;
+    return adminState();
   },
   async updateSystemSettings(patch) {
   const current = (await adminState()).settings;
@@ -2414,71 +2329,162 @@ function TabDashboard({ settings, orders }) {
 }
 
 function TabPrices({ settings, setSettings, setToast }) {
-  const [form, setForm] = useState(settings.products);
-  const formRef = useRef(settings.products);
+  const [form, setForm] = useState(() =>
+    Object.fromEntries(
+      PRODUCTS.map((p) => [
+        p.key,
+        { ...(settings.products?.[p.key] || {}) },
+      ])
+    )
+  );
   const [openHistory, setOpenHistory] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const update = (key, field, val) => {
-    setForm((prev) => {
-      const next = {
-        ...prev,
-        [key]: {
-          ...prev[key],
-          [field]: val,
-        },
-      };
-      formRef.current = next;
-      return next;
-    });
+  const update = (key, field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value,
+      },
+    }));
   };
 
   const save = async () => {
-    const currentForm = formRef.current;
-    const nextSettings = await api.updatePrices(currentForm);
+    if (saving) return;
 
-    // The returned state comes directly from the admin-side products table,
-    // so the editor and parent state are both synchronized with persisted data.
-    setSettings(nextSettings);
-    formRef.current = nextSettings.products;
-    setForm(nextSettings.products);
-    setToast("تنظیمات قیمت ذخیره شد");
+    setSaving(true);
+    try {
+      const savedState = await api.updatePrices(form);
+
+      setSettings(savedState.settings);
+      setForm(
+        Object.fromEntries(
+          PRODUCTS.map((p) => [
+            p.key,
+            { ...(savedState.settings.products?.[p.key] || {}) },
+          ])
+        )
+      );
+      setToast("تنظیمات قیمت با موفقیت ذخیره شد");
+    } catch (error) {
+      console.error("Price settings save failed:", error);
+      setToast(error?.message || "ذخیره تنظیمات قیمت ناموفق بود");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
-      {PRODUCTS.map((p) => (
-        <div key={p.key} className="price-edit-card">
-          <div className="price-edit-head">
-            <span className="purity-name">{p.title}</span>
-            <label className="toggle-row">
-              <input type="checkbox" checked={form[p.key].buyActive} onChange={(e) => update(p.key, "buyActive", e.target.checked)} /> خرید فعال
-            </label>
-            <label className="toggle-row">
-              <input type="checkbox" checked={form[p.key].sellActive} onChange={(e) => update(p.key, "sellActive", e.target.checked)} /> فروش فعال
-            </label>
-          </div>
-          <div className="admin-grid">
-            <label className="field"><span>قیمت خرید (تومان/گرم)</span><input type="number" value={form[p.key].buyPrice} onChange={(e) => update(p.key, "buyPrice", e.target.value)} /></label>
-            <label className="field"><span>قیمت فروش (تومان/گرم)</span><input type="number" value={form[p.key].sellPrice} onChange={(e) => update(p.key, "sellPrice", e.target.value)} /></label>
-            <label className="field"><span>حداقل وزن (گرم)</span><input type="number" value={form[p.key].minWeight} onChange={(e) => update(p.key, "minWeight", e.target.value)} /></label>
-            <label className="field"><span>حداکثر وزن (گرم)</span><input type="number" value={form[p.key].maxWeight} onChange={(e) => update(p.key, "maxWeight", e.target.value)} /></label>
-          </div>
-          <button className="ghost-btn small-btn" onClick={() => setOpenHistory(openHistory === p.key ? null : p.key)}>
-            <History size={13} /> تاریخچه قیمت ({(settings.products[p.key].priceHistory || []).length})
-          </button>
-          {openHistory === p.key && (
-            <div className="history-list">
-              {(settings.products[p.key].priceHistory || []).length === 0 && <span className="pay-note">تاریخچه‌ای ثبت نشده.</span>}
-              {(settings.products[p.key].priceHistory || []).map((h, i) => (
-                <div key={i} className="history-row mono">
-                  {fmtTime(h.time)} — خرید {h.buyPrice.toLocaleString("fa-IR")} — فروش {h.sellPrice.toLocaleString("fa-IR")}
-                </div>
-              ))}
+      {PRODUCTS.map((p) => {
+        const product = form[p.key] || {};
+
+        return (
+          <div key={p.key} className="price-edit-card">
+            <div className="price-edit-head">
+              <span className="purity-name">{p.title}</span>
+
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={product.buyActive === true}
+                  onChange={(e) =>
+                    update(p.key, "buyActive", e.target.checked)
+                  }
+                  disabled={saving}
+                />
+                خرید فعال
+              </label>
+
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={product.sellActive === true}
+                  onChange={(e) =>
+                    update(p.key, "sellActive", e.target.checked)
+                  }
+                  disabled={saving}
+                />
+                فروش فعال
+              </label>
             </div>
-          )}
-        </div>
-      ))}
-      <button className="primary-btn" onClick={save}>ذخیره تنظیمات قیمت</button>
+
+            <div className="admin-grid">
+              <label className="field">
+                <span>قیمت خرید (تومان/گرم)</span>
+                <input
+                  type="number"
+                  value={product.buyPrice ?? ""}
+                  onChange={(e) => update(p.key, "buyPrice", e.target.value)}
+                  disabled={saving}
+                />
+              </label>
+
+              <label className="field">
+                <span>قیمت فروش (تومان/گرم)</span>
+                <input
+                  type="number"
+                  value={product.sellPrice ?? ""}
+                  onChange={(e) => update(p.key, "sellPrice", e.target.value)}
+                  disabled={saving}
+                />
+              </label>
+
+              <label className="field">
+                <span>حداقل وزن (گرم)</span>
+                <input
+                  type="number"
+                  value={product.minWeight ?? ""}
+                  onChange={(e) => update(p.key, "minWeight", e.target.value)}
+                  disabled={saving}
+                />
+              </label>
+
+              <label className="field">
+                <span>حداکثر وزن (گرم)</span>
+                <input
+                  type="number"
+                  value={product.maxWeight ?? ""}
+                  onChange={(e) => update(p.key, "maxWeight", e.target.value)}
+                  disabled={saving}
+                />
+              </label>
+            </div>
+
+            <button
+              className="ghost-btn small-btn"
+              onClick={() =>
+                setOpenHistory(openHistory === p.key ? null : p.key)
+              }
+              disabled={saving}
+            >
+              <History size={13} /> تاریخچه قیمت (
+              {(settings.products?.[p.key]?.priceHistory || []).length}
+              )
+            </button>
+
+            {openHistory === p.key && (
+              <div className="history-list">
+                {(settings.products?.[p.key]?.priceHistory || []).length === 0 && (
+                  <span className="pay-note">تاریخچه‌ای ثبت نشده.</span>
+                )}
+
+                {(settings.products?.[p.key]?.priceHistory || []).map((h, i) => (
+                  <div key={i} className="history-row mono">
+                    {fmtTime(h.time)} — خرید {h.buyPrice.toLocaleString("fa-IR")} — فروش{" "}
+                    {h.sellPrice.toLocaleString("fa-IR")}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      <button className="primary-btn" onClick={save} disabled={saving}>
+        {saving ? "در حال ذخیره..." : "ذخیره تنظیمات قیمت"}
+      </button>
     </div>
   );
 }
