@@ -43,6 +43,29 @@ as $$
     else
       jsonb_build_object(
         'ok', true,
+        'summary',
+        jsonb_build_object(
+          'todayUniqueVisitors',
+          (select count(distinct e.visitor_id)::integer
+           from public.site_visit_events e
+           where e.occurred_at >= date_trunc('day', p_to - interval '1 microsecond', p_timezone)
+             and e.occurred_at < p_to),
+          'todayEvents',
+          (select count(*)::integer
+           from public.site_visit_events e
+           where e.occurred_at >= date_trunc('day', p_to - interval '1 microsecond', p_timezone)
+             and e.occurred_at < p_to),
+          'last24UniqueVisitors',
+          (select count(distinct e.visitor_id)::integer
+           from public.site_visit_events e
+           where e.occurred_at >= p_to - interval '24 hours'
+             and e.occurred_at < p_to),
+          'last24Events',
+          (select count(*)::integer
+           from public.site_visit_events e
+           where e.occurred_at >= p_to - interval '24 hours'
+             and e.occurred_at < p_to)
+        ),
         'daily',
         coalesce((
           select jsonb_agg(
