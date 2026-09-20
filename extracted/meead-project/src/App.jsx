@@ -1028,12 +1028,12 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
       const product = settings.products[purityKey];
 
   if (mode === "buy" && !product?.buyActive) {
-    setToast("خرید این عیار در حال حاضر فعال نیست.");
+    setToast("خرید در حال حاضر فعال نیست.");
     return;
   }
 
   if (mode === "sell" && !product?.sellActive) {
-    setToast("فروش این عیار در حال حاضر فعال نیست.");
+    setToast("فروش در حال حاضر فعال نیست.");
     return;
   }
 
