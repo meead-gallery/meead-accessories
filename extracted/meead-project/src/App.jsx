@@ -1027,7 +1027,16 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
 
   const res = await api.createQuote(purityKey, mode);
 
-  if (!res.ok) return setToast(res.reason);
+  if (!res.ok) {
+  const message =
+    res.reason === "buy disabled"
+      ? "خرید در حال حاضر فعال نیست."
+      : res.reason === "sell disabled"
+      ? "فروش در حال حاضر فعال نیست."
+      : res.reason;
+
+  return setToast(message);
+}
 
   setQuote(res.quote);
   setWeight("");
