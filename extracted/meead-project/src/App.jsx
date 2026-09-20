@@ -7,6 +7,8 @@ import {
   ShieldAlert ,
 } from "lucide-react";
 import { iranLocations } from "./iranLocations";
+import { trackSiteVisit } from "./siteAnalytics";
+import TabAnalytics from "./TabAnalytics";
 function PwaInstallPrompt({ onClose }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isIOS, setIsIOS] = useState(false);
@@ -966,6 +968,13 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [now, setNow] = useState(Date.now());
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+
+  // Analytics is deliberately fire-and-forget: a failure here must never
+  // block storefront loading or affect orders, prices, market state or auth.
+  useEffect(() => {
+    trackSiteVisit(supabase);
+  }, []);
+
   useEffect(() => {
   const isStandalone =
     window.matchMedia("(display-mode: standalone)").matches ||
@@ -2327,6 +2336,7 @@ function AdminLogin({ email, setEmail, pw, setPw, error, onSubmit, onCancel }) {
 
 const TABS = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
+  { key: "analytics", label: "آمار بازدید", icon: TrendingUp },
   { key: "prices", label: "قیمت‌ها", icon: TrendingUp },
   { key: "orders", label: "سفارش‌ها", icon: Package },
   { key: "customers", label: "مشتریان", icon: Users },
@@ -2356,7 +2366,8 @@ function Admin({ settings, setSettings, orders, setOrders, log, onExit, setToast
       </div>
 
       {tab === "dashboard" && <TabDashboard settings={settings} orders={orders} />}
-      {tab === "prices" && <TabPrices settings={settings} setSettings={setSettings} setToast={setToast} />}
+      {tab === "analytics" && <TabAnalytics supabase={supabase} setToast={setToast} />}
+      {tab === "prices" && <TabPrices settings={settings} setSettings={setSettings} setToast={setToast} />
       {tab === "orders" && <TabOrders orders={orders} setOrders={setOrders} setToast={setToast} />}
       {tab === "customers" && <TabCustomers orders={orders} />}
       {tab === "market" && <TabMarket settings={settings} setSettings={setSettings} setToast={setToast} />}
