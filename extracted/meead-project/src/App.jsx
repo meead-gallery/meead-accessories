@@ -598,6 +598,45 @@ p_postal_code: customer.postalCode,
 
     return adminState();
   },
+   async updateMarket(marketPatch) {
+    const { data, error } = await supabase.rpc("update_market_settings", {
+      p_close_start: marketPatch.closeStart,
+      p_close_end: marketPatch.closeEnd,
+      p_buy_enabled: !!marketPatch.buyEnabled,
+      p_sell_enabled: !!marketPatch.sellEnabled,
+      p_emergency_stop: !!marketPatch.emergencyStop
+    });
+
+    if (error) throw error;
+
+    if (!data?.ok) {
+      throw new Error(data?.reason || "ذخیره تنظیمات بازار ناموفق بود");
+    }
+
+    return mergeSettings({
+      market: {
+        closeStart: data.closeStart,
+        closeEnd: data.closeEnd,
+        buyEnabled: data.buyEnabled,
+        sellEnabled: data.sellEnabled,
+        emergencyStop: data.emergencyStop,
+      },
+    });
+  },
+
+  async setEmergencyStop(flag) {
+    const s = (await adminState()).settings.market;
+    const { error } = await supabase.rpc("update_market_settings", {
+      p_close_start: s.closeStart,
+      p_close_end: s.closeEnd,
+      p_buy_enabled: s.buyEnabled,
+      p_sell_enabled: s.sellEnabled,
+      p_emergency_stop: !!flag
+    });
+
+    if (error) throw error;
+    return (await adminState()).settings;
+  },
   async updateSystemSettings(patch) {
   const current = (await adminState()).settings;
 
