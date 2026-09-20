@@ -1993,28 +1993,30 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
         </div>
       )}
 
-      <div
-  style={{
-    marginTop: "12px",
-    marginBottom: "12px",
-    padding: "10px 12px",
-    borderRadius: "10px",
-    background: "#f5f1e8",
-    border: "1px solid #d8cdb8",
-    color: "#5f5545",
-    fontSize: "13px",
-    lineHeight: "1.8",
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "7px",
-  }}
->
-  <span>💡</span>
-  <span>
-    <strong>نکته:</strong> در سفارش‌های کمتر از{" "}
-    <strong>۱۰۰ گرم</strong>، هزینه ارسال بر عهده مشتری است.
-  </span>
-</div>
+      {quote.mode === "buy" && (
+        <div
+          style={{
+            marginTop: "12px",
+            marginBottom: "12px",
+            padding: "10px 12px",
+            borderRadius: "10px",
+            background: "#f5f1e8",
+            border: "1px solid #d8cdb8",
+            color: "#5f5545",
+            fontSize: "13px",
+            lineHeight: "1.8",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "7px",
+          }}
+        >
+          <span>💡</span>
+          <span>
+            <strong>نکته:</strong> در سفارش‌های کمتر از{" "}
+            <strong>۱۰۰ گرم</strong>، هزینه ارسال بر عهده مشتری است.
+          </span>
+        </div>
+      )}
 
       <button className="primary-btn" onClick={onConfirm} disabled={expired}>تأیید و ثبت نهایی سفارش</button>
     </div>
