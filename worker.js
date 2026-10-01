@@ -258,6 +258,28 @@ async function readCryptoPrices() {
         }
       }
     } catch {
+      // Continue to the global fallback below.
+    }
+  }
+
+  // Global fallback: CoinGecko is used only if the Iranian sources fail.
+  // Tether is returned in IRR, so convert rial to toman for the UI.
+  if (usdtIrt === null || btcUsdt === null) {
+    try {
+      const global = await fetchJson(
+        "https://api.coingecko.com/api/v3/simple/price?ids=tether,bitcoin&vs_currencies=irr,usd"
+      );
+
+      if (usdtIrt === null) {
+        const tetherIrr = number(global?.tether?.irr);
+        if (tetherIrr !== null && tetherIrr > 0) usdtIrt = tetherIrr / 10;
+      }
+
+      if (btcUsdt === null) {
+        const bitcoinUsd = number(global?.bitcoin?.usd);
+        if (bitcoinUsd !== null && bitcoinUsd > 0) btcUsdt = bitcoinUsd;
+      }
+    } catch {
       // Keep any valid value and fall through to the existing cache.
     }
   }
