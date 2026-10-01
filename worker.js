@@ -195,27 +195,57 @@ async function calculateChanges(gold, silver) {
 }
 
 async function readCryptoPrices() {
-  const [usdt, btc] = await Promise.all([
+  const [usdtResult, btcResult] = await Promise.allSettled([
     fetchJson(NOBITEX_API + "/v3/orderbook/USDTIRT"),
     fetchJson(NOBITEX_API + "/v3/orderbook/BTCUSDT"),
   ]);
 
-  if (usdt?.status !== "ok" || btc?.status !== "ok") {
-    throw new Error("invalid_nobitex_response");
+  let usdtIrt = null;
+  let btcUsdt = null;
+  const timestamps = [];
+
+  if (usdtResult.status === "fulfilled" && usdtResult.value?.status === "ok") {
+    const usdtRaw = number(usdtResult.value?.lastTradePrice);
+    if (usdtRaw !== null && usdtRaw > 0) {
+      // Nobitex public IRT market prices are returned in rials; Meead displays toman.
+      usdtIrt = usdtRaw / 10;
+      const updated = number(usdtResult.value?.lastUpdate);
+      if (updated !== null && updated > 0) timestamps.push(updated);
+    }
   }
 
-  const usdtRaw = number(usdt?.lastTradePrice);
-  const btcUsdt = number(btc?.lastTradePrice);
-
-  if (usdtRaw === null || btcUsdt === null || usdtRaw <= 0 || btcUsdt <= 0) {
-    throw new Error("invalid_crypto_price");
+  if (btcResult.status === "fulfilled" && btcResult.value?.status === "ok") {
+    const btcRaw = number(btcResult.value?.lastTradePrice);
+    if (btcRaw !== null && btcRaw > 0) {
+      btcUsdt = btcRaw;
+      const updated = number(btcResult.value?.lastUpdate);
+      if (updated !== null && updated > 0) timestamps.push(updated);
+    }
   }
 
-  // Nobitex public IRT market prices are returned in rials; Meead displays toman.
-  const usdtIrt = usdtRaw / 10;
-  const usdtUpdated = number(usdt?.lastUpdate);
-  const btcUpdated = number(btc?.lastUpdate);
-  const timestamps = [usdtUpdated, btcUpdated].filter((value) => value !== null && value > 0);
+  // Wallex public market data is the backup source when Nobitex is unavailable.
+  if (usdtIrt === null || btcUsdt === null) {
+    try {
+      const wallex = await fetchJson("https://api.wallex.ir/v1/markets");
+      if (wallex?.success === true && wallex?.result?.symbols) {
+        if (usdtIrt === null) {
+          const wallexUsdt = number(wallex.result.symbols?.USDTTMN?.stats?.lastPrice);
+          if (wallexUsdt !== null && wallexUsdt > 0) usdtIrt = wallexUsdt;
+        }
+
+        if (btcUsdt === null) {
+          const wallexBtc = number(wallex.result.symbols?.BTCUSDT?.stats?.lastPrice);
+          if (wallexBtc !== null && wallexBtc > 0) btcUsdt = wallexBtc;
+        }
+      }
+    } catch {
+      // Keep any valid Nobitex value and fall through to the existing cache.
+    }
+  }
+
+  if (usdtIrt === null || btcUsdt === null) {
+    throw new Error("crypto_sources_unavailable");
+  }
 
   return {
     usdtIrt,
