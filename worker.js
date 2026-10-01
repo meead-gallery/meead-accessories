@@ -1,4 +1,5 @@
-const METALS_CACHE_KEY = "https://meead-accessories.local/api/metals-cache";\nconst CRYPTO_CACHE_KEY = "https://meead-accessories.local/api/crypto-cache";
+const METALS_CACHE_KEY = "https://meead-accessories.local/api/metals-cache";
+const CRYPTO_CACHE_KEY = "https://meead-accessories.local/api/crypto-cache";
 const NOBITEX_API = "https://api.nobitex.ir";
 const GOLD_API = "https://api.gold-api.com/price";
 const ALYAWM_SPOT = "https://alyawmgold.com/api/v1/spot/latest?country=USD";
