@@ -56,7 +56,7 @@ function LiveCryptoPrices() {
   );
 }
 
-;
+`;
 
       let next = code;
 
