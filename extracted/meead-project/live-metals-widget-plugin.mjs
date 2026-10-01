@@ -20,7 +20,7 @@ function LiveCryptoPrices() {
       clearTimeout(timer);
       if(!response.ok) throw new Error("crypto_unavailable");
       const result=await response.json();
-      if(!result?.ok||!Number.isFinite(Number(result.usdtIrt))||!Number.isFinite(Number(result.btcUsdt))) throw new Error("invalid_crypto_data");
+      if(!result?.ok||(!Number.isFinite(Number(result.usdtIrt))&&!Number.isFinite(Number(result.btcUsdt)))) throw new Error("invalid_crypto_data");
       setData(result);
     }catch(error){console.warn("Live crypto price refresh failed:",error);}
     finally{setLoading(false);}
@@ -43,12 +43,12 @@ function LiveCryptoPrices() {
       <div className="live-metals-grid">
         <div className="live-metal-item silver-metal">
           <div className="live-metal-label"><span className="metal-symbol">₮</span><span>تتر</span><small>USDT / IRT</small></div>
-          <div className="live-metal-price-row"><div className="live-metal-value">{data?formatToman(data.usdtIrt)+" تومان":"—"}</div></div>
+          <div className="live-metal-price-row"><div className="live-metal-value">{Number.isFinite(Number(data?.usdtIrt))?formatToman(data.usdtIrt)+" تومان":"—"}</div></div>
         </div>
         <div className="live-metal-divider"/>
         <div className="live-metal-item gold-metal">
           <div className="live-metal-label"><span className="metal-symbol">₿</span><span>بیت‌کوین</span><small>BTC / USDT</small></div>
-          <div className="live-metal-price-row"><div className="live-metal-value">{data?"$"+formatUsd(data.btcUsdt):"—"}</div></div>
+          <div className="live-metal-price-row"><div className="live-metal-value">{Number.isFinite(Number(data?.btcUsdt))?"$"+formatUsd(data.btcUsdt):"—"}</div></div>
         </div>
       </div>
       <div className="live-metals-footer"><span>● بروزرسانی خودکار هر ۳۰ ثانیه</span><span>{data?"آخرین داده: "+formatTime(data.updatedAt):loading?"در حال اتصال…":"قیمت موقتاً در دسترس نیست"}</span></div>
