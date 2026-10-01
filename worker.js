@@ -224,6 +224,25 @@ async function readCryptoPrices() {
   }
 
   // Wallex public market data is the backup source when Nobitex is unavailable.
+  // Use the small per-symbol trades endpoints first; fall back to the markets
+  // endpoint if either symbol cannot be read.
+  if (usdtIrt === null || btcUsdt === null) {
+    const [wallexUsdtResult, wallexBtcResult] = await Promise.allSettled([
+      fetchJson("https://api.wallex.ir/v1/trades?symbol=USDTTMN"),
+      fetchJson("https://api.wallex.ir/v1/trades?symbol=BTCUSDT"),
+    ]);
+
+    if (usdtIrt === null && wallexUsdtResult.status === "fulfilled") {
+      const price = number(wallexUsdtResult.value?.result?.latestTrades?.[0]?.price);
+      if (price !== null && price > 0) usdtIrt = price;
+    }
+
+    if (btcUsdt === null && wallexBtcResult.status === "fulfilled") {
+      const price = number(wallexBtcResult.value?.result?.latestTrades?.[0]?.price);
+      if (price !== null && price > 0) btcUsdt = price;
+    }
+  }
+
   if (usdtIrt === null || btcUsdt === null) {
     try {
       const wallex = await fetchJson("https://api.wallex.ir/v1/markets");
@@ -239,7 +258,7 @@ async function readCryptoPrices() {
         }
       }
     } catch {
-      // Keep any valid Nobitex value and fall through to the existing cache.
+      // Keep any valid value and fall through to the existing cache.
     }
   }
 
