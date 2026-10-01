@@ -1,4 +1,5 @@
-const METALS_CACHE_KEY = "https://meead-accessories.local/api/metals-cache";
+const METALS_CACHE_KEY = "https://meead-accessories.local/api/metals-cache";\nconst CRYPTO_CACHE_KEY = "https://meead-accessories.local/api/crypto-cache";
+const NOBITEX_API = "https://api.nobitex.ir";
 const GOLD_API = "https://api.gold-api.com/price";
 const ALYAWM_SPOT = "https://alyawmgold.com/api/v1/spot/latest?country=USD";
 const ALYAWM_HISTORY = "https://alyawmgold.com/api/v1/history";
@@ -192,6 +193,76 @@ async function calculateChanges(gold, silver) {
   };
 }
 
+async function readCryptoPrices() {
+  const [usdt, btc] = await Promise.all([
+    fetchJson(NOBITEX_API + "/v3/orderbook/USDTIRT"),
+    fetchJson(NOBITEX_API + "/v3/orderbook/BTCUSDT"),
+  ]);
+
+  if (usdt?.status !== "ok" || btc?.status !== "ok") {
+    throw new Error("invalid_nobitex_response");
+  }
+
+  const usdtRaw = number(usdt?.lastTradePrice);
+  const btcUsdt = number(btc?.lastTradePrice);
+
+  if (usdtRaw === null || btcUsdt === null || usdtRaw <= 0 || btcUsdt <= 0) {
+    throw new Error("invalid_crypto_price");
+  }
+
+  // Nobitex public IRT market prices are returned in rials; Meead displays toman.
+  const usdtIrt = usdtRaw / 10;
+  const usdtUpdated = number(usdt?.lastUpdate);
+  const btcUpdated = number(btc?.lastUpdate);
+  const timestamps = [usdtUpdated, btcUpdated].filter((value) => value !== null && value > 0);
+
+  return {
+    usdtIrt,
+    btcUsdt,
+    updatedAt: timestamps.length ? Math.min(...timestamps) : Date.now(),
+  };
+}
+
+async function getCrypto(ctx) {
+  const cache = caches.default;
+  const cacheKey = new Request(CRYPTO_CACHE_KEY, { method: "GET" });
+  const cached = await cache.match(cacheKey);
+
+  try {
+    const prices = await readCryptoPrices();
+    const body = {
+      ok: true,
+      source: "Nobitex public market data",
+      ...prices,
+      fetchedAt: new Date().toISOString(),
+    };
+
+    const result = response(body, {
+      "Cache-Control": "public, max-age=15, stale-if-error=300",
+    });
+
+    ctx.waitUntil(cache.put(cacheKey, result.clone()));
+    return result;
+  } catch {
+    if (cached) {
+      return new Response(cached.body, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-cache",
+          "Access-Control-Allow-Origin": "*",
+          "X-Crypto-Source": "cache",
+        },
+      });
+    }
+
+    return response(
+      { ok: false, reason: "crypto_unavailable" },
+      { "Cache-Control": "no-store" }
+    );
+  }
+}
+
 function response(body, headers = {}) {
   return new Response(JSON.stringify(body), {
     headers: {
@@ -268,6 +339,27 @@ async function getMetals(ctx) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    if (url.pathname === "/api/crypto") {
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+          },
+        });
+      }
+
+      if (request.method !== "GET") {
+        return response(
+          { ok: false, reason: "method_not_allowed" },
+          { Allow: "GET, OPTIONS" }
+        );
+      }
+
+      return getCrypto(ctx);
+    }
 
     if (url.pathname === "/api/metals") {
       if (request.method === "OPTIONS") {
