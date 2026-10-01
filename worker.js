@@ -195,87 +195,51 @@ async function calculateChanges(gold, silver) {
 }
 
 async function readCryptoPrices() {
-  const [usdtResult, btcResult] = await Promise.allSettled([
-    fetchJson(NOBITEX_API + "/v3/orderbook/USDTIRT"),
-    fetchJson(NOBITEX_API + "/v3/orderbook/BTCIRT"),
-  ]);
+  const sources = [
+    {
+      name: "Kraken",
+      url: "https://api.kraken.com/0/public/Ticker?pair=xbtusd",
+      parse: (data) => number(data?.result?.XXBTZUSD?.c?.[0]),
+    },
+    {
+      name: "CoinPaprika",
+      url: "https://api.coinpaprika.com/v1/tickers/btc-bitcoin?quotes=USD",
+      parse: (data) => number(data?.quotes?.USD?.price),
+    },
+    {
+      name: "Coinbase",
+      url: "https://api.coinbase.com/v2/prices/BTC-USD/spot",
+      parse: (data) => number(data?.data?.amount),
+    },
+  ];
 
-  let usdtIrt = null;
-  let btcIrt = null;
-  const timestamps = [];
-
-  if (usdtResult.status === "fulfilled" && usdtResult.value?.status === "ok") {
-    const raw = number(usdtResult.value?.lastTradePrice);
-    if (raw !== null && raw > 0) {
-      usdtIrt = raw;
-      const updated = number(usdtResult.value?.lastUpdate);
-      if (updated !== null && updated > 0) timestamps.push(updated);
-    }
-  }
-
-  if (btcResult.status === "fulfilled" && btcResult.value?.status === "ok") {
-    const raw = number(btcResult.value?.lastTradePrice);
-    if (raw !== null && raw > 0) {
-      btcIrt = raw;
-      const updated = number(btcResult.value?.lastUpdate);
-      if (updated !== null && updated > 0) timestamps.push(updated);
-    }
-  }
-
-  // Derive BTC/USDT from the two IRT markets. This avoids relying on a
-  // separate BTCUSDT market pair which may not be available.
   let btcUsdt = null;
-  if (btcIrt !== null && usdtIrt !== null) {
-    btcUsdt = btcIrt / usdtIrt;
-  }
+  let source = null;
 
-  // Wallex backup for each missing value.
-  if (usdtIrt === null || btcUsdt === null) {
-    const [wallexUsdtResult, wallexBtcResult] = await Promise.allSettled([
-      fetchJson("https://api.wallex.ir/v1/trades?symbol=USDTTMN"),
-      fetchJson("https://api.wallex.ir/v1/trades?symbol=BTCUSDT"),
-    ]);
-
-    if (usdtIrt === null && wallexUsdtResult.status === "fulfilled") {
-      const price = number(wallexUsdtResult.value?.result?.latestTrades?.[0]?.price);
-      if (price !== null && price > 0) usdtIrt = price;
-    }
-
-    if (btcUsdt === null && wallexBtcResult.status === "fulfilled") {
-      const price = number(wallexBtcResult.value?.result?.latestTrades?.[0]?.price);
-      if (price !== null && price > 0) btcUsdt = price;
-    }
-  }
-
-  // Global fallback: fill only the values still missing.
-  if (usdtIrt === null || btcUsdt === null) {
+  for (const candidate of sources) {
     try {
-      const global = await fetchJson(
-        "https://api.coingecko.com/api/v3/simple/price?ids=tether,bitcoin&vs_currencies=irr,usd"
-      );
+      const data = await fetchJson(candidate.url);
+      const price = candidate.parse(data);
 
-      if (usdtIrt === null) {
-        const tetherIrr = number(global?.tether?.irr);
-        if (tetherIrr !== null && tetherIrr > 0) usdtIrt = tetherIrr / 10;
-      }
-
-      if (btcUsdt === null) {
-        const bitcoinUsd = number(global?.bitcoin?.usd);
-        if (bitcoinUsd !== null && bitcoinUsd > 0) btcUsdt = bitcoinUsd;
+      if (price !== null && price > 0) {
+        btcUsdt = price;
+        source = candidate.name;
+        break;
       }
     } catch {
-      // Keep any valid value and fall through to the existing cache.
+      // Try the next independent source.
     }
   }
 
-  if (usdtIrt === null || btcUsdt === null) {
-    throw new Error("crypto_sources_unavailable");
+  if (btcUsdt === null) {
+    throw new Error("btc_sources_unavailable");
   }
 
   return {
-    usdtIrt,
+    usdtIrt: null,
     btcUsdt,
-    updatedAt: timestamps.length ? Math.min(...timestamps) : Date.now(),
+    source,
+    updatedAt: Date.now(),
   };
 }
 
