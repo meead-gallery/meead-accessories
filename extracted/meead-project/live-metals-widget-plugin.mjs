@@ -129,17 +129,17 @@ function LiveMetalsPrices() {
 
       next = next.replace(
         'lastPriceUpdate: null,',
-        'lastPriceUpdate: null,\nliveMetalsEnabled: true,
+        'lastPriceUpdate: null,\\nliveMetalsEnabled: true,
 liveCryptoEnabled: true,'
       );
       next = next.replace(
         'lastPriceUpdate: system.lastPriceUpdate ?? null ,',
-        'lastPriceUpdate: system.lastPriceUpdate ?? null ,\nliveMetalsEnabled: system.liveMetalsEnabled ?? true,
+        'lastPriceUpdate: system.lastPriceUpdate ?? null ,\\nliveMetalsEnabled: system.liveMetalsEnabled ?? true,
 liveCryptoEnabled: system.liveCryptoEnabled ?? true,'
       );
       next = next.replace(
         'lastPriceUpdate: sys.last_price_update || null,',
-        'lastPriceUpdate: sys.last_price_update || null,\nliveMetalsEnabled: sys.live_metals_enabled ?? true,
+        'lastPriceUpdate: sys.last_price_update || null,\\nliveMetalsEnabled: sys.live_metals_enabled ?? true,
 liveCryptoEnabled: sys.live_crypto_enabled ?? true,'
       );
 
