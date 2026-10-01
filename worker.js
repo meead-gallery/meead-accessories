@@ -197,35 +197,39 @@ async function calculateChanges(gold, silver) {
 async function readCryptoPrices() {
   const [usdtResult, btcResult] = await Promise.allSettled([
     fetchJson(NOBITEX_API + "/v3/orderbook/USDTIRT"),
-    fetchJson(NOBITEX_API + "/v3/orderbook/BTCUSDT"),
+    fetchJson(NOBITEX_API + "/v3/orderbook/BTCIRT"),
   ]);
 
   let usdtIrt = null;
-  let btcUsdt = null;
+  let btcIrt = null;
   const timestamps = [];
 
   if (usdtResult.status === "fulfilled" && usdtResult.value?.status === "ok") {
-    const usdtRaw = number(usdtResult.value?.lastTradePrice);
-    if (usdtRaw !== null && usdtRaw > 0) {
-      // Nobitex public IRT market prices are returned in rials; Meead displays toman.
-      usdtIrt = usdtRaw / 10;
+    const raw = number(usdtResult.value?.lastTradePrice);
+    if (raw !== null && raw > 0) {
+      usdtIrt = raw;
       const updated = number(usdtResult.value?.lastUpdate);
       if (updated !== null && updated > 0) timestamps.push(updated);
     }
   }
 
   if (btcResult.status === "fulfilled" && btcResult.value?.status === "ok") {
-    const btcRaw = number(btcResult.value?.lastTradePrice);
-    if (btcRaw !== null && btcRaw > 0) {
-      btcUsdt = btcRaw;
+    const raw = number(btcResult.value?.lastTradePrice);
+    if (raw !== null && raw > 0) {
+      btcIrt = raw;
       const updated = number(btcResult.value?.lastUpdate);
       if (updated !== null && updated > 0) timestamps.push(updated);
     }
   }
 
-  // Wallex public market data is the backup source when Nobitex is unavailable.
-  // Use the small per-symbol trades endpoints first; fall back to the markets
-  // endpoint if either symbol cannot be read.
+  // Derive BTC/USDT from the two IRT markets. This avoids relying on a
+  // separate BTCUSDT market pair which may not be available.
+  let btcUsdt = null;
+  if (btcIrt !== null && usdtIrt !== null) {
+    btcUsdt = btcIrt / usdtIrt;
+  }
+
+  // Wallex backup for each missing value.
   if (usdtIrt === null || btcUsdt === null) {
     const [wallexUsdtResult, wallexBtcResult] = await Promise.allSettled([
       fetchJson("https://api.wallex.ir/v1/trades?symbol=USDTTMN"),
@@ -243,27 +247,7 @@ async function readCryptoPrices() {
     }
   }
 
-  if (usdtIrt === null || btcUsdt === null) {
-    try {
-      const wallex = await fetchJson("https://api.wallex.ir/v1/markets");
-      if (wallex?.success === true && wallex?.result?.symbols) {
-        if (usdtIrt === null) {
-          const wallexUsdt = number(wallex.result.symbols?.USDTTMN?.stats?.lastPrice);
-          if (wallexUsdt !== null && wallexUsdt > 0) usdtIrt = wallexUsdt;
-        }
-
-        if (btcUsdt === null) {
-          const wallexBtc = number(wallex.result.symbols?.BTCUSDT?.stats?.lastPrice);
-          if (wallexBtc !== null && wallexBtc > 0) btcUsdt = wallexBtc;
-        }
-      }
-    } catch {
-      // Continue to the global fallback below.
-    }
-  }
-
-  // Global fallback: CoinGecko is used only if the Iranian sources fail.
-  // Tether is returned in IRR, so convert rial to toman for the UI.
+  // Global fallback: fill only the values still missing.
   if (usdtIrt === null || btcUsdt === null) {
     try {
       const global = await fetchJson(
