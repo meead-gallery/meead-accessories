@@ -60,16 +60,16 @@ function LiveCryptoPrices() {
 
       let next = code;
 
-      const barsBlock = \`      <div className="section-head bars-head">
+      const barsBlock = `      <div className="section-head bars-head">
         <span className="section-title">شمش نقره و طلا</span>
         <span className="soon-ribbon">به‌زودی</span>
       </div>
       <div className="bars-row">
         <div className="bar-card"><BarIcon tone="silver" /><span>شمش نقره</span></div>
         <div className="bar-card"><BarIcon tone="gold" /><span>شمش طلا</span></div>
-      </div>\`;
+      </div>`;
       if (!next.includes(barsBlock)) throw new Error("Meead bars visual marker missing");
-      next = next.replace(barsBlock, \`      {settings.liveMetalsEnabled !== false && <LiveCryptoPrices />}\`);
+      next = next.replace(barsBlock, `      {settings.liveMetalsEnabled !== false && <LiveCryptoPrices />}`);
 
       next = next.replace(
         'lastPriceUpdate: null,',
