@@ -129,23 +129,20 @@ function LiveMetalsPrices() {
 
       next = next.replace(
         'lastPriceUpdate: null,',
-        'lastPriceUpdate: null,\\nliveMetalsEnabled: true,\nliveCryptoEnabled: true,'
+        'lastPriceUpdate: null,\nliveMetalsEnabled: true,\nliveCryptoEnabled: true,'
       );
       next = next.replace(
         'lastPriceUpdate: system.lastPriceUpdate ?? null ,',
-        'lastPriceUpdate: system.lastPriceUpdate ?? null ,\\nliveMetalsEnabled: system.liveMetalsEnabled ?? true,
-liveCryptoEnabled: system.liveCryptoEnabled ?? true,'
+        'lastPriceUpdate: system.lastPriceUpdate ?? null ,\nliveMetalsEnabled: system.liveMetalsEnabled ?? true,\nliveCryptoEnabled: system.liveCryptoEnabled ?? true,'
       );
       next = next.replace(
         'lastPriceUpdate: sys.last_price_update || null,',
-        'lastPriceUpdate: sys.last_price_update || null,\\nliveMetalsEnabled: sys.live_metals_enabled ?? true,
-liveCryptoEnabled: sys.live_crypto_enabled ?? true,'
+        'lastPriceUpdate: sys.last_price_update || null,\nliveMetalsEnabled: sys.live_metals_enabled ?? true,\nliveCryptoEnabled: sys.live_crypto_enabled ?? true,'
       );
 
       next = next.replace(
         'p_support_instagram: s.instagram || "",\n  });',
-        'p_support_instagram: s.instagram || "",\n    p_live_metals_enabled: patch.liveMetalsEnabled ?? current.liveMetalsEnabled ?? true,
-    p_live_crypto_enabled: patch.liveCryptoEnabled ?? current.liveCryptoEnabled ?? true,\n  });'
+        'p_support_instagram: s.instagram || "",\n    p_live_metals_enabled: patch.liveMetalsEnabled ?? current.liveMetalsEnabled ?? true,\n    p_live_crypto_enabled: patch.liveCryptoEnabled ?? current.liveCryptoEnabled ?? true,\n  });'
       );
 
       next = next.replace(
