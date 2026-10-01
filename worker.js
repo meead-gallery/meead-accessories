@@ -235,32 +235,42 @@ async function readCryptoPrices() {
       },
     },
     {
+      name: "Nobitex All Markets",
+      promise: fetchJson(NOBITEX_API + "/v3/orderbook/all", 5000),
+      parse: (d) => {
+        const row = d?.USDTIRT;
+        if (!row) return null;
+        const raw = number(row?.lastTradePrice);
+        return raw !== null && raw > 0 ? raw / 10 : null;
+      },
+    },
+    {
       name: "Nobitex Stats",
       promise: fetchJson(
         NOBITEX_API + "/market/stats?srcCurrency=usdt&dstCurrency=rls",
         5000
       ),
       parse: (d) => {
-        const stats = d?.stats || {};
-        const row = stats["usdt-rls"] || stats["USDTIRT"] || Object.values(stats)?.[0];
+        const row = d?.stats?.["usdt-rls"];
         const raw = number(row?.latest || row?.lastTradePrice);
         return raw !== null && raw > 0 ? raw / 10 : null;
       },
     },
     {
-      name: "Wallex",
-      promise: fetchJson("https://api.wallex.ir/v1/trades?symbol=USDTTMN", 5000),
+      name: "Nobitex Trades",
+      promise: fetchJson(NOBITEX_API + "/v2/trades/USDTIRT", 5000),
       parse: (d) => {
-        const candidates = [
-          d?.result?.latestTrades?.[0]?.price,
-          d?.result?.trades?.[0]?.price,
-          d?.data?.[0]?.price,
-        ];
-        for (const value of candidates) {
-          const price = number(value);
-          if (price !== null && price > 0) return price;
-        }
-        return null;
+        const raw = number(d?.trades?.[0]?.price);
+        return raw !== null && raw > 0 ? raw / 10 : null;
+      },
+    },
+    {
+      name: "Wallex",
+      promise: fetchJson("https://api.wallex.ir/v1/markets", 5000),
+      parse: (d) => {
+        const row = d?.result?.symbols?.USDTTMN;
+        const price = number(row?.stats?.lastPrice || row?.stats?.bidPrice);
+        return price !== null && price > 0 ? price : null;
       },
     },
   ];
