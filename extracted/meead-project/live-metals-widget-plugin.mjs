@@ -129,8 +129,7 @@ function LiveMetalsPrices() {
 
       next = next.replace(
         'lastPriceUpdate: null,',
-        'lastPriceUpdate: null,\\nliveMetalsEnabled: true,
-liveCryptoEnabled: true,'
+        'lastPriceUpdate: null,\\nliveMetalsEnabled: true,\nliveCryptoEnabled: true,'
       );
       next = next.replace(
         'lastPriceUpdate: system.lastPriceUpdate ?? null ,',
