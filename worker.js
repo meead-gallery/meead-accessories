@@ -195,50 +195,70 @@ async function calculateChanges(gold, silver) {
 }
 
 async function readCryptoPrices() {
-  const sources = [
-    {
-      name: "Kraken",
-      url: "https://api.kraken.com/0/public/Ticker?pair=xbtusd",
-      parse: (data) => number(data?.result?.XXBTZUSD?.c?.[0]),
-    },
-    {
-      name: "CoinPaprika",
-      url: "https://api.coinpaprika.com/v1/tickers/btc-bitcoin?quotes=USD",
-      parse: (data) => number(data?.quotes?.USD?.price),
-    },
-    {
-      name: "Coinbase",
-      url: "https://api.coinbase.com/v2/prices/BTC-USD/spot",
-      parse: (data) => number(data?.data?.amount),
-    },
+  // BTC first: three independent, free public sources.
+  const btcSources = [
+    { name: "Kraken", url: "https://api.kraken.com/0/public/Ticker?pair=xbtusd", parse: (d) => number(d?.result?.XXBTZUSD?.c?.[0]) },
+    { name: "CoinPaprika", url: "https://api.coinpaprika.com/v1/tickers/btc-bitcoin?quotes=USD", parse: (d) => number(d?.quotes?.USD?.price) },
+    { name: "Coinbase", url: "https://api.coinbase.com/v2/prices/BTC-USD/spot", parse: (d) => number(d?.data?.amount) },
   ];
 
   let btcUsdt = null;
-  let source = null;
-
-  for (const candidate of sources) {
+  let btcSource = null;
+  for (const candidate of btcSources) {
     try {
       const data = await fetchJson(candidate.url);
       const price = candidate.parse(data);
-
       if (price !== null && price > 0) {
         btcUsdt = price;
-        source = candidate.name;
+        btcSource = candidate.name;
         break;
       }
     } catch {
-      // Try the next independent source.
+      // Try the next independent BTC source.
     }
   }
 
-  if (btcUsdt === null) {
-    throw new Error("btc_sources_unavailable");
+  // USDT/IRT in toman: Nobitex first, then Wallex.
+  let usdtIrt = null;
+  let usdtSource = null;
+  try {
+    const data = await fetchJson(NOBITEX_API + "/v3/orderbook/USDTIRT");
+    if (data?.status === "ok") {
+      const raw = number(data?.lastTradePrice);
+      if (raw !== null && raw > 0) {
+        usdtIrt = raw / 10;
+        usdtSource = "Nobitex";
+      }
+    }
+  } catch {
+    // Continue to Wallex.
+  }
+
+  if (usdtIrt === null) {
+    try {
+      const data = await fetchJson("https://api.wallex.ir/v1/trades?symbol=USDTTMN");
+      const price = number(data?.result?.latestTrades?.[0]?.price);
+      if (price !== null && price > 0) {
+        usdtIrt = price;
+        usdtSource = "Wallex";
+      }
+    } catch {
+      // Leave USDT unavailable rather than blocking BTC.
+    }
+  }
+
+  // One failed market must not blank the entire card.
+  if (btcUsdt === null && usdtIrt === null) {
+    throw new Error("crypto_sources_unavailable");
   }
 
   return {
-    usdtIrt: null,
+    ok: true,
+    usdtIrt,
     btcUsdt,
-    source,
+    btcSource,
+    usdtSource,
+    source: [btcSource, usdtSource].filter(Boolean).join(" + "),
     updatedAt: Date.now(),
   };
 }
@@ -252,7 +272,6 @@ async function getCrypto(ctx) {
     const prices = await readCryptoPrices();
     const body = {
       ok: true,
-      source: "Nobitex public market data",
       ...prices,
       fetchedAt: new Date().toISOString(),
     };
