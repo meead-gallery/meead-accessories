@@ -413,24 +413,25 @@ async function getUsdt24h(ctx) {
   const now = Math.floor(Date.now() / 1000);
   const from = now - 24 * 60 * 60;
 
-  try {
-    const data = await fetchJson(
-      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}&fresh=${Date.now()}`,
-      7000
+  const parseUdf = (data) => {
+    if (data?.s && data.s !== "ok") return [];
+    if (!Array.isArray(data?.t) || !Array.isArray(data?.c)) return [];
+
+    return data.t.map((time, index) => ({
+      t: Number(time) * 1000,
+      p: Number(data.c[index]),
+    })).filter(
+      (point) =>
+        Number.isFinite(point.t) &&
+        Number.isFinite(point.p) &&
+        point.p > 0
     );
+  };
 
-    const points = Array.isArray(data?.t) && Array.isArray(data?.c)
-      ? data.t.map((time, index) => ({
-          t: Number(time) * 1000,
-          p: Number(data.c[index]),
-        })).filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
-      : [];
-
-    if (!points.length) throw new Error("invalid_wallex_usdt_history");
-
+  const makeResponse = (points, source) => {
     const body = {
       ok: true,
-      source: "Wallex",
+      source,
       points,
       fetchedAt: new Date().toISOString(),
     };
@@ -439,52 +440,50 @@ async function getUsdt24h(ctx) {
     });
     ctx.waitUntil(cache.put(cacheKey, result.clone()));
     return result;
-  } catch {
+  };
+
+  // Primary: documented Nobitex OHLC/UDF endpoint.
+  for (const resolution of ["60", "15"]) {
     try {
       const data = await fetchJson(
-        `https://apiv2.nobitex.ir/market/udf/history?symbol=USDTIRT&resolution=60&from=${from}&to=${now}&fresh=${Date.now()}`,
+        `https://api.nobitex.ir/market/udf/history?symbol=USDTIRT&resolution=${resolution}&from=${from}&to=${now}&fresh=${Date.now()}`,
         7000
       );
-
-      const points = Array.isArray(data?.t) && Array.isArray(data?.c)
-        ? data.t.map((time, index) => ({
-            t: Number(time) * 1000,
-            p: Number(data.c[index]),
-          })).filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
-        : [];
-
-      if (!points.length) throw new Error("invalid_nobitex_usdt_history");
-
-      const body = {
-        ok: true,
-        source: "Nobitex",
-        points,
-        fetchedAt: new Date().toISOString(),
-      };
-      const result = response(body, {
-        "Cache-Control": "public, max-age=60, stale-if-error=300",
-      });
-      ctx.waitUntil(cache.put(cacheKey, result.clone()));
-      return result;
+      const points = parseUdf(data);
+      if (points.length >= 2) return makeResponse(points, "Nobitex");
     } catch {
-      if (cached) {
-        return new Response(cached.body, {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            "Cache-Control": "no-cache",
-            "Access-Control-Allow-Origin": "*",
-            "X-USDT-Source": "cache",
-          },
-        });
-      }
-
-      return response(
-        { ok: false, reason: "usdt_unavailable" },
-        { "Cache-Control": "no-store" }
-      );
+      // Try the next resolution/source.
     }
   }
+
+  // Backup: Wallex OHLC/UDF endpoint.
+  try {
+    const data = await fetchJson(
+      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}&fresh=${Date.now()}`,
+      7000
+    );
+    const points = parseUdf(data);
+    if (points.length >= 2) return makeResponse(points, "Wallex");
+  } catch {
+    // Fall through to cache.
+  }
+
+  if (cached) {
+    return new Response(cached.body, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "Access-Control-Allow-Origin": "*",
+        "X-USDT-Source": "cache",
+      },
+    });
+  }
+
+  return response(
+    { ok: false, reason: "usdt_unavailable" },
+    { "Cache-Control": "no-store" }
+  );
 }
 
 async function getCrypto(ctx) {
