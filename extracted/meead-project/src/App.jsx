@@ -1552,49 +1552,93 @@ function TwentyFourHourChartCard() {
   const [status, setStatus] = useState("loading");
   const [lastDataAt, setLastDataAt] = useState(null);
   const [dataState, setDataState] = useState(null);
+  const [errorText, setErrorText] = useState("");
+
+  const parsePoints = (data) => {
+    const source = Array.isArray(data?.points)
+      ? data.points
+      : Array.isArray(data?.data?.points)
+        ? data.data.points
+        : Array.isArray(data?.series)
+          ? data.series
+          : [];
+
+    return source
+      .map((point) => ({
+        time: new Date(point?.t ?? point?.time ?? point?.timestamp ?? point?.d),
+        price: Number(point?.p ?? point?.price ?? point?.close ?? point?.c),
+      }))
+      .filter((point) => Number.isFinite(point.price) && Number.isFinite(point.time.getTime()))
+      .sort((a, b) => a.time - b.time);
+  };
+
+  const requestIntraday = async (cacheBust = false) => {
+    const url = cacheBust
+      ? `https://xaus.com/api/v1/intraday?symbol=xau&hours=24&fresh=${Date.now()}`
+      : "https://xaus.com/api/v1/intraday?symbol=xau&hours=24";
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
+
+      const text = await response.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
+      return { response, data };
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  };
 
   const loadChart = useCallback(async () => {
-    try {
-      setStatus("loading");
-      const response = await fetch(
-        `https://xaus.com/api/v1/intraday?symbol=xau&hours=24&fresh=${Date.now()}`,
-        { cache: "no-store" }
-      );
-      const data = await response.json().catch(() => ({}));
+    setStatus("loading");
+    setErrorText("");
 
-      if (!response.ok || !Array.isArray(data?.points) || data.points.length === 0) {
-        setPoints([]);
-        setLastDataAt(null);
-        setDataState(data?.data_state || null);
-        setStatus("unavailable");
-        return;
+    try {
+      let result = await requestIntraday(false);
+      let normalized = parsePoints(result.data);
+
+      if (normalized.length < 2) {
+        result = await requestIntraday(true);
+        normalized = parsePoints(result.data);
       }
 
-      const normalized = data.points
-        .map((point) => ({
-          time: new Date(point.t),
-          price: Number(point.p),
-        }))
-        .filter((point) => Number.isFinite(point.price) && !Number.isNaN(point.time.getTime()))
-        .sort((a, b) => a.time - b.time);
+      const data = result.data;
+      setDataState(data?.data_state || null);
 
-      if (!normalized.length) {
+      if (normalized.length < 2) {
         setPoints([]);
         setLastDataAt(null);
-        setDataState(data?.data_state || null);
+        setErrorText(
+          data?.error ||
+          (data?.data_state?.status === "unavailable"
+            ? "منبع داده XAUS فعلاً داده واقعی ندارد"
+            : "داده کافی برای رسم نمودار دریافت نشد")
+        );
         setStatus("unavailable");
         return;
       }
 
       setPoints(normalized);
       setLastDataAt(normalized[normalized.length - 1].time);
-      setDataState(data?.data_state || null);
       setStatus("ready");
     } catch (error) {
       console.error("XAUS XAU/USD intraday chart error:", error);
       setPoints([]);
       setLastDataAt(null);
       setDataState(null);
+      setErrorText(
+        error?.name === "AbortError"
+          ? "اتصال به منبع داده بیش از ۱۲ ثانیه طول کشید"
+          : "اتصال به منبع داده XAU/USD برقرار نشد"
+      );
       setStatus("error");
     }
   }, []);
@@ -1615,7 +1659,6 @@ function TwentyFourHourChartCard() {
     const min = Math.min(...points.map((p) => p.price));
     const max = Math.max(...points.map((p) => p.price));
     const span = max - min || Math.max(Math.abs(max) * 0.0001, 0.01);
-
     const firstTime = points[0].time.getTime();
     const lastTime = points[points.length - 1].time.getTime();
     const timeSpan = lastTime - firstTime || 1;
@@ -1636,18 +1679,10 @@ function TwentyFourHourChartCard() {
   const isStale = dataState?.status === "stale";
 
   const formatPrice = (value) =>
-    Number(value).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const formatDataTime = (value) =>
-    value
-      ? value.toLocaleTimeString("fa-IR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "—";
+    value ? value.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }) : "—";
 
   return (
     <section className="twenty-four-chart-card" dir="rtl" aria-label="نمودار ۲۴ ساعت گذشته انس جهانی طلا">
@@ -1655,78 +1690,33 @@ function TwentyFourHourChartCard() {
         <div>
           <div className="twenty-four-chart-title">نمودار ۲۴ ساعت گذشته · XAU/USD</div>
           <div className="twenty-four-chart-subtitle">
-            {latestPrice != null
-              ? `آخرین قیمت: ${formatPrice(latestPrice)} دلار / اونس`
-              : "انس جهانی طلا"}
+            {latestPrice != null ? `آخرین قیمت: ${formatPrice(latestPrice)} دلار / اونس` : "انس جهانی طلا"}
           </div>
         </div>
         <div className="twenty-four-chart-badge">{isStale ? "داده قدیمی" : "XAU/USD"}</div>
       </div>
 
       <div className="twenty-four-chart-area">
-        <div className="twenty-four-chart-grid">
-          <span></span><span></span><span></span><span></span>
-        </div>
+        <div className="twenty-four-chart-grid"><span></span><span></span><span></span><span></span></div>
 
         {chart ? (
-          <svg
-            viewBox="0 0 640 150"
-            preserveAspectRatio="none"
-            style={{
-              position: "absolute",
-              inset: "12px 12px 30px",
-              width: "calc(100% - 24px)",
-              height: "calc(100% - 42px)",
-              overflow: "visible",
-            }}
-            role="img"
-            aria-label="روند ۲۴ ساعت گذشته قیمت XAU/USD"
-          >
-            <polyline
-              points={chart.line}
-              fill="none"
-              stroke="#A9803A"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <circle
-              cx={chart.last.x}
-              cy={chart.last.y}
-              r="4"
-              fill="#A9803A"
-            />
+          <svg viewBox="0 0 640 150" preserveAspectRatio="none" style={{ position:"absolute", inset:"12px 12px 30px", width:"calc(100% - 24px)", height:"calc(100% - 42px)", overflow:"visible" }} role="img" aria-label="روند ۲۴ ساعت گذشته قیمت XAU/USD">
+            <polyline points={chart.line} fill="none" stroke="#A9803A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx={chart.last.x} cy={chart.last.y} r="4" fill="#A9803A" />
           </svg>
         ) : (
           <div className="twenty-four-chart-empty">
             <span className="twenty-four-chart-empty-icon">⌁</span>
             <span>
-              {status === "loading"
-                ? "در حال دریافت داده طلا…"
-                : status === "error"
-                  ? "خطا در دریافت داده طلا"
-                  : "در حال حاضر داده‌ای برای نمودار موجود نیست"}
+              {status === "loading" ? "در حال دریافت داده طلا…" : errorText || "در حال حاضر داده‌ای برای نمودار موجود نیست"}
             </span>
           </div>
         )}
 
-        <div className="twenty-four-chart-axis">
-          <span>۲۴ ساعت قبل</span>
-          <span>۱۲ ساعت قبل</span>
-          <span>اکنون</span>
-        </div>
+        <div className="twenty-four-chart-axis"><span>۲۴ ساعت قبل</span><span>۱۲ ساعت قبل</span><span>اکنون</span></div>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: "10px",
-          marginTop: "9px",
-          fontSize: "10px",
-          color: "#93A0AF",
-        }}
-      >
+      <div style={{ display:"flex", justifyContent:"space-between", gap:"10px", marginTop:"9px", fontSize:"10px", color:"#93A0AF" }}>
         <span>آخرین داده: {formatDataTime(lastDataAt)}</span>
         <span>{points.length ? `${points.length} نقطه` : "—"}</span>
       </div>
