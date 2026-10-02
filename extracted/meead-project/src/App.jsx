@@ -1700,7 +1700,13 @@ function TwentyFourHourChartCard() {
             {latestPrice != null ? `آخرین قیمت: ${formatPrice(latestPrice)} دلار / اونس` : "انس جهانی طلا"}
           </div>
         </div>
-        <div className="twenty-four-chart-badge">{isStale ? "داده قدیمی" : "XAU/USD"}</div>
+        <div style={{ display:"flex", alignItems:"center", gap:"6px", flexShrink:0 }}>
+          <div className="twenty-four-chart-online">
+            <span className={`twenty-four-chart-online-dot ${status === "ready" && !isStale ? "is-online" : ""}`}></span>
+            <span>{status === "ready" && !isStale ? "آنلاین" : status === "loading" ? "در حال اتصال" : "آفلاین"}</span>
+          </div>
+          <div className="twenty-four-chart-badge">{isStale ? "داده قدیمی" : "XAU/USD"}</div>
+        </div>
       </div>
 
       <div className="twenty-four-chart-area">
@@ -3921,6 +3927,33 @@ function GlobalStyles() {
         border:1px solid rgba(169,128,58,0.16);
         border-radius:999px;
         padding:4px 9px;
+      }
+
+      .twenty-four-chart-online {
+        display:flex;
+        align-items:center;
+        gap:5px;
+        padding:4px 8px;
+        border-radius:999px;
+        background:#F6F7F8;
+        border:1px solid rgba(30,40,50,0.08);
+        color:#667085;
+        font-size:10px;
+        font-weight:700;
+        white-space:nowrap;
+      }
+
+      .twenty-four-chart-online-dot {
+        width:6px;
+        height:6px;
+        border-radius:50%;
+        background:#A0A9B5;
+        flex:0 0 auto;
+      }
+
+      .twenty-four-chart-online-dot.is-online {
+        background:#12915B;
+        box-shadow:0 0 0 2px rgba(18,145,91,0.10);
       }
 
       .twenty-four-chart-area {
