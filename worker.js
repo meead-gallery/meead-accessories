@@ -406,6 +406,87 @@ async function getXag24h(ctx) {
   }
 }
 
+async function getUsdt24h(ctx) {
+  const cache = caches.default;
+  const cacheKey = new Request("https://meead-accessories.local/api/usdt-24h", { method: "GET" });
+  const cached = await cache.match(cacheKey);
+  const now = Math.floor(Date.now() / 1000);
+  const from = now - 24 * 60 * 60;
+
+  try {
+    const data = await fetchJson(
+      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}&fresh=${Date.now()}`,
+      7000
+    );
+
+    const points = Array.isArray(data?.t) && Array.isArray(data?.c)
+      ? data.t.map((time, index) => ({
+          t: Number(time) * 1000,
+          p: Number(data.c[index]),
+        })).filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
+      : [];
+
+    if (!points.length) throw new Error("invalid_wallex_usdt_history");
+
+    const body = {
+      ok: true,
+      source: "Wallex",
+      points,
+      fetchedAt: new Date().toISOString(),
+    };
+    const result = response(body, {
+      "Cache-Control": "public, max-age=60, stale-if-error=300",
+    });
+    ctx.waitUntil(cache.put(cacheKey, result.clone()));
+    return result;
+  } catch {
+    try {
+      const data = await fetchJson(
+        `https://apiv2.nobitex.ir/market/udf/history?symbol=USDTIRT&resolution=60&from=${from}&to=${now}&fresh=${Date.now()}`,
+        7000
+      );
+
+      const points = Array.isArray(data?.t) && Array.isArray(data?.c)
+        ? data.t.map((time, index) => ({
+            t: Number(time) * 1000,
+            p: Number(data.c[index]),
+          })).filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
+        : [];
+
+      if (!points.length) throw new Error("invalid_nobitex_usdt_history");
+
+      const body = {
+        ok: true,
+        source: "Nobitex",
+        points,
+        fetchedAt: new Date().toISOString(),
+      };
+      const result = response(body, {
+        "Cache-Control": "public, max-age=60, stale-if-error=300",
+      });
+      ctx.waitUntil(cache.put(cacheKey, result.clone()));
+      return result;
+    } catch {
+      if (cached) {
+        return new Response(cached.body, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-cache",
+            "Access-Control-Allow-Origin": "*",
+            "X-USDT-Source": "cache",
+          },
+        });
+      }
+
+      return response(
+        { ok: false, reason: "usdt_unavailable" },
+        { "Cache-Control": "no-store" }
+      );
+    }
+  }
+}
+
 async function getCrypto(ctx) {
   const cache = caches.default;
   const cacheKey = new Request(CRYPTO_CACHE_KEY, { method: "GET" });
@@ -562,6 +643,27 @@ export default {
       }
 
       return getXag24h(ctx);
+    }
+
+    if (url.pathname === "/api/usdt-24h") {
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+          },
+        });
+      }
+
+      if (request.method !== "GET") {
+        return response(
+          { ok: false, reason: "method_not_allowed" },
+          { Allow: "GET, OPTIONS" }
+        );
+      }
+
+      return getUsdt24h(ctx);
     }
 
     if (url.pathname === "/api/crypto") {
