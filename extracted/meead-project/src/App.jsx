@@ -1548,11 +1548,41 @@ function PriceHalf({ side, price, active, onClick, disabledReason }) {
 
 
 function TwentyFourHourChartCard() {
-  const [points, setPoints] = useState([]);
-  const [status, setStatus] = useState("loading");
-  const [lastDataAt, setLastDataAt] = useState(null);
-  const [dataState, setDataState] = useState(null);
-  const [errorText, setErrorText] = useState("");
+  const charts = [
+    {
+      key: "gold",
+      title: "طلا",
+      subtitle: "انس جهانی طلا",
+      badge: "XAU/USD",
+      endpoint: "/api/xau-24h",
+      ariaLabel: "نمودار ۲۴ ساعت گذشته انس جهانی طلا",
+      lineColor: "#A9803A",
+      emptyText: "در حال دریافت داده طلا…",
+      errorText: "اتصال به منبع داده XAU/USD برقرار نشد",
+      unavailableText: "منبع داده طلا فعلاً داده واقعی ندارد",
+    },
+    {
+      key: "silver",
+      title: "نقره",
+      subtitle: "انس جهانی نقره",
+      badge: "XAG/USD",
+      endpoint: "/api/xag-24h",
+      ariaLabel: "نمودار ۲۴ ساعت گذشته انس جهانی نقره",
+      lineColor: "#7D8792",
+      emptyText: "در حال دریافت داده نقره…",
+      errorText: "اتصال به منبع داده XAG/USD برقرار نشد",
+      unavailableText: "منبع داده نقره فعلاً داده واقعی ندارد",
+    },
+  ];
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [chartState, setChartState] = useState(() =>
+    Object.fromEntries(charts.map((chart) => [
+      chart.key,
+      { points: [], status: "loading", lastDataAt: null, dataState: null, errorText: "" },
+    ]))
+  );
+  const touchStartX = useRef(null);
 
   const parsePoints = (data) => {
     const source = Array.isArray(data?.points)
@@ -1572,10 +1602,10 @@ function TwentyFourHourChartCard() {
       .sort((a, b) => a.time - b.time);
   };
 
-  const requestIntraday = async (cacheBust = false) => {
+  const requestIntraday = async (chart, cacheBust = false) => {
     const url = cacheBust
-      ? `/api/xau-24h?fresh=${Date.now()}`
-      : "/api/xau-24h";
+      ? `${chart.endpoint}?fresh=${Date.now()}`
+      : chart.endpoint;
 
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 12000);
@@ -1597,57 +1627,104 @@ function TwentyFourHourChartCard() {
     }
   };
 
-  const loadChart = useCallback(async () => {
-    setStatus("loading");
-    setErrorText("");
+  const loadChart = useCallback(async (chart) => {
+    setChartState((current) => ({
+      ...current,
+      [chart.key]: { ...current[chart.key], status: "loading", errorText: "" },
+    }));
 
     try {
-      let result = await requestIntraday(false);
+      let result = await requestIntraday(chart, false);
       let normalized = parsePoints(result.data);
 
       if (normalized.length < 2) {
-        result = await requestIntraday(true);
+        result = await requestIntraday(chart, true);
         normalized = parsePoints(result.data);
       }
 
       const data = result.data;
-      setDataState(data?.data_state || null);
-
       if (normalized.length < 2) {
-        setPoints([]);
-        setLastDataAt(null);
-        setErrorText(
-          data?.error ||
-          (data?.data_state?.status === "unavailable"
-            ? "منبع داده XAUS فعلاً داده واقعی ندارد"
-            : "داده کافی برای رسم نمودار دریافت نشد")
-        );
-        setStatus("unavailable");
+        setChartState((current) => ({
+          ...current,
+          [chart.key]: {
+            points: [],
+            lastDataAt: null,
+            dataState: data?.data_state || null,
+            errorText: data?.error || (
+              data?.data_state?.status === "unavailable"
+                ? chart.unavailableText
+                : "داده کافی برای رسم نمودار دریافت نشد"
+            ),
+            status: "unavailable",
+          },
+        }));
         return;
       }
 
-      setPoints(normalized);
-      setLastDataAt(normalized[normalized.length - 1].time);
-      setStatus("ready");
+      setChartState((current) => ({
+        ...current,
+        [chart.key]: {
+          points: normalized,
+          lastDataAt: normalized[normalized.length - 1].time,
+          dataState: data?.data_state || null,
+          errorText: "",
+          status: "ready",
+        },
+      }));
     } catch (error) {
-      console.error("XAUS XAU/USD intraday chart error:", error);
-      setPoints([]);
-      setLastDataAt(null);
-      setDataState(null);
-      setErrorText(
-        error?.name === "AbortError"
-          ? "اتصال به منبع داده بیش از ۱۲ ثانیه طول کشید"
-          : "اتصال به منبع داده XAU/USD برقرار نشد"
-      );
-      setStatus("error");
+      console.error(`Intraday ${chart.badge} chart error:`, error);
+      setChartState((current) => ({
+        ...current,
+        [chart.key]: {
+          points: [],
+          lastDataAt: null,
+          dataState: null,
+          errorText: error?.name === "AbortError"
+            ? "اتصال به منبع داده بیش از ۱۲ ثانیه طول کشید"
+            : chart.errorText,
+          status: "error",
+        },
+      }));
     }
   }, []);
 
   useEffect(() => {
-    loadChart();
-    const timer = window.setInterval(loadChart, 120000);
+    charts.forEach((chart) => loadChart(chart));
+    const timer = window.setInterval(() => {
+      charts.forEach((chart) => loadChart(chart));
+    }, 120000);
     return () => window.clearInterval(timer);
   }, [loadChart]);
+
+  const moveChart = (direction) => {
+    setActiveIndex((current) => (current + direction + charts.length) % charts.length);
+  };
+
+  const handleTouchStart = (event) => {
+    touchStartX.current = event.touches?.[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event) => {
+    if (touchStartX.current == null) return;
+    const endX = event.changedTouches?.[0]?.clientX ?? touchStartX.current;
+    const deltaX = endX - touchStartX.current;
+    touchStartX.current = null;
+
+    if (Math.abs(deltaX) < 45) return;
+    moveChart(deltaX < 0 ? 1 : -1);
+  };
+
+  const activeChart = charts[activeIndex];
+  const state = chartState[activeChart.key];
+  const points = state.points;
+  const latestPrice = points.length ? points[points.length - 1].price : null;
+  const isStale = state.dataState?.status === "stale";
+
+  const formatPrice = (value) =>
+    Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const formatDataTime = (value) =>
+    value ? value.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }) : "—";
 
   const chart = (() => {
     if (points.length < 2) return null;
@@ -1682,40 +1759,41 @@ function TwentyFourHourChartCard() {
     };
   })();
 
-  const latestPrice = points.length ? points[points.length - 1].price : null;
-  const isStale = dataState?.status === "stale";
-
-  const formatPrice = (value) =>
-    Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  const formatDataTime = (value) =>
-    value ? value.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }) : "—";
-
   return (
-    <section className="twenty-four-chart-card" dir="rtl" aria-label="نمودار ۲۴ ساعت گذشته انس جهانی طلا">
+    <section
+      className="twenty-four-chart-card"
+      dir="rtl"
+      aria-label="نمودارهای ۲۴ ساعت گذشته طلا و نقره"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className="twenty-four-chart-head">
         <div>
-          <div className="twenty-four-chart-title">نمودار ۲۴ ساعت گذشته · طلا</div>
+          <div className="twenty-four-chart-title">نمودار ۲۴ ساعت گذشته · {activeChart.title}</div>
           <div className="twenty-four-chart-subtitle">
-            {latestPrice != null ? `آخرین قیمت: ${formatPrice(latestPrice)} دلار / اونس` : "انس جهانی طلا"}
+            {latestPrice != null
+              ? `آخرین قیمت: ${formatPrice(latestPrice)} دلار / اونس`
+              : activeChart.subtitle}
           </div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:"6px", flexShrink:0 }}>
           <div className="twenty-four-chart-online">
-            <span className={`twenty-four-chart-online-dot ${status === "ready" && !isStale ? "is-online" : ""}`}></span>
-            <span>{status === "ready" && !isStale ? "آنلاین" : status === "loading" ? "در حال اتصال" : "آفلاین"}</span>
+            <span className={`twenty-four-chart-online-dot ${state.status === "ready" && !isStale ? "is-online" : ""}`}></span>
+            <span>{state.status === "ready" && !isStale ? "آنلاین" : state.status === "loading" ? "در حال اتصال" : "آفلاین"}</span>
           </div>
-          <div className="twenty-four-chart-badge">{isStale ? "داده قدیمی" : "XAU/USD"}</div>
+          <div className="twenty-four-chart-badge">{isStale ? "داده قدیمی" : activeChart.badge}</div>
         </div>
       </div>
+
+      <div className="twenty-four-chart-swipe-hint">برای مشاهده نمودار بعدی، به چپ یا راست بکشید</div>
 
       <div className="twenty-four-chart-area">
         <div className="twenty-four-chart-grid"><span></span><span></span><span></span><span></span></div>
 
         {chart ? (
-          <svg viewBox="0 0 640 150" preserveAspectRatio="none" style={{ position:"absolute", inset:"12px 12px 30px", width:"calc(100% - 24px)", height:"calc(100% - 42px)", overflow:"visible" }} role="img" aria-label="روند ۲۴ ساعت گذشته قیمت XAU/USD">
-            <polyline points={chart.line} fill="none" stroke="#A9803A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx={chart.last.x} cy={chart.last.y} r="4" fill="#A9803A" />
+          <svg viewBox="0 0 640 150" preserveAspectRatio="none" style={{ position:"absolute", inset:"12px 12px 30px", width:"calc(100% - 24px)", height:"calc(100% - 42px)", overflow:"visible" }} role="img" aria-label={`روند ۲۴ ساعت گذشته قیمت ${activeChart.badge}`}>
+            <polyline points={chart.line} fill="none" stroke={activeChart.lineColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx={chart.last.x} cy={chart.last.y} r="4" fill={activeChart.lineColor} />
             <g fontFamily="Vazirmatn, sans-serif" fontSize="11" fontWeight="500" fill="#667085">
               <circle cx={chart.min.x} cy={chart.min.y} r="3" fill="#667085" />
               <text x={chart.min.x} y={Math.min(chart.min.y + 18, 148)} textAnchor="middle">
@@ -1731,7 +1809,7 @@ function TwentyFourHourChartCard() {
           <div className="twenty-four-chart-empty">
             <span className="twenty-four-chart-empty-icon">⌁</span>
             <span>
-              {status === "loading" ? "در حال دریافت داده طلا…" : errorText || "در حال حاضر داده‌ای برای نمودار موجود نیست"}
+              {state.status === "loading" ? activeChart.emptyText : state.errorText || "در حال حاضر داده‌ای برای نمودار موجود نیست"}
             </span>
           </div>
         )}
@@ -1739,14 +1817,25 @@ function TwentyFourHourChartCard() {
         <div className="twenty-four-chart-axis"><span>۲۴ ساعت قبل</span><span>۱۲ ساعت قبل</span><span>اکنون</span></div>
       </div>
 
+      <div className="twenty-four-chart-nav" aria-label="انتخاب نمودار">
+        {charts.map((chartItem, index) => (
+          <button
+            key={chartItem.key}
+            type="button"
+            className={`twenty-four-chart-dot ${index === activeIndex ? "is-active" : ""}`}
+            onClick={() => setActiveIndex(index)}
+            aria-label={`نمایش نمودار ${chartItem.title}`}
+          />
+        ))}
+      </div>
+
       <div style={{ display:"flex", justifyContent:"space-between", gap:"10px", marginTop:"9px", fontSize:"10px", color:"#93A0AF" }}>
-        <span>آخرین داده: {formatDataTime(lastDataAt)}</span>
+        <span>آخرین داده: {formatDataTime(state.lastDataAt)}</span>
         <span>{points.length ? `${points.length} نقطه` : "—"}</span>
       </div>
     </section>
   );
 }
-
 function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, startQuote, setView }) {
   return (
     <div className="home">
