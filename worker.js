@@ -5,6 +5,7 @@ const GOLD_API = "https://api.gold-api.com/price";
 const ALYAWM_SPOT = "https://alyawmgold.com/api/v1/spot/latest?country=USD";
 const ALYAWM_HISTORY = "https://alyawmgold.com/api/v1/history";
 const XAUS_INTRADAY = "https://xaus.com/api/v1/intraday?symbol=xau&hours=24";
+const XAGS_INTRADAY = "https://xaus.com/api/v1/intraday?symbol=xag&hours=24";
 
 async function fetchJson(url, timeoutMs = 7000) {
   const controller = new AbortController();
@@ -368,6 +369,43 @@ async function getXau24h(ctx) {
   }
 }
 
+async function getXag24h(ctx) {
+  const cache = caches.default;
+  const cacheKey = new Request("https://meead-accessories.local/api/xag-24h", { method: "GET" });
+  const cached = await cache.match(cacheKey);
+
+  try {
+    const data = await fetchJson(XAGS_INTRADAY + `&fresh=${Date.now()}`, 7000);
+    const body = {
+      ok: true,
+      ...data,
+      fetchedAt: new Date().toISOString(),
+    };
+    const result = response(body, {
+      "Cache-Control": "public, max-age=60, stale-if-error=300",
+    });
+    ctx.waitUntil(cache.put(cacheKey, result.clone()));
+    return result;
+  } catch {
+    if (cached) {
+      return new Response(cached.body, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-cache",
+          "Access-Control-Allow-Origin": "*",
+          "X-XAG-Source": "cache",
+        },
+      });
+    }
+
+    return response(
+      { ok: false, reason: "xag_unavailable" },
+      { "Cache-Control": "no-store" }
+    );
+  }
+}
+
 async function getCrypto(ctx) {
   const cache = caches.default;
   const cacheKey = new Request(CRYPTO_CACHE_KEY, { method: "GET" });
@@ -503,6 +541,27 @@ export default {
       }
 
       return getXau24h(ctx);
+    }
+
+    if (url.pathname === "/api/xag-24h") {
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+          },
+        });
+      }
+
+      if (request.method !== "GET") {
+        return response(
+          { ok: false, reason: "method_not_allowed" },
+          { Allow: "GET, OPTIONS" }
+        );
+      }
+
+      return getXag24h(ctx);
     }
 
     if (url.pathname === "/api/crypto") {
