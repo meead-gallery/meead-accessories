@@ -442,23 +442,34 @@ async function getUsdt24h(ctx) {
     return result;
   };
 
-  // Primary: documented Nobitex OHLC/UDF endpoint.
-  // Use the same host already used successfully by the live crypto-price
-  // endpoint in this Worker. If UDF is unavailable there, try the public
-  // api.nobitex.ir host as a second Nobitex route.
+  // Primary: Nobitex hourly OHLC. countback=24 explicitly asks for the
+  // latest 24 hourly candles, which is more reliable for a true 24h chart
+  // than relying on a from/to window alone.
   const nobitexHosts = ["https://apiv2.nobitex.ir", "https://api.nobitex.ir"];
   for (const host of nobitexHosts) {
-    for (const resolution of ["60", "15"]) {
-      try {
-        const data = await fetchJson(
-          `${host}/market/udf/history?symbol=USDTIRT&resolution=${resolution}&from=${from}&to=${now}`,
-          7000
-        );
-        const points = parseUdf(data);
-        if (points.length >= 2) return makeResponse(points, `Nobitex UDF ${resolution}m`);
-      } catch {
-        // Try the next Nobitex route/resolution.
-      }
+    try {
+      const data = await fetchJson(
+        `${host}/market/udf/history?symbol=USDTIRT&resolution=60&to=${now}&countback=24`,
+        7000
+      );
+      const points = parseUdf(data);
+      if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 1h");
+    } catch {
+      // Try the next Nobitex host.
+    }
+  }
+
+  // Secondary Nobitex resolution: 15-minute candles, up to 96 points.
+  for (const host of nobitexHosts) {
+    try {
+      const data = await fetchJson(
+        `${host}/market/udf/history?symbol=USDTIRT&resolution=15&to=${now}&countback=96`,
+        7000
+      );
+      const points = parseUdf(data);
+      if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 15m");
+    } catch {
+      // Fall through to the other source.
     }
   }
 
