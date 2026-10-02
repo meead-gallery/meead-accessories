@@ -1574,8 +1574,8 @@ function TwentyFourHourChartCard() {
 
   const requestIntraday = async (cacheBust = false) => {
     const url = cacheBust
-      ? `https://xaus.com/api/v1/intraday?symbol=xau&hours=24&fresh=${Date.now()}`
-      : "https://xaus.com/api/v1/intraday?symbol=xau&hours=24";
+      ? `/api/xau-24h?fresh=${Date.now()}`
+      : "/api/xau-24h";
 
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 12000);
