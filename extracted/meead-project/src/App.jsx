@@ -1574,6 +1574,17 @@ function TwentyFourHourChartCard() {
       unavailableText: "منبع داده نقره فعلاً داده واقعی ندارد",
     },
     {
+      key: "btc",
+      title: "بیت کوین",
+      subtitle: "بیت کوین به دلار",
+      badge: "BTC/USD",
+      endpoint: "/api/btc-24h",
+      ariaLabel: "نمودار ۲۴ ساعت گذشته بیت کوین",
+      lineColor: "#D88A2D",
+      emptyText: "در حال دریافت داده بیت کوین…",
+      errorText: "اتصال به منبع داده BTC/USD برقرار نشد",
+      unavailableText: "منبع داده بیت کوین فعلاً داده واقعی ندارد",
+    },
       key: "usdt",
       title: "تتر",
       subtitle: "تتر به تومان",
@@ -1783,7 +1794,7 @@ function TwentyFourHourChartCard() {
     <section
       className="twenty-four-chart-card"
       dir="rtl"
-      aria-label="نمودارهای ۲۴ ساعت گذشته طلا و نقره"
+      aria-label="نمودارهای ۲۴ ساعت گذشته طلا، نقره، تتر و بیت کوین"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
