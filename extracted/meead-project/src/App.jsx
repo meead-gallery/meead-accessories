@@ -1573,6 +1573,18 @@ function TwentyFourHourChartCard() {
       errorText: "اتصال به منبع داده XAG/USD برقرار نشد",
       unavailableText: "منبع داده نقره فعلاً داده واقعی ندارد",
     },
+    {
+      key: "usdt",
+      title: "تتر",
+      subtitle: "تتر به تومان",
+      badge: "USDT/IRT",
+      endpoint: "/api/usdt-24h",
+      ariaLabel: "نمودار ۲۴ ساعت گذشته تتر",
+      lineColor: "#2E9B72",
+      emptyText: "در حال دریافت داده تتر…",
+      errorText: "اتصال به منبع داده تتر برقرار نشد",
+      unavailableText: "منبع داده تتر فعلاً داده واقعی ندارد",
+    },
   ];
 
   const [activeIndex, setActiveIndex] = useState(0);
