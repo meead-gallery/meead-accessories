@@ -613,6 +613,13 @@ async function getBtc24h(ctx) {
     return result;
   };
   try {
+    const data = await fetchJson(`${NOBITEX_API}/market/udf/history?symbol=BTCUSDT&resolution=60&from=${from}&to=${now}`, 7000);
+    const points = Array.isArray(data?.t) && Array.isArray(data?.c)
+      ? data.t.map((time, index) => ({ t: Number(time) * 1000, p: Number(data.c[index]) })).filter(point => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0).sort((a, b) => a.t - b.t)
+      : [];
+    if (points.length >= 2) return makeResponse(points, "Nobitex BTC-USDT 1h");
+  } catch {}
+  try {
     const data = await fetchJson(`https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=3600&start=${new Date(from * 1000).toISOString()}&end=${new Date(now * 1000).toISOString()}`, 7000);
     const points = Array.isArray(data) ? data.map(row => ({ t: Number(row?.[0]) * 1000, p: Number(row?.[4]) })).filter(point => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0).sort((a,b) => a.t-b.t) : [];
     if (points.length >= 2) return makeResponse(points, "Coinbase BTC-USD 1h");
@@ -676,10 +683,17 @@ async function getUsdt24h(ctx) {
   for (const host of nobitexHosts) {
     try {
       const data = await fetchJson(
+        `${host}/market/udf/history?symbol=USDTIRT&resolution=60&from=${from}&to=${now}`,
+        7000
+      );
+      let points = parseUdf(data);
+      if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 1h");
+
+      const countbackData = await fetchJson(
         `${host}/market/udf/history?symbol=USDTIRT&resolution=60&to=${now}&countback=24`,
         7000
       );
-      const points = parseUdf(data);
+      points = parseUdf(countbackData);
       if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 1h");
     } catch {
       // Try the next Nobitex host.
