@@ -449,7 +449,7 @@ async function getUsdt24h(ctx) {
   for (const host of nobitexHosts) {
     try {
       const data = await fetchJson(
-        `${host}/market/udf/history?symbol=USDTIRT&resolution=60&to=${now}&countback=24`,
+        `${host}/market/udf/history?symbol=USDTIRT&resolution=60&from=${from}&to=${now}&countback=24`,
         7000
       );
       const points = parseUdf(data);
@@ -463,7 +463,7 @@ async function getUsdt24h(ctx) {
   for (const host of nobitexHosts) {
     try {
       const data = await fetchJson(
-        `${host}/market/udf/history?symbol=USDTIRT&resolution=15&to=${now}&countback=96`,
+        `${host}/market/udf/history?symbol=USDTIRT&resolution=15&from=${from}&to=${now}&countback=96`,
         7000
       );
       const points = parseUdf(data);
