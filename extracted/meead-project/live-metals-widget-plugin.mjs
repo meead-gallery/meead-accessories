@@ -37,7 +37,7 @@ function LiveCryptoPrices() {
   return(
     <section className="live-metals-card" aria-label="قیمت لحظه‌ای تتر و بیت کوین">
       <div className="live-metals-head">
-        <div><div className="live-metals-title">بازار ارز و رمزارز</div><div className="live-metals-subtitle">قیمت لحظه‌ای تتر به تومان و بیت‌کوین به دلار</div></div>
+        <div><div className="live-metals-title">بازار رمز ارز</div><div className="live-metals-subtitle">قیمت لحظه‌ای تتر به تومان و بیت‌کوین به دلار</div></div>
         <span className={"live-metals-status "+(data?"is-live":"")}><span className="live-metals-dot"/>{data?"آنلاین":"در حال دریافت"}</span>
       </div>
       <div className="live-metals-grid">
