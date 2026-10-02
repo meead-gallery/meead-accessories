@@ -1669,9 +1669,16 @@ function TwentyFourHourChartCard() {
       return { x, y };
     });
 
+    const minIndex = points.reduce((best, point, index, arr) =>
+      point.price < arr[best].price ? index : best, 0);
+    const maxIndex = points.reduce((best, point, index, arr) =>
+      point.price > arr[best].price ? index : best, 0);
+
     return {
       line: coords.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" "),
       last: coords[coords.length - 1],
+      min: { ...coords[minIndex], price: points[minIndex].price },
+      max: { ...coords[maxIndex], price: points[maxIndex].price },
     };
   })();
 
@@ -1703,6 +1710,16 @@ function TwentyFourHourChartCard() {
           <svg viewBox="0 0 640 150" preserveAspectRatio="none" style={{ position:"absolute", inset:"12px 12px 30px", width:"calc(100% - 24px)", height:"calc(100% - 42px)", overflow:"visible" }} role="img" aria-label="روند ۲۴ ساعت گذشته قیمت XAU/USD">
             <polyline points={chart.line} fill="none" stroke="#A9803A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx={chart.last.x} cy={chart.last.y} r="4" fill="#A9803A" />
+            <g fontFamily="Vazirmatn, sans-serif" fontSize="10" fill="#667085">
+              <circle cx={chart.min.x} cy={chart.min.y} r="3" fill="#667085" />
+              <text x={chart.min.x} y={Math.min(chart.min.y + 18, 148)} textAnchor="middle">
+                {`کمترین: ${formatPrice(chart.min.price)}`}
+              </text>
+              <circle cx={chart.max.x} cy={chart.max.y} r="3" fill="#667085" />
+              <text x={chart.max.x} y={Math.max(chart.max.y - 10, 10)} textAnchor="middle">
+                {`بیشترین: ${formatPrice(chart.max.price)}`}
+              </text>
+            </g>
           </svg>
         ) : (
           <div className="twenty-four-chart-empty">
