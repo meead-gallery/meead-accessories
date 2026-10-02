@@ -613,12 +613,12 @@ async function getBtc24h(ctx) {
     return result;
   };
   try {
-    const data = await fetchJson(`https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=3600&start=\${from}&end=\${now}`, 7000);
+    const data = await fetchJson(`https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=3600&start=${new Date(from * 1000).toISOString()}&end=${new Date(now * 1000).toISOString()}`, 7000);
     const points = Array.isArray(data) ? data.map(row => ({ t: Number(row?.[0]) * 1000, p: Number(row?.[4]) })).filter(point => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0).sort((a,b) => a.t-b.t) : [];
     if (points.length >= 2) return makeResponse(points, "Coinbase BTC-USD 1h");
   } catch {}
   try {
-    const data = await fetchJson(`https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=60&since=\${from}`, 7000);
+    const data = await fetchJson(`https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=60&since=${from}`, 7000);
     const rows = data?.result?.XXBTZUSD || data?.result?.XBTUSD || Object.values(data?.result || {}).find(Array.isArray);
     const points = Array.isArray(rows) ? rows.map(row => ({ t: Number(row?.[0]) * 1000, p: Number(row?.[4]) })).filter(point => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0).sort((a,b) => a.t-b.t) : [];
     if (points.length >= 2) return makeResponse(points, "Kraken BTC-USD 1h");
@@ -626,7 +626,7 @@ async function getBtc24h(ctx) {
   try {
     const startIso = new Date(from * 1000).toISOString();
     const endIso = new Date(now * 1000).toISOString();
-    const data = await fetchJson(`https://api.coinpaprika.com/v1/coins/btc-bitcoin/ohlcv/historical?start=\${encodeURIComponent(startIso)}&end=\${encodeURIComponent(endIso)}&interval=1h`, 7000);
+    const data = await fetchJson(`https://api.coinpaprika.com/v1/coins/btc-bitcoin/ohlcv/historical?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}&interval=1h`, 7000);
     const points = Array.isArray(data) ? data.map(row => ({ t: new Date(row?.time_open || row?.time_close).getTime(), p: Number(row?.close) })).filter(point => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0).sort((a,b) => a.t-b.t) : [];
     if (points.length >= 2) return makeResponse(points, "CoinPaprika BTC-USD 1h");
   } catch {}
@@ -676,7 +676,7 @@ async function getUsdt24h(ctx) {
   for (const host of nobitexHosts) {
     try {
       const data = await fetchJson(
-        `${host}/market/udf/history?symbol=USDTIRT&resolution=60&from=${from}&to=${now}&countback=24`,
+        `${host}/market/udf/history?symbol=USDTIRT&resolution=60&to=${now}&countback=24`,
         7000
       );
       const points = parseUdf(data);
