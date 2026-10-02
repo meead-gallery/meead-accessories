@@ -1585,6 +1585,7 @@ function TwentyFourHourChartCard() {
       errorText: "اتصال به منبع داده BTC/USD برقرار نشد",
       unavailableText: "منبع داده بیت کوین فعلاً داده واقعی ندارد",
     },
+    {
       key: "usdt",
       title: "تتر",
       subtitle: "تتر به تومان",
