@@ -1546,6 +1546,36 @@ function PriceHalf({ side, price, active, onClick, disabledReason }) {
   );
 }
 
+
+function TwentyFourHourChartCard() {
+  return (
+    <section className="twenty-four-chart-card" dir="rtl" aria-label="نمودار ۲۴ ساعت گذشته">
+      <div className="twenty-four-chart-head">
+        <div>
+          <div className="twenty-four-chart-title">نمودار ۲۴ ساعت گذشته</div>
+          <div className="twenty-four-chart-subtitle">روند تغییرات بازار</div>
+        </div>
+        <div className="twenty-four-chart-badge">۲۴ ساعت</div>
+      </div>
+
+      <div className="twenty-four-chart-area" aria-hidden="true">
+        <div className="twenty-four-chart-grid">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div className="twenty-four-chart-empty">
+          <span className="twenty-four-chart-empty-icon">⌁</span>
+          <span>در انتظار اتصال داده</span>
+        </div>
+        <div className="twenty-four-chart-axis">
+          <span>۲۴ ساعت قبل</span>
+          <span>۱۲ ساعت قبل</span>
+          <span>اکنون</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, startQuote, setView }) {
   return (
     <div className="home">
@@ -1555,6 +1585,8 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
         <span>آخرین به‌روزرسانی قیمت</span>
         <span className="mono">{settings.lastPriceUpdate ? new Date(settings.lastPriceUpdate).toLocaleDateString("fa-IR") + " — " + new Date(settings.lastPriceUpdate).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }) : "—"}</span>
       </div>
+      <TwentyFourHourChartCard />
+
 
       <div className="section-head">
         <span className="section-title">ساچمه نقره</span>
@@ -3688,6 +3720,107 @@ function GlobalStyles() {
       .section-head { display:flex; align-items:center; justify-content:space-between; padding: 4px 2px 10px; }
       .section-title { font-size:14px; font-weight:800; color:#1E242B; }
       .section-caption { font-size: 11px; color:#93A0AF; }
+      .twenty-four-chart-card {
+        background:#FFFFFF;
+        border:1px solid rgba(30,40,50,0.06);
+        border-radius:16px;
+        padding:14px;
+        margin-bottom:18px;
+        box-shadow:0 1px 3px rgba(20,30,45,0.04);
+      }
+
+      .twenty-four-chart-head {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        margin-bottom:12px;
+      }
+
+      .twenty-four-chart-title {
+        font-size:13px;
+        font-weight:800;
+        color:#1E242B;
+      }
+
+      .twenty-four-chart-subtitle {
+        margin-top:3px;
+        font-size:10.5px;
+        color:#93A0AF;
+      }
+
+      .twenty-four-chart-badge {
+        flex-shrink:0;
+        font-size:10px;
+        font-weight:700;
+        color:#A9803A;
+        background:rgba(169,128,58,0.10);
+        border:1px solid rgba(169,128,58,0.16);
+        border-radius:999px;
+        padding:4px 9px;
+      }
+
+      .twenty-four-chart-area {
+        position:relative;
+        height:178px;
+        overflow:hidden;
+        border-radius:12px;
+        background:#F8F9FA;
+        border:1px solid rgba(30,40,50,0.055);
+      }
+
+      .twenty-four-chart-grid {
+        position:absolute;
+        inset:12px 12px 30px;
+        display:flex;
+        flex-direction:column;
+        justify-content:space-between;
+        pointer-events:none;
+      }
+
+      .twenty-four-chart-grid span {
+        display:block;
+        width:100%;
+        border-top:1px dashed rgba(30,40,50,0.09);
+      }
+
+      .twenty-four-chart-empty {
+        position:absolute;
+        inset:30px 0 38px;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:7px;
+        color:#93A0AF;
+        font-size:11px;
+      }
+
+      .twenty-four-chart-empty-icon {
+        width:30px;
+        height:30px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:9px;
+        background:#FFFFFF;
+        border:1px solid rgba(30,40,50,0.08);
+        color:#A9803A;
+        font-size:18px;
+      }
+
+      .twenty-four-chart-axis {
+        position:absolute;
+        left:12px;
+        right:12px;
+        bottom:9px;
+        display:flex;
+        justify-content:space-between;
+        direction:ltr;
+        color:#A0A9B5;
+        font-size:9px;
+      }
+
       .bars-head { margin-top: 24px; }
 
       .purity-list { display:flex; flex-direction:column; gap: 12px; }
