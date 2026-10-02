@@ -2398,3 +2398,1873 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
 )}
 
         {!uploading && !uploadSuccess && (
+          <label
+            className="upload-btn"
+            style={{ marginTop: 10 }}
+          >
+            <Upload size={14} />
+            آپلود رسید پرداخت
+
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              hidden
+              disabled={uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+
+                if (file) {
+                  handleReceiptUpload(file);
+                }
+
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
+
+        {uploading && (
+          <div className="receipt-upload-progress">
+            <div className="receipt-upload-progress-top">
+              <span>
+                در حال ارسال رسید…
+              </span>
+
+              <span>
+                {uploadProgress}٪
+              </span>
+            </div>
+
+            <div className="receipt-upload-progress-track">
+              <div
+                className="receipt-upload-progress-fill"
+                style={{
+                  width: `${uploadProgress}%`,
+                }}
+              />
+            </div>
+
+            <p className="pay-note">
+              لطفاً تا پایان ارسال، صفحه را نبندید.
+            </p>
+          </div>
+        )}
+
+        {uploadSuccess && (
+          <p
+            className="pay-note"
+            style={{ color: "#12915B" }}
+          >
+            ✅ رسید با موفقیت ارسال شد.
+          </p>
+        )}
+
+        {uploadError && (
+          <p className="error-text">
+            {uploadError}
+          </p>
+        )}
+      </div>
+
+      <button
+        className="primary-btn"
+        onClick={onDone}
+        disabled={uploading}
+      >
+        بازگشت به صفحه اصلی
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------ Sell submitted ----------------------------- */
+
+function SellSubmitted({ order, sellAddress, onDone }) {
+  return (
+    <div className="panel confirm">
+      <div className="confirm-icon"><CheckCircle2 size={38} /></div>
+      <h2 className="panel-title">درخواست فروش ثبت شد</h2>
+      <span className="order-code mono">کد پیگیری: {order.id}</span>
+
+      <div className="confirm-summary">
+        <div className="calc-row"><span>محصول</span><span>{PRODUCTS.find((p) => p.key === order.purity)?.title}</span></div>
+        <div className="calc-row"><span>وزن اعلامی</span><span className="mono">{order.weight} گرم</span></div>
+        <div className="calc-row total"><span>مبلغ تقریبی</span><span className="mono">{toman(order.approxTotal)}</span></div>
+      </div>
+
+      <div className="sell-warning">
+        ⚠️ این مبلغ تا زمان دریافت و بررسی ساچمه، قطعی نیست. اعتبار قیمت تا {fmtTime(order.sellValidUntil)} است.
+      </div>
+
+      <div className="pay-box">
+        <span className="pay-label">مرحله بعدی:</span>
+        <p className="pay-note">ساچمه خود را بسته‌بندی کرده و طبق آدرس زیر ارسال کنید. پس از دریافت و بررسی وزن، مبلغ نهایی به شما اعلام و واریز می‌شود.</p>
+        {sellAddress ? <div className="address-box">{sellAddress}</div> : <p className="pay-note">آدرس ارسال هنوز ثبت نشده — با فروشگاه تماس بگیرید.</p>}
+      </div>
+
+      <button className="primary-btn" onClick={onDone}>بازگشت به صفحه اصلی</button>
+    </div>
+  );
+}
+
+/* --------------------------------- Admin ----------------------------------- */
+
+function AdminLogin({ email, setEmail, pw, setPw, error, onSubmit, onCancel }) {
+  return (
+    <div className="panel admin-login">
+      <Lock size={26} />
+      <h2 className="panel-title">ورود به پنل مدیریت</h2>
+      <label className="field"><span>ایمیل مدیر</span>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && onSubmit()} placeholder="admin@example.com" />
+      </label>
+      <label className="field"><span>رمز عبور</span>
+        <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && onSubmit()} />
+      </label>
+      {error && <span className="error-text">{error}</span>}
+      <div className="btn-row">
+        <button className="primary-btn" onClick={onSubmit}>ورود</button>
+        <button className="ghost-btn" onClick={onCancel}>انصراف</button>
+      </div>
+    </div>
+  );
+}
+
+const TABS = [
+  { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
+  { key: "analytics", label: "آمار بازدید", icon: TrendingUp },
+  { key: "prices", label: "قیمت‌ها", icon: TrendingUp },
+  { key: "orders", label: "سفارش‌ها", icon: Package },
+  { key: "customers", label: "مشتریان", icon: Users },
+  { key: "market", label: "بازار", icon: Clock },
+  { key: "settings", label: "تنظیمات", icon: SettingsIcon },
+  { key: "support", label: "پشتیبانی", icon: Headphones },
+  { key: "log", label: "لاگ", icon: History },
+  { key: "backup", label: "پشتیبان", icon: Database },
+];
+
+function Admin({ settings, setSettings, orders, setOrders, log, onExit, setToast }) {
+  const [tab, setTab] = useState("dashboard");
+
+  return (
+    <div className="panel admin">
+      <div className="admin-header">
+        <div className="admin-header-title"><SettingsIcon size={18} /><h2 className="panel-title">پنل مدیریت</h2></div>
+        <button className="icon-btn" onClick={onExit}><X size={16} /></button>
+      </div>
+
+      <div className="admin-tabs">
+        {TABS.map((t) => (
+          <button key={t.key} className={tab === t.key ? "admin-tab active" : "admin-tab"} onClick={() => setTab(t.key)}>
+            <t.icon size={14} /> {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "dashboard" && <TabDashboard settings={settings} orders={orders} />}
+      {tab === "analytics" && <TabAnalytics supabase={supabase} setToast={setToast} />}
+      {tab === "prices" && <TabPrices settings={settings} setSettings={setSettings} setToast={setToast} />}
+      {tab === "orders" && <TabOrders orders={orders} setOrders={setOrders} setToast={setToast} />}
+      {tab === "customers" && <TabCustomers orders={orders} />}
+      {tab === "market" && <TabMarket settings={settings} setSettings={setSettings} setToast={setToast} />}
+      {tab === "settings" && <TabSettings settings={settings} setSettings={setSettings} setToast={setToast} />}
+      {tab === "support" && <TabSupport settings={settings} setSettings={setSettings} setToast={setToast} />}
+      {tab === "log" && <TabLog log={log} />}
+      {tab === "backup" && <TabBackup setSettings={setSettings} setOrders={setOrders} setToast={setToast} />}
+    </div>
+  );
+}
+
+function TabDashboard({ settings, orders }) {
+  const today = new Date().toDateString();
+  const todays = orders.filter((o) => new Date(o.createdAt).toDateString() === today);
+  const buySum = todays.filter((o) => o.type === "buy").reduce((s, o) => s + (o.total || 0), 0);
+  const sellSum = todays.filter((o) => o.type === "sell").reduce((s, o) => s + (o.approxTotal || 0), 0);
+  const pending = orders.filter((o) => !["تکمیل شد", "لغو شد", "پرداخت رد شد"].includes(o.status)).length;
+
+  return (
+    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
+      <div className="stat-grid">
+        <div className="stat-card"><span className="stat-label">سفارش امروز</span><span className="stat-value mono">{todays.length}</span></div>
+        <div className="stat-card"><span className="stat-label">مبلغ خرید امروز</span><span className="stat-value mono">{toman(buySum)}</span></div>
+        <div className="stat-card"><span className="stat-label">مبلغ فروش امروز</span><span className="stat-value mono">{toman(sellSum)}</span></div>
+        <div className="stat-card"><span className="stat-label">سفارش‌های در جریان</span><span className="stat-value mono">{pending}</span></div>
+      </div>
+      <p className="pay-note">
+        {settings.market.emergencyStop ? "⛔ معاملات به‌طور اضطراری متوقف شده‌اند." :
+          isWithinClosedWindow(settings.market.closeStart, settings.market.closeEnd) ? "🔒 بازار در حال حاضر بسته است." : "🟢 بازار باز است."}
+      </p>
+    </div>
+  );
+}
+
+function TabPrices({ settings, setSettings, setToast }) {
+  const [form, setForm] = useState(() =>
+    Object.fromEntries(
+      PRODUCTS.map((p) => [
+        p.key,
+        { ...(settings.products?.[p.key] || {}) },
+      ])
+    )
+  );
+  const [openHistory, setOpenHistory] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const update = (key, field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value,
+      },
+    }));
+  };
+
+  const save = async () => {
+    if (saving) return;
+
+    setSaving(true);
+    try {
+      const savedState = await api.updatePrices(form);
+
+      setSettings(savedState.settings);
+      setForm(
+        Object.fromEntries(
+          PRODUCTS.map((p) => [
+            p.key,
+            { ...(savedState.settings.products?.[p.key] || {}) },
+          ])
+        )
+      );
+      setToast("تنظیمات قیمت با موفقیت ذخیره شد");
+    } catch (error) {
+      console.error("Price settings save failed:", error);
+      setToast(error?.message || "ذخیره تنظیمات قیمت ناموفق بود");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
+      {PRODUCTS.map((p) => {
+        const product = form[p.key] || {};
+
+        return (
+          <div key={p.key} className="price-edit-card">
+            <div className="price-edit-head">
+              <span className="purity-name">{p.title}</span>
+
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={product.buyActive === true}
+                  onChange={(e) =>
+                    update(p.key, "buyActive", e.target.checked)
+                  }
+                  disabled={saving}
+                />
+                خرید فعال
+              </label>
+
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={product.sellActive === true}
+                  onChange={(e) =>
+                    update(p.key, "sellActive", e.target.checked)
+                  }
+                  disabled={saving}
+                />
+                فروش فعال
+              </label>
+            </div>
+
+            <div className="admin-grid">
+              <label className="field">
+                <span>قیمت خرید (تومان/گرم)</span>
+                <input
+                  type="number"
+                  value={product.buyPrice ?? ""}
+                  onChange={(e) => update(p.key, "buyPrice", e.target.value)}
+                  disabled={saving}
+                />
+              </label>
+
+              <label className="field">
+                <span>قیمت فروش (تومان/گرم)</span>
+                <input
+                  type="number"
+                  value={product.sellPrice ?? ""}
+                  onChange={(e) => update(p.key, "sellPrice", e.target.value)}
+                  disabled={saving}
+                />
+              </label>
+
+              <label className="field">
+                <span>حداقل وزن (گرم)</span>
+                <input
+                  type="number"
+                  value={product.minWeight ?? ""}
+                  onChange={(e) => update(p.key, "minWeight", e.target.value)}
+                  disabled={saving}
+                />
+              </label>
+
+              <label className="field">
+                <span>حداکثر وزن (گرم)</span>
+                <input
+                  type="number"
+                  value={product.maxWeight ?? ""}
+                  onChange={(e) => update(p.key, "maxWeight", e.target.value)}
+                  disabled={saving}
+                />
+              </label>
+            </div>
+
+            <button
+              className="ghost-btn small-btn"
+              onClick={() =>
+                setOpenHistory(openHistory === p.key ? null : p.key)
+              }
+              disabled={saving}
+            >
+              <History size={13} /> تاریخچه قیمت (
+              {(settings.products?.[p.key]?.priceHistory || []).length}
+              )
+            </button>
+
+            {openHistory === p.key && (
+              <div className="history-list">
+                {(settings.products?.[p.key]?.priceHistory || []).length === 0 && (
+                  <span className="pay-note">تاریخچه‌ای ثبت نشده.</span>
+                )}
+
+                {(settings.products?.[p.key]?.priceHistory || []).map((h, i) => (
+                  <div key={i} className="history-row mono">
+                    {fmtTime(h.time)} — خرید {h.buyPrice.toLocaleString("fa-IR")} — فروش{" "}
+                    {h.sellPrice.toLocaleString("fa-IR")}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      <button className="primary-btn" onClick={save} disabled={saving}>
+        {saving ? "در حال ذخیره..." : "ذخیره تنظیمات قیمت"}
+      </button>
+    </div>
+  );
+}
+
+  function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onNoteChange, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const [finalWeight, setFinalWeight] = useState(order.finalWeight ?? "");
+  const [finalPrice, setFinalPrice] = useState(order.finalPricePerGram ?? order.pricePerGram);
+  const [note, setNote] = useState(order.adminNote ?? "");
+  const statuses = order.type === "buy" ? BUY_STATUSES : SELL_STATUSES;
+
+  const saveWeight = () => { if (Number(finalWeight) > 0) onRecordWeight(order.id, finalWeight); };
+  const saveAmount = () => { if (Number(finalPrice) > 0) onFinalizeAmount(order.id, finalPrice); };
+
+  return (
+    <div className="order-row">
+      <div className="order-row-top" onClick={() => setOpen(!open)} style={{ cursor: "pointer" }}>
+        <span className="mono">{order.id}</span>
+        <span className={order.type === "buy" ? "tag tag-buy" : "tag tag-sell"}>{order.type === "buy" ? "خرید" : "فروش"}</span>
+        <span className="status-pill">{order.status}</span>
+      </div>
+      <div className="order-row-mid">
+        <span>{PRODUCTS.find((p) => p.key === order.purity)?.title} — {order.weight} گرم</span>
+        <span className="mono">{toman(order.total ?? order.approxTotal)}</span>
+      </div>
+      <div className="order-row-mid">
+        <span>{order.name}</span>
+        <span className="mono">{order.phone}</span>
+      </div>
+      <div className="order-row-bottom">
+        <span className="date">{fmtTime(order.createdAt)}</span>
+        <select value={order.status} onChange={(e) => onStatusChange(order.id, e.target.value)}>
+          {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <button
+  type="button"
+  className="ghost-btn small-btn"
+  onClick={(e) => {
+    e.stopPropagation();
+    onDelete(order);
+  }}
+>
+  حذف
+</button>
+      </div>
+
+      {open && (
+        <div className="order-detail">
+          <div className="calc-row">
+  <span>نام</span>
+  <span>{order.firstName || order.name || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>نام خانوادگی</span>
+  <span>{order.lastName || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>شماره موبایل</span>
+  <span className="mono">{order.phone || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>استان</span>
+  <span>{order.province || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>شهر</span>
+  <span>{order.city || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>آدرس کامل</span>
+  <span>{order.address || "-"}</span>
+</div>
+
+<div className="calc-row">
+  <span>کد پستی</span>
+  <span className="mono">{order.postalCode || "-"}</span>
+</div>
+          <div className="calc-row"><span>قیمت هر گرم</span><span className="mono">{toman(order.pricePerGram)}</span></div>
+
+          {order.type === "buy" && order.lockExpiresAt && (
+            <div className="calc-row">
+              <span>اعتبار قیمت تا</span>
+              <span className="mono">{fmtTime(order.lockExpiresAt)}</span>
+            </div>
+          )}
+
+          {order.type === "sell" && order.sellValidUntil && (
+            <div className="calc-row">
+              <span>اعتبار فروش تا</span>
+              <span className="mono">{fmtTime(order.sellValidUntil)}</span>
+            </div>
+          )}
+
+          {order.receiptImage && (
+            <img
+              src={order.receiptImage}
+              alt="رسید"
+              className="receipt-img"
+            />
+          )}
+
+          {order.type === "sell" && (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="admin-grid">
+                <label className="field">
+                  <span>وزن نهایی واقعی (گرم)</span>
+                  <input
+                    type="number"
+                    value={finalWeight}
+                    onChange={(e) => setFinalWeight(e.target.value)}
+                  />
+                </label>
+
+                <button className="ghost-btn small-btn" onClick={saveWeight}>
+                  ثبت وزن نهایی
+                </button>
+              </div>
+
+              {order.finalWeight != null && (
+                <div className="admin-grid">
+                  <label className="field">
+                    <span>قیمت نهایی هر گرم</span>
+                    <input
+                      type="number"
+                      value={finalPrice}
+                      onChange={(e) => setFinalPrice(e.target.value)}
+                    />
+                  </label>
+
+                  <button className="ghost-btn small-btn" onClick={saveAmount}>
+                    تعیین مبلغ نهایی
+                  </button>
+                </div>
+              )}
+
+              {order.finalTotal != null && (
+                <span className="pay-note">
+                  مبلغ نهایی: {toman(order.finalTotal)}
+                </span>
+              )}
+            </div>
+          )}
+
+          <label className="field" style={{ marginTop: 8 }}>
+            <span>اطلاعات تکمیلی / یادداشت ادمین</span>
+            <textarea
+              className="textarea"
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onBlur={() => onNoteChange(order.id, note)}
+            />
+          </label>
+
+          <div className="timeline" style={{ marginTop: 8 }}>
+            {order.history.map((h, i) => (
+              <div className="timeline-row" key={i}>
+                <span className="mono">{fmtTime(h.time)}</span>
+                <span>{h.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TabOrders({ orders, setOrders, setToast }) {
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [customDate, setCustomDate] = useState("");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [openDays, setOpenDays] = useState(new Set());
+  const pageSize = 50;
+
+  const allStatuses = [...new Set([...BUY_STATUSES, ...SELL_STATUSES])];
+
+  const dayKey = (value) => {
+    const d = new Date(value);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  const todayKey = dayKey(new Date());
+
+  const startOfWeek = () => {
+    const d = new Date();
+    const day = d.getDay();
+    const daysFromSaturday = (day + 1) % 7;
+
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - daysFromSaturday);
+
+    return d;
+  };
+
+  const startOfMonth = () => {
+    const d = new Date();
+
+    d.setHours(0, 0, 0, 0);
+    d.setDate(1);
+
+    return d;
+  };
+
+  const matchesDate = (order) => {
+    const d = new Date(order.createdAt);
+
+    if (dateFilter === "all") return true;
+
+    if (dateFilter === "today") {
+      return dayKey(d) === todayKey;
+    }
+
+    if (dateFilter === "week") {
+      return d >= startOfWeek();
+    }
+
+    if (dateFilter === "month") {
+      return d >= startOfMonth();
+    }
+
+    if (dateFilter === "custom") {
+      return !customDate || dayKey(d) === customDate;
+    }
+
+    return true;
+  };
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const filtered = orders
+    .filter((o) =>
+      (typeFilter === "all" || o.type === typeFilter) &&
+      (statusFilter === "all" || o.status === statusFilter) &&
+      matchesDate(o) &&
+      (
+        !normalizedQuery ||
+        [
+          o.id,
+          o.name,
+          o.firstName,
+          o.lastName,
+          o.phone,
+          o.address
+        ]
+          .filter(Boolean)
+          .some((v) =>
+            String(v).toLowerCase().includes(normalizedQuery)
+          )
+      )
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filtered.length / pageSize)
+  );
+
+  const safePage = Math.min(page, totalPages);
+
+  const pageOrders = filtered.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    typeFilter,
+    statusFilter,
+    dateFilter,
+    customDate,
+    query
+  ]);
+
+  const grouped = pageOrders.reduce((acc, order) => {
+    const key = dayKey(order.createdAt);
+
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+
+    acc[key].push(order);
+
+    return acc;
+  }, {});
+
+  const toggleDay = (key) => {
+  setOpenDays((prev) => {
+    if (prev.has(key)) {
+      return new Set();
+    }
+
+    return new Set([key]);
+  });
+};
+
+  const handleStatusChange = async (id, status) => {
+    setOrders(
+      await api.updateOrderStatus(id, status)
+    );
+  };
+   const handleDeleteOrder = async (order) => {
+  if (!window.confirm(`آیا از حذف سفارش ${order.id} مطمئن هستید؟`)) {
+    return;
+  }
+
+  try {
+    const nextOrders = await api.deleteOrder(order);
+    setOrders(nextOrders);
+    setToast("سفارش با موفقیت حذف شد");
+  } catch (e) {
+    setToast(e.message || "حذف سفارش ناموفق بود");
+  }
+};
+  const handleRecordWeight = async (id, weight) => {
+    setOrders(
+      await api.recordFinalWeight(id, weight)
+    );
+  };
+
+  const handleFinalizeAmount = async (id, price) => {
+    setOrders(
+      await api.finalizeSellAmount(id, price)
+    );
+  };
+
+  const handleNoteChange = async (id, note) => {
+    setOrders(
+      await api.setOrderNote(id, note)
+    );
+  };
+
+  const labelForDay = (key) => {
+    const [y, m, d] = key
+      .split("-")
+      .map(Number);
+
+    const date = new Date(
+      y,
+      m - 1,
+      d
+    );
+
+    const label = date.toLocaleDateString(
+      "fa-IR",
+      {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }
+    );
+
+    if (key === todayKey) {
+      return `امروز — ${label}`;
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(
+      yesterday.getDate() - 1
+    );
+
+    if (key === dayKey(yesterday)) {
+      return `دیروز — ${label}`;
+    }
+
+    return label;
+  };
+
+  return (
+    <div
+      className="admin-section"
+      style={{
+        borderTop: "none",
+        paddingTop: 0
+      }}
+    >
+
+      {/* Filters */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 8,
+          marginBottom: 10
+        }}
+      >
+
+        <label
+          className="field"
+          style={{ margin: 0 }}
+        >
+          <span>جستجوی سفارش</span>
+
+          <input
+            value={query}
+            onChange={(e) =>
+              setQuery(e.target.value)
+            }
+            placeholder="کد، نام یا تلفن"
+          />
+        </label>
+
+        <label
+          className="field"
+          style={{ margin: 0 }}
+        >
+          <span>نوع</span>
+
+          <select
+            value={typeFilter}
+            onChange={(e) =>
+              setTypeFilter(e.target.value)
+            }
+          >
+            <option value="all">همه</option>
+            <option value="buy">خرید</option>
+            <option value="sell">فروش</option>
+          </select>
+        </label>
+
+        <label
+          className="field"
+          style={{ margin: 0 }}
+        >
+          <span>وضعیت</span>
+
+          <select
+            value={statusFilter}
+            onChange={(e) =>
+              setStatusFilter(e.target.value)
+            }
+          >
+            <option value="all">همه</option>
+
+            {allStatuses.map((s) => (
+              <option
+                key={s}
+                value={s}
+              >
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label
+          className="field"
+          style={{ margin: 0 }}
+        >
+          <span>بازه زمانی</span>
+
+          <select
+            value={dateFilter}
+            onChange={(e) =>
+              setDateFilter(e.target.value)
+            }
+          >
+            <option value="all">
+              همه سفارش‌ها
+            </option>
+
+            <option value="today">
+              امروز
+            </option>
+
+            <option value="week">
+              این هفته
+            </option>
+
+            <option value="month">
+              این ماه
+            </option>
+
+            <option value="custom">
+              انتخاب تاریخ
+            </option>
+          </select>
+        </label>
+
+      </div>
+
+      {/* Custom date */}
+      {dateFilter === "custom" && (
+        <label
+          className="field"
+          style={{ marginBottom: 10 }}
+        >
+          <span>تاریخ موردنظر</span>
+
+          <input
+            type="date"
+            value={customDate}
+            onChange={(e) =>
+              setCustomDate(e.target.value)
+            }
+          />
+        </label>
+      )}
+
+      {/* Result count */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 10
+        }}
+      >
+        <span className="pay-note">
+          {filtered.length.toLocaleString("fa-IR")}
+          {" "}سفارش
+        </span>
+
+        <span className="pay-note">
+          نمایش{" "}
+          {filtered.length
+            ? (
+                (safePage - 1) *
+                  pageSize +
+                1
+              ).toLocaleString("fa-IR")
+            : "۰"}
+          {"–"}
+          {Math.min(
+            safePage * pageSize,
+            filtered.length
+          ).toLocaleString("fa-IR")}
+          {" "}از{" "}
+          {filtered.length.toLocaleString("fa-IR")}
+        </span>
+      </div>
+
+      {/* Orders */}
+      <div className="orders-list">
+
+        {filtered.length === 0 && (
+          <p className="pay-note">
+            سفارشی با این فیلترها یافت نشد.
+          </p>
+        )}
+
+        {Object.entries(grouped).map(
+          ([key, dayOrders]) => {
+
+            const isOpen =
+              key === todayKey ||
+              openDays.has(key) ||
+              !!query.trim() ||
+              dateFilter === "custom";
+
+            return (
+              <div
+                key={key}
+                style={{ marginBottom: 10 }}
+              >
+
+                {/* Date header */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    toggleDay(key)
+                  }
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
+                    padding: "10px 12px",
+                    border:
+                      "1px solid rgba(127,127,127,.2)",
+                    borderRadius: 10,
+                    background:
+                      "transparent",
+                    color: "inherit",
+                    cursor: "pointer",
+                    font: "inherit"
+                  }}
+                >
+                  <span
+                    style={{
+                      fontWeight: 700
+                    }}
+                  >
+                    {isOpen
+                      ? "⌄"
+                      : "›"}{" "}
+                    {labelForDay(key)}
+                  </span>
+
+                  <span className="pay-note">
+                    {dayOrders.length.toLocaleString(
+                      "fa-IR"
+                    )}
+                    {" "}سفارش
+                  </span>
+                </button>
+
+                {/* Orders of this date */}
+                {isOpen &&
+                  dayOrders.map((o) => (
+                    <OrderRow
+                      key={o.id}
+                      order={o}
+                      onStatusChange={
+                        handleStatusChange
+                      }
+                      onRecordWeight={
+                        handleRecordWeight
+                      }
+                      onFinalizeAmount={
+                        handleFinalizeAmount
+                      }
+                      onNoteChange={
+                        handleNoteChange
+                      }
+                      onDelete={
+  handleDeleteOrder
+}
+                    />
+                  ))}
+
+              </div>
+            );
+          }
+        )}
+
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 6,
+            marginTop: 12,
+            flexWrap: "wrap"
+          }}
+        >
+
+          <button
+            className="ghost-btn small-btn"
+            disabled={safePage === 1}
+            onClick={() =>
+              setPage(
+                Math.max(
+                  1,
+                  safePage - 1
+                )
+              )
+            }
+          >
+            قبلی
+          </button>
+
+          {Array.from(
+            {
+              length: totalPages
+            },
+            (_, i) => i + 1
+          )
+            .slice(
+              Math.max(
+                0,
+                safePage - 3
+              ),
+              safePage + 2
+            )
+            .map((p) => (
+              <button
+                key={p}
+                className={
+                  p === safePage
+                    ? "primary-btn small-btn"
+                    : "ghost-btn small-btn"
+                }
+                onClick={() =>
+                  setPage(p)
+                }
+              >
+                {p}
+              </button>
+            ))}
+
+          <button
+            className="ghost-btn small-btn"
+            disabled={
+              safePage === totalPages
+            }
+            onClick={() =>
+              setPage(
+                Math.min(
+                  totalPages,
+                  safePage + 1
+                )
+              )
+            }
+          >
+            بعدی
+          </button>
+
+        </div>
+      )}
+
+    </div>
+  );
+}
+function TabCustomers({ orders }) {
+  const map = {};
+  orders.forEach((o) => {
+    const k = o.phone;
+    if (!map[k]) map[k] = { name: o.name, phone: o.phone, count: 0, buyTotal: 0, sellTotal: 0 };
+    map[k].name = o.name;
+    map[k].count += 1;
+    if (o.type === "buy") map[k].buyTotal += o.total || 0;
+    else map[k].sellTotal += o.finalTotal ?? o.approxTotal ?? 0;
+  });
+  const customers = Object.values(map).sort((a, b) => b.count - a.count);
+  return (
+    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
+      {customers.length === 0 && <p className="pay-note">هنوز مشتری‌ای ثبت نشده.</p>}
+      <div className="orders-list">
+        {customers.map((c) => (
+          <div className="order-row" key={c.phone}>
+            <div className="order-row-top"><span>{c.name}</span><span className="mono">{c.phone}</span></div>
+            <div className="order-row-mid"><span>تعداد سفارش: {c.count}</span></div>
+            <div className="order-row-mid"><span className="mono">خرید: {toman(c.buyTotal)}</span><span className="mono">فروش: {toman(c.sellTotal)}</span></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TabMarket({ settings, setSettings, setToast }) {
+  const [form, setForm] = useState(settings.market);
+const [dirty, setDirty] = useState(false);
+
+useEffect(() => {
+  if (!dirty) {
+    setForm(settings.market);
+  }
+}, [settings.market, dirty]);
+
+  const save = async () => {
+  try {
+    const next = await api.updateMarket({
+      closeStart: form.closeStart,
+      closeEnd: form.closeEnd,
+      buyEnabled: form.buyEnabled,
+      sellEnabled: form.sellEnabled,
+      emergencyStop: form.emergencyStop,
+    });
+
+    setSettings(next);
+    setForm(next.market);
+    setDirty(false);
+    setToast("تنظیمات بازار ذخیره شد");
+  } catch (error) {
+    console.error("Update market failed:", error);
+    setToast(error?.message || "ذخیره تنظیمات بازار ناموفق بود");
+  }
+};
+  const toggleEmergency = async () => {
+    const next = await api.setEmergencyStop(!form.emergencyStop);
+    setSettings(next);
+    setForm(next.market);
+    setToast(
+      next.market.emergencyStop
+        ? "معاملات متوقف شد"
+        : "معاملات دوباره فعال شد"
+    );
+  };
+
+  return (
+    <div
+      className="admin-section"
+      style={{ borderTop: "none", paddingTop: 0 }}
+    >
+      <div className="admin-grid">
+        <label className="field">
+          <span>ساعت شروع بسته بودن</span>
+          <input
+            type="time"
+            value={form.closeStart}
+            onChange={(e) => {
+  setDirty(true);
+  setForm({ ...form, closeStart: e.target.value });
+}}
+          />
+        </label>
+
+        <label className="field">
+          <span>ساعت پایان بسته بودن</span>
+          <input
+            type="time"
+            value={form.closeEnd}
+            onChange={(e) => {
+  setDirty(true);
+  setForm({ ...form, closeEnd: e.target.value });
+}}
+          />
+        </label>
+      </div>
+
+      <label className="toggle-row">
+        <input
+          type="checkbox"
+          checked={form.buyEnabled}
+          onChange={(e) => {
+  setDirty(true);
+  setForm({ ...form, buyEnabled: e.target.checked });
+}}
+        />
+        خرید فعال باشد
+      </label>
+
+      <label className="toggle-row">
+        <input
+          type="checkbox"
+          checked={form.sellEnabled}
+          
+          onChange={(e) => {
+  setDirty(true);
+  setForm({ ...form, sellEnabled: e.target.checked });
+}}
+        />
+        فروش فعال باشد
+      </label>
+
+      <button className="primary-btn" onClick={save}>
+        ذخیره تنظیمات بازار
+      </button>
+
+      <div className="danger-zone">
+        <span className="pay-label">توقف اضطراری معاملات</span>
+
+        <p className="pay-note">
+          با فعال کردن این گزینه، خرید و فروش فوراً و مستقل از ساعات بازار
+          متوقف می‌شود.
+        </p>
+
+        <button
+          className={
+            form.emergencyStop
+              ? "primary-btn danger-btn-active"
+              : "danger-btn"
+          }
+          onClick={toggleEmergency}
+        >
+          <AlertTriangle size={14} />
+          {form.emergencyStop
+            ? "لغو توقف اضطراری"
+            : "توقف اضطراری معاملات"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TabSettings({ settings, setSettings, setToast }) {
+  const [lockMinutes, setLockMinutes] = useState(settings.priceLockMinutes);
+  const [sellDays, setSellDays] = useState(settings.sellValidityDays);
+  const [sellAddress, setSellAddress] = useState(settings.sellAddress);
+  const [bank, setBank] = useState(settings.bank);
+
+  const save = async () => {
+    const patch = {
+      priceLockMinutes: Number(lockMinutes) || 5,
+      sellValidityDays: Number(sellDays) || 3,
+      sellAddress, bank,
+    };
+    const next = await api.updateSystemSettings(patch);
+    setSettings(next);
+    setToast("تنظیمات ذخیره شد");
+  };
+
+  return (
+    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
+      <h3>قفل قیمت و اعتبار فروش</h3>
+      <div className="admin-grid">
+        <label className="field"><span>مدت قفل قیمت (دقیقه)</span>
+          <select value={lockMinutes} onChange={(e) => setLockMinutes(e.target.value)}>
+            {[2, 3, 5, 10].map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </label>
+        <label className="field"><span>اعتبار فروش (روز)</span><input type="number" value={sellDays} onChange={(e) => setSellDays(e.target.value)} /></label>
+      </div>
+
+      <h3>آدرس دریافت ساچمه</h3>
+      <textarea className="textarea" rows={2} value={sellAddress} onChange={(e) => setSellAddress(e.target.value)} />
+
+      <h3>اطلاعات حساب بانکی</h3>
+      <div className="admin-grid">
+        <label className="field"><span>شماره کارت</span><input value={bank.cardNumber} onChange={(e) => setBank({ ...bank, cardNumber: e.target.value })} /></label>
+        <label className="field"><span>شماره حساب</span><input value={bank.accountNumber} onChange={(e) => setBank({ ...bank, accountNumber: e.target.value })} /></label>
+        <label className="field"><span>شماره شبا (بدون IR)</span><input value={bank.sheba} onChange={(e) => setBank({ ...bank, sheba: e.target.value })} /></label>
+        <label className="field"><span>نام صاحب حساب</span><input value={bank.ownerName} onChange={(e) => setBank({ ...bank, ownerName: e.target.value })} /></label>
+      </div>
+
+      <button className="primary-btn" onClick={save}>ذخیره تنظیمات</button>
+      <p className="admin-footnote"><Package size={14} /> ورود پنل مدیریت با Supabase Authentication و سطح دسترسی مدیر انجام می‌شود.</p>
+    </div>
+  );
+}
+function TabSupport({ settings, setSettings, setToast }) {
+  const [support, setSupport] = useState({
+    landline: settings.support?.landline || "",
+    mobile: settings.support?.mobile || "",
+    whatsapp: settings.support?.whatsapp || "",
+    telegram: settings.support?.telegram || "",
+    instagram: settings.support?.instagram || "",
+  });
+
+  const save = async () => {
+    try {
+      const patch = {
+        support: {
+          landline: support.landline.trim(),
+          mobile: support.mobile.trim(),
+          whatsapp: support.whatsapp.trim(),
+          telegram: support.telegram.trim(),
+          instagram: support.instagram.trim(),
+        },
+      };
+
+      const next = await api.updateSystemSettings(patch);
+      setSettings(next);
+      setToast("اطلاعات پشتیبانی ذخیره شد");
+    } catch (e) {
+      console.error(e);
+      setToast("ذخیره اطلاعات پشتیبانی ناموفق بود");
+    }
+  };
+
+  return (
+    <div
+  className="admin-section support-admin-section"
+  style={{ borderTop: "none", paddingTop: 0, color: "#000" }}
+>
+      <h3>اطلاعات پشتیبانی</h3>
+
+      <div className="admin-grid">
+
+        <label className="field">
+          <span>تلفن ثابت</span>
+          <input
+            value={support.landline}
+            onChange={(e) =>
+              setSupport({ ...support, landline: e.target.value })
+            }
+            placeholder="مثلاً ۰۲۸..."
+            inputMode="tel"
+          />
+        </label>
+
+        <label className="field">
+          <span>شماره موبایل</span>
+          <input
+            value={support.mobile}
+            onChange={(e) =>
+              setSupport({ ...support, mobile: e.target.value })
+            }
+            placeholder="مثلاً ۰۹..."
+            inputMode="tel"
+          />
+        </label>
+
+        <label className="field">
+          <span>واتساپ</span>
+          <input
+            value={support.whatsapp}
+            onChange={(e) =>
+              setSupport({ ...support, whatsapp: e.target.value })
+            }
+            placeholder="شماره واتساپ"
+            inputMode="tel"
+          />
+        </label>
+
+        <label className="field">
+          <span>تلگرام</span>
+          <input
+            value={support.telegram}
+            onChange={(e) =>
+              setSupport({ ...support, telegram: e.target.value })
+            }
+            placeholder="@username"
+          />
+        </label>
+
+        <label className="field">
+          <span>اینستاگرام</span>
+          <input
+            value={support.instagram}
+            onChange={(e) =>
+              setSupport({ ...support, instagram: e.target.value })
+            }
+            placeholder="@username"
+          />
+        </label>
+
+      </div>
+
+      <button className="primary-btn" onClick={save}>
+        ذخیره اطلاعات پشتیبانی
+      </button>
+    </div>
+  );
+}
+function TabLog({ log }) {
+  return (
+    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
+      {log.length === 0 && <p className="pay-note">هنوز فعالیتی ثبت نشده.</p>}
+      <div className="orders-list">
+        {log.map((l, i) => (
+          <div className="order-row" key={i}>
+            <div className="order-row-top"><span className="mono">{fmtTime(l.time)}</span><span className="tag tag-buy">{l.action}</span></div>
+            <div className="order-row-mid"><span>{l.detail}</span></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TabBackup({ setSettings, setOrders, setToast }) {
+  const download = async () => {
+    try {
+      const data = JSON.stringify(await api.exportBackup(), null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `meead-backup-${Date.now()}.json`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setToast("فایل پشتیبان دانلود شد");
+    } catch (e) {
+      setToast("دانلود پشتیبان ناموفق بود");
+    }
+  };
+
+  
+const restore = async (file) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      const state = await api.restoreBackup(data);
+
+      setSettings(state.settings);
+      setOrders(state.orders);
+      setToast("بازیابی با موفقیت انجام شد");
+    } catch (e) {
+      console.error("Backup restore failed:", e);
+
+      const message =
+        e?.message ||
+        e?.error_description ||
+        e?.details ||
+        "بازیابی نسخه پشتیبان ناموفق بود";
+
+      setToast(message);
+    }
+  };
+  return (
+    <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
+      <p className="pay-note">
+        این یک پشتیبان‌گیری دستی و ساده (خروجی/ورودی فایل JSON) است — برای بکاپ خودکار و امن در محلی جدا از سرور، به زیرساخت بک‌اند واقعی نیاز است.
+      </p>
+      <button className="primary-btn" onClick={download}>دانلود نسخه پشتیبان</button>
+      <label className="upload-btn"><Upload size={14} /> بازیابی از فایل
+        <input type="file" accept="application/json" hidden onChange={(e) => e.target.files[0] && restore(e.target.files[0])} />
+      </label>
+    </div>
+  );
+}
+
+/* --------------------------------- Styles ---------------------------------- */
+
+function GlobalStyles() {
+  return (
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+      * { box-sizing: border-box; }
+      .app-root { min-height: 100vh; background: linear-gradient(175deg, #F6F7F8 0%, #EDEFF1 100%); color: #1E242B; font-family: 'Vazirmatn', sans-serif; padding-bottom: 40px; }
+      .mono { font-family: 'JetBrains Mono', monospace; direction: ltr; unicode-bidi: plaintext; }
+      .loading-screen { display:flex; align-items:center; justify-content:center; height:100vh; color:#7A8494; }
+
+      .app-header { display:grid; grid-template-columns: 36px 1fr 36px; align-items:center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid rgba(30,40,50,0.07); position: sticky; top:0; backdrop-filter: blur(10px); background: rgba(246,247,248,0.88); z-index: 10; }
+      .header-spacer { width: 36px; height: 36px; }
+      .brand { display:flex; flex-direction:column; align-items:center; justify-self:center; gap: 4px; text-align:center; }
+      .brand-text { display:flex; flex-direction:column; align-items:center; }
+      .brand-name { font-size: 11.5px; letter-spacing: 1.6px; color:#A9803A; font-weight:800; }
+      .brand-sub { font-size: 12.5px; color:#1E242B; font-weight:600; margin-top: 2px; }
+
+      .icon-btn { width: 34px; height: 34px; border-radius: 999px; border: 1px solid rgba(30,40,50,0.1); background:#FFFFFF; color:#667085; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.15s; }
+      .icon-btn:hover { border-color:#A9803A; color:#A9803A; }
+
+      .app-main { max-width: 480px; margin: 0 auto; padding: 18px 15px 0; }
+
+      .market-banner { display:flex; align-items:center; gap:8px; padding: 10px 14px; border-radius: 12px; font-size: 12.5px; font-weight:600; margin-bottom: 12px; }
+      .banner-closed { background: rgba(214,72,63,0.1); color:#B23A31; }
+      .banner-open { background: rgba(18,145,91,0.1); color:#0F7A4C; }
+      .banner-danger { background: rgba(214,72,63,0.15); color:#B23A31; }
+
+      .update-row { display:flex; justify-content:space-between; font-size:11.5px; color:#93A0AF; padding: 0 2px 14px; }
+
+      .section-head { display:flex; align-items:center; justify-content:space-between; padding: 4px 2px 10px; }
+      .section-title { font-size:14px; font-weight:800; color:#1E242B; }
+      .section-caption { font-size: 11px; color:#93A0AF; }
+      .twenty-four-chart-card {
+        background:#FFFFFF;
+        border:1px solid rgba(30,40,50,0.06);
+        border-radius:16px;
+        padding:14px;
+        margin-bottom:18px;
+        box-shadow:0 1px 3px rgba(20,30,45,0.04);
+      }
+
+      .twenty-four-chart-head {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        margin-bottom:12px;
+      }
+
+      .twenty-four-chart-title {
+        font-size:13px;
+        font-weight:800;
+        color:#1E242B;
+      }
+
+      .twenty-four-chart-subtitle {
+        margin-top:3px;
+        font-size:10.5px;
+        color:#93A0AF;
+      }
+
+      .twenty-four-chart-badge {
+        flex-shrink:0;
+        font-size:10px;
+        font-weight:700;
+        color:#A9803A;
+        background:rgba(169,128,58,0.10);
+        border:1px solid rgba(169,128,58,0.16);
+        border-radius:999px;
+        padding:4px 9px;
+      }
+
+      .twenty-four-chart-area {
+        position:relative;
+        height:178px;
+        overflow:hidden;
+        border-radius:12px;
+        background:#F8F9FA;
+        border:1px solid rgba(30,40,50,0.055);
+      }
+
+      .twenty-four-chart-grid {
+        position:absolute;
+        inset:12px 12px 30px;
+        display:flex;
+        flex-direction:column;
+        justify-content:space-between;
+        pointer-events:none;
+      }
+
+      .twenty-four-chart-grid span {
+        display:block;
+        width:100%;
+        border-top:1px dashed rgba(30,40,50,0.09);
+      }
+
+      .twenty-four-chart-empty {
+        position:absolute;
+        inset:30px 0 38px;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:7px;
+        color:#93A0AF;
+        font-size:11px;
+      }
+
+      .twenty-four-chart-empty-icon {
+        width:30px;
+        height:30px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:9px;
+        background:#FFFFFF;
+        border:1px solid rgba(30,40,50,0.08);
+        color:#A9803A;
+        font-size:18px;
+      }
+
+      .twenty-four-chart-axis {
+        position:absolute;
+        left:12px;
+        right:12px;
+        bottom:9px;
+        display:flex;
+        justify-content:space-between;
+        direction:ltr;
+        color:#A0A9B5;
+        font-size:9px;
+      }
+
+      .bars-head { margin-top: 24px; }
+
+      .purity-list { display:flex; flex-direction:column; gap: 12px; }
+      .purity-card { background:#FFFFFF; border:1px solid rgba(30,40,50,0.06); border-radius:16px; padding: 14px; box-shadow: 0 1px 3px rgba(20,30,45,0.04); }
+      .purity-card-head { display:flex; align-items:center; gap:10px; margin-bottom: 12px; }
+      .purity-card-body { display:flex; flex-direction:column; gap:4px; }
+      .purity-name { font-size: 13px; font-weight:700; color:#1E242B; }
+      .purity-chip { font-size: 10.5px; color:#93A0AF; }
+
+      .stamp-badge { width: 40px; height: 40px; border-radius: 50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; background: radial-gradient(circle at 35% 30%, #3A424C, #1B1F25); border: 2px solid #A9803A; color:#EADFC3; font-family:'JetBrains Mono', monospace; font-weight:700; font-size:9.5px; }
+
+      .price-split { display:flex; gap: 10px; }
+      .price-half { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; border-radius:12px; padding: 11px 6px; cursor:pointer; font-family:inherit; border:1px solid transparent; transition:0.15s; }
+      .price-half:hover { transform: translateY(-2px); }
+      .half-buy { background: rgba(18,145,91,0.08); border-color: rgba(18,145,91,0.2); }
+      .half-buy:hover { border-color:#12915B; }
+      .half-buy .half-label { color:#12915B; }
+      .half-sell { background: rgba(214,72,63,0.08); border-color: rgba(214,72,63,0.2); }
+      .half-sell:hover { border-color:#D6483F; }
+      .half-sell .half-label { color:#D6483F; }
+      .half-off { opacity: 0.5; }
+      .half-label { font-size:10.5px; font-weight:700; display:flex; align-items:center; gap:4px; }
+      .half-price { font-size:14.5px; font-weight:800; color:#1E242B; }
+      .half-unit { font-size:9px; color:#93A0AF; }
+
+      .bars-row { display:flex; gap: 12px; }
+      .bar-card { flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; background:#FFFFFF; border:1px dashed rgba(30,40,50,0.14); border-radius:14px; padding: 14px 10px; font-size:12px; color:#93A0AF; }
+      .soon-ribbon { font-size:10px; padding:3px 9px; border-radius:999px; background: rgba(169,128,58,0.12); color:#A9803A; }
+
+      .track-link { display:flex; align-items:center; gap:6px; justify-content:center; width:100%; margin-top:20px; background:none; border:1px dashed rgba(30,40,50,0.15); color:#667085; padding: 12px; border-radius: 12px; font-family:inherit; font-size:12.5px; cursor:pointer; }
+
+      .panel { background:#FFFFFF; border:1px solid rgba(30,40,50,0.06); border-radius:18px; padding: 20px 16px; display:flex; flex-direction:column; gap:12px; margin-bottom:24px; box-shadow: 0 1px 3px rgba(20,30,45,0.04); }
+      .back-link { display:flex; align-items:center; gap:4px; background:none; border:none; color:#7A8494; font-family:inherit; font-size:13px; cursor:pointer; padding:0; align-self:flex-start; }
+      .panel-title { font-size:16.5px; font-weight:800; margin:0; color:#1E242B; }
+      .panel-sub { font-size:12px; font-weight:700; }
+      .panel-sub.tone-buy { color:#12915B; }
+      .panel-sub.tone-sell { color:#D6483F; }
+
+      .countdown { display:flex; align-items:center; gap:6px; font-size:12px; color:#667085; background:#F6F7F8; padding:8px 10px; border-radius:10px; width:fit-content; }
+      .countdown-warn { color:#D6483F; background: rgba(214,72,63,0.08); }
+      .expired-box { display:flex; align-items:center; justify-content:space-between; gap:10px; background: rgba(214,72,63,0.08); color:#B23A31; padding:10px 12px; border-radius:10px; font-size:12.5px; }
+
+      .field { display:flex; flex-direction:column; gap:6px; font-size:12px; color:#667085; }
+      .field input, .textarea, select { background:#F6F7F8; border:1px solid rgba(30,40,50,0.1); border-radius:10px; padding:10px 12px; color:#1E242B; font-family:'JetBrains Mono', monospace; font-size:13.5px; direction:ltr; text-align:right; width:100%; box-sizing:border-box; max-width:100%; }
+      .field input:focus, .textarea:focus { outline:none; border-color:#A9803A; }
+      .textarea { font-family:'Vazirmatn', sans-serif; direction:rtl; text-align:right; width:100%; resize:vertical; }
+      .field-pair { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:10px; }
+      .error-text { color:#D6483F; font-size:11.5px; }
+
+      .calc-row { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:#667085; padding:3px 0; }
+      .calc-row.total { border-top: 1px dashed rgba(30,40,50,0.12); margin-top:4px; padding-top:10px; font-weight:800; color:#1E242B; font-size:14.5px; }
+
+      .sell-warning { background: rgba(214,72,63,0.08); color:#8A342C; font-size:11.5px; line-height:1.9; padding:10px 12px; border-radius:10px; }
+
+      .primary-btn { background: linear-gradient(145deg,#232A33,#12161C); color:#F6F7F8; border:none; border-radius:12px; padding:13px; font-family:inherit; font-weight:700; font-size:13.5px; cursor:pointer; transition:0.15s; }
+      .primary-btn:disabled { opacity:0.5; cursor:not-allowed; }
+      .primary-btn:hover:not(:disabled) { filter:brightness(1.15); }
+      .ghost-btn { background:transparent; border:1px solid rgba(30,40,50,0.15); color:#667085; border-radius:12px; padding:13px; font-family:inherit; cursor:pointer; font-size:13px; }
+      .small-btn { padding: 8px 12px; font-size: 11.5px; display:flex; align-items:center; gap:6px; width: fit-content; }
+      .btn-row { display:flex; gap:10px; }
+      .btn-row .primary-btn, .btn-row .ghost-btn { flex:1; }
+
+      .confirm { align-items:center; text-align:center; }
+      .confirm-icon { color:#12915B; }
+      .order-code { color:#7A8494; font-size:12.5px; }
+      .confirm-summary { width:100%; background:#F6F7F8; border-radius:12px; padding:12px 14px; }
+      .pay-box { width:100%; display:flex; flex-direction:column; gap:8px; align-items:flex-start; text-align:right; }
+      .pay-label { font-size:12.5px; color:#667085; font-weight:700; }
+      .card-number-row { display:flex; align-items:center; gap:8px; background:#F6F7F8; border:1px solid rgba(30,40,50,0.1); border-radius:10px; padding:10px 12px; width:100%; justify-content:space-between; }
+      .card-number { font-size:14.5px; letter-spacing:1px; }
+      .pay-note { font-size:11.5px; color:#7A8494; line-height:1.9; margin:0; }
+      .address-box { background:#F6F7F8; border-radius:10px; padding:10px 12px; font-size:12.5px; width:100%; }
+
+      .upload-btn { display:flex; align-items:center; justify-content:center; gap:6px; background:#F6F7F8; border:1px dashed rgba(30,40,50,0.2); border-radius:10px; padding: 11px; font-size:12.5px; color:#667085; cursor:pointer; width:100%; }
+
+        .receipt-upload-progress {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(30, 40, 50, 0.12);
+  border-radius: 10px;
+  background: #F6F7F8;
+}
+
+.receipt-upload-progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  color: #667085;
+}
+
+.receipt-upload-progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(30, 40, 50, 0.10);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.receipt-upload-progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: #667085;
+  transition: width 0.15s ease;
+}
+.upload-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(30, 40, 50, 0.18);
+  border-top-color: #667085;
+  border-radius: 50%;
+  animation: upload-spin 0.7s linear infinite;
+  flex: 0 0 auto;
+}
+
+.upload-btn-active {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+@keyframes upload-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+      .admin-login { align-items:center; text-align:center; }
+
+      .admin-header { display:flex; justify-content:space-between; align-items:center; }
+      .admin-header-title { display:flex; align-items:center; gap:8px; }
+      .admin-tabs { display:flex; flex-wrap:wrap; gap:6px; padding-bottom: 6px; border-bottom: 1px solid rgba(30,40,50,0.07); }
+      .admin-tab { display:flex; align-items:center; gap:5px; background:#F6F7F8; border:1px solid transparent; color:#667085; padding: 7px 11px; border-radius:999px; font-size:11.5px; font-family:inherit; cursor:pointer; }
+      .admin-tab.active { background:#232A33; color:#F6F7F8; }
+      .admin-section { display:flex; flex-direction:column; gap:10px; border-top:1px solid rgba(30,40,50,0.07); padding-top:14px; }
+      .admin-section h3 { font-size:12.5px; color:#667085; margin: 6px 0 0; font-weight:700; }
+      .admin-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+
+      .stat-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+      .stat-card { background:#F6F7F8; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:4px; }
+      .stat-label { font-size:11px; color:#93A0AF; }
+      .stat-value { font-size:16px; font-weight:800; color:#1E242B; }
+
+      .price-edit-card { background:#F6F7F8; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+      .price-edit-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }
+      .toggle-row { display:flex; align-items:center; gap:6px; font-size:11.5px; color:#667085; }
+      .history-list { display:flex; flex-direction:column; gap:4px; background:#FFFFFF; border-radius:8px; padding:8px; }
+      .history-row { font-size:11px; color:#667085; }
+
+      .orders-list { display:flex; flex-direction:column; gap:10px; max-height: 460px; overflow-y:auto; }
+      .order-row { background:#F6F7F8; border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:6px; font-size:12px; }
+      .order-row-top, .order-row-mid, .order-row-bottom { display:flex; justify-content:space-between; align-items:center; }
+      .tag { font-size:10px; padding:3px 9px; border-radius:999px; font-weight:700; }
+      .tag-buy { background: rgba(18,145,91,0.12); color:#12915B; }
+      .tag-sell { background: rgba(214,72,63,0.12); color:#D6483F; }
+      .status-pill { font-size:10px; padding:3px 9px; border-radius:999px; background: rgba(169,128,58,0.12); color:#A9803A; font-weight:700; }
+      .order-row select { padding:6px 8px; font-size:11px; font-family:'Vazirmatn',sans-serif; }
+      .date { color:#93A0AF; font-size:10.5px; }
+      .order-detail { border-top: 1px dashed rgba(30,40,50,0.12); margin-top:8px; padding-top:8px; }
+      .receipt-img { max-width:100%; border-radius:8px; margin-bottom:8px; }
+      .timeline { display:flex; flex-direction:column; gap:3px; }
+      .timeline-row { display:flex; justify-content:space-between; font-size:10.5px; color:#667085; }
+      .admin-footnote { display:flex; align-items:center; gap:6px; font-size:11px; color:#93A0AF; line-height:1.8; }
+             .pwa-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 25, 30, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 100;
+      }
+
+      .pwa-card {
+        width: 100%;
+        max-width: 380px;
+        background: #FFFFFF;
+        border-radius: 20px;
+        padding: 24px 20px 18px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        position: relative;
+        text-align: center;
+      }
+
+      .pwa-close {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 32px;
+        height: 32px;
+        border: 0;
+        background: #F6F7F8;
+        border-radius: 50%;
+        font-size: 22px;
+        color: #667085;
+        cursor: pointer;
+      }
+
+      .pwa-icon {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 12px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #232A33;
+        color: #EADFC3;
+        border: 2px solid #A9803A;
+        font-size: 24px;
+        font-weight: 800;
+      }
+
+      .pwa-card h2 {
+        margin: 0 0 8px;
+        font-size: 19px;
+        color: #1E242B;
+      }
+
+      .pwa-card p {
+        margin: 0 0 18px;
+        color: #667085;
+        font-size: 12.5px;
+        line-height: 1.9;
+      }
+
+      .pwa-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        text-align: right;
+      }
+
+      .pwa-step {
+        background: #F6F7F8;
+        border-radius: 11px;
+        padding: 10px 12px;
+        color: #475467;
+        font-size: 11.5px;
+        line-height: 1.8;
+      }
+
+      .pwa-step strong {
+        color: #A9803A;
+        margin-left: 6px;
+      }
+
+      .pwa-install-btn {
+        width: 100%;
+        border: 0;
+        border-radius: 11px;
+        padding: 12px;
+        background: #232A33;
+        color: #FFFFFF;
+        font-family: inherit;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .pwa-later {
+        margin-top: 12px;
+        border: 0;
+        background: transparent;
+        color: #93A0AF;
+        font-family: inherit;
+        font-size: 11.5px;
+        cursor: pointer;
+      }
+      .danger-zone { background: rgba(214,72,63,0.06); border:1px dashed rgba(214,72,63,0.3); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px; }
+      .danger-btn { display:flex; align-items:center; justify-content:center; gap:6px; background:#FFFFFF; border:1px solid #D6483F; color:#D6483F; border-radius:10px; padding:11px; font-family:inherit; font-size:12.5px; cursor:pointer; }
+      .danger-btn-active { background: linear-gradient(145deg,#D6483F,#B23A31) !important; display:flex; align-items:center; justify-content:center; gap:6px; }
+
+
+      .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#232A33; color:#F6F7F8; padding:10px 18px; border-radius:999px; font-size:12.5px; z-index:50; box-shadow: 0 8px 20px rgba(20,30,45,0.25); max-width: 90%; text-align:center; }
+
+      @media (max-width: 380px) {
+        .field-pair, .admin-grid, .stat-grid { grid-template-columns: 1fr; }
+      }
+    `}</style>
+  );
+}
