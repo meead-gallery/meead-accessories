@@ -406,6 +406,39 @@ async function getXag24h(ctx) {
   }
 }
 
+async function getBtc24h(ctx) {
+  const cache = caches.default;
+  const cacheKey = new Request("https://meead-accessories.local/api/btc-24h", { method: "GET" });
+  const cached = await cache.match(cacheKey);
+  const now = Math.floor(Date.now() / 1000);
+  const from = now - 24 * 60 * 60;
+  const makeResponse = (points, source) => {
+    const body = { ok: true, source, points, fetchedAt: new Date().toISOString() };
+    const result = response(body, { "Cache-Control": "public, max-age=60, stale-if-error=300" });
+    ctx.waitUntil(cache.put(cacheKey, result.clone()));
+    return result;
+  };
+  try {
+    const data = await fetchJson(`https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=3600&start=\${from}&end=\${now}`, 7000);
+    const points = Array.isArray(data) ? data.map(row => ({ t: Number(row?.[0]) * 1000, p: Number(row?.[4]) })).filter(point => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0).sort((a,b) => a.t-b.t) : [];
+    if (points.length >= 2) return makeResponse(points, "Coinbase BTC-USD 1h");
+  } catch {}
+  try {
+    const data = await fetchJson(`https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=60&since=\${from}`, 7000);
+    const rows = data?.result?.XXBTZUSD || data?.result?.XBTUSD || Object.values(data?.result || {}).find(Array.isArray);
+    const points = Array.isArray(rows) ? rows.map(row => ({ t: Number(row?.[0]) * 1000, p: Number(row?.[4]) })).filter(point => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0).sort((a,b) => a.t-b.t) : [];
+    if (points.length >= 2) return makeResponse(points, "Kraken BTC-USD 1h");
+  } catch {}
+  try {
+    const startIso = new Date(from * 1000).toISOString();
+    const endIso = new Date(now * 1000).toISOString();
+    const data = await fetchJson(`https://api.coinpaprika.com/v1/coins/btc-bitcoin/ohlcv/historical?start=\${encodeURIComponent(startIso)}&end=\${encodeURIComponent(endIso)}&interval=1h`, 7000);
+    const points = Array.isArray(data) ? data.map(row => ({ t: new Date(row?.time_open || row?.time_close).getTime(), p: Number(row?.close) })).filter(point => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0).sort((a,b) => a.t-b.t) : [];
+    if (points.length >= 2) return makeResponse(points, "CoinPaprika BTC-USD 1h");
+  } catch {}
+  if (cached) return new Response(cached.body, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-cache", "Access-Control-Allow-Origin": "*", "X-BTC-Source": "cache" } });
+  return response({ ok: false, reason: "btc_unavailable" }, { "Cache-Control": "no-store" });
+}
 async function getUsdt24h(ctx) {
   const cache = caches.default;
   const cacheKey = new Request("https://meead-accessories.local/api/usdt-24h", { method: "GET" });
@@ -677,6 +710,14 @@ export default {
       }
 
       return getXag24h(ctx);
+    }
+
+    if (url.pathname === "/api/btc-24h") {
+      if (request.method === "OPTIONS") {
+        return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } });
+      }
+      if (request.method !== "GET") return response({ ok: false, reason: "method_not_allowed" }, { Allow: "GET, OPTIONS" });
+      return getBtc24h(ctx);
     }
 
     if (url.pathname === "/api/usdt-24h") {
