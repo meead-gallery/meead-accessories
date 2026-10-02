@@ -1702,10 +1702,18 @@ function TwentyFourHourChartCard() {
 
   useEffect(() => {
     charts.forEach((chart) => loadChart(chart));
-    const timer = window.setInterval(() => {
+    const dataTimer = window.setInterval(() => {
       charts.forEach((chart) => loadChart(chart));
     }, 120000);
-    return () => window.clearInterval(timer);
+
+    const slideTimer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % charts.length);
+    }, 5000);
+
+    return () => {
+      window.clearInterval(dataTimer);
+      window.clearInterval(slideTimer);
+    };
   }, [loadChart]);
 
   const moveChart = (direction) => {
