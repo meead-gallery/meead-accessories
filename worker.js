@@ -443,27 +443,51 @@ async function getUsdt24h(ctx) {
   };
 
   // Primary: documented Nobitex OHLC/UDF endpoint.
-  for (const resolution of ["60", "15"]) {
-    try {
-      const data = await fetchJson(
-        `https://api.nobitex.ir/market/udf/history?symbol=USDTIRT&resolution=${resolution}&from=${from}&to=${now}&fresh=${Date.now()}`,
-        7000
-      );
-      const points = parseUdf(data);
-      if (points.length >= 2) return makeResponse(points, "Nobitex");
-    } catch {
-      // Try the next resolution/source.
+  // Use the same host already used successfully by the live crypto-price
+  // endpoint in this Worker. If UDF is unavailable there, try the public
+  // api.nobitex.ir host as a second Nobitex route.
+  const nobitexHosts = ["https://apiv2.nobitex.ir", "https://api.nobitex.ir"];
+  for (const host of nobitexHosts) {
+    for (const resolution of ["60", "15"]) {
+      try {
+        const data = await fetchJson(
+          `${host}/market/udf/history?symbol=USDTIRT&resolution=${resolution}&from=${from}&to=${now}`,
+          7000
+        );
+        const points = parseUdf(data);
+        if (points.length >= 2) return makeResponse(points, `Nobitex UDF ${resolution}m`);
+      } catch {
+        // Try the next Nobitex route/resolution.
+      }
     }
   }
 
   // Backup: Wallex OHLC/UDF endpoint.
   try {
     const data = await fetchJson(
-      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}&fresh=${Date.now()}`,
+      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}`,
       7000
     );
     const points = parseUdf(data);
     if (points.length >= 2) return makeResponse(points, "Wallex");
+  } catch {
+    // Fall through to cache.
+  }
+
+  // Last-resort chart source: Nobitex trade history. This is not OHLC, but
+  // it gives real timestamped USDT/IRT trades when UDF is unavailable.
+  try {
+    const data = await fetchJson("https://apiv2.nobitex.ir/v2/trades/USDTIRT", 7000);
+    const points = Array.isArray(data?.trades)
+      ? data.trades
+          .map((trade) => ({
+            t: new Date(trade?.time || trade?.timestamp || trade?.createdAt).getTime(),
+            p: Number(trade?.price) / 10,
+          }))
+          .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
+          .sort((a, b) => a.t - b.t)
+      : [];
+    if (points.length >= 2) return makeResponse(points, "Nobitex trades");
   } catch {
     // Fall through to cache.
   }
