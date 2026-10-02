@@ -1695,7 +1695,7 @@ function TwentyFourHourChartCard() {
     <section className="twenty-four-chart-card" dir="rtl" aria-label="نمودار ۲۴ ساعت گذشته انس جهانی طلا">
       <div className="twenty-four-chart-head">
         <div>
-          <div className="twenty-four-chart-title">نمودار ۲۴ ساعت گذشته · XAU/USD</div>
+          <div className="twenty-four-chart-title">نمودار ۲۴ ساعت گذشته · طلا</div>
           <div className="twenty-four-chart-subtitle">
             {latestPrice != null ? `آخرین قیمت: ${formatPrice(latestPrice)} دلار / اونس` : "انس جهانی طلا"}
           </div>
