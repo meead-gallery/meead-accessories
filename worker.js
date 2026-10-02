@@ -65,23 +65,88 @@ function parseTgjuMarketRow(html, labels) {
       .replace(/\s+/g, " ")
   );
 
+  // TGJU's widget contains the same market label more than once (menus,
+  // selectors, footer and the actual price row). Do not use lastIndexOf:
+  // it can land on a label that has no price beside it.
   for (const label of labels) {
-    const index = text.lastIndexOf(label);
-    if (index < 0) continue;
-    const tail = text.slice(index, index + 180);
-    const match = tail.match(/(?:^|\s)([0-9][0-9,\.]*)(?:\s*\(([-+]?\d+(?:\.\d+)?)%\))?/);
-    if (!match) continue;
+    let from = 0;
 
-    const value = Number(String(match[1]).replace(/,/g, ""));
-    if (!Number.isFinite(value) || value <= 0) continue;
+    while (from < text.length) {
+      const index = text.indexOf(label, from);
+      if (index < 0) break;
 
-    return {
-      valueRial: value,
-      change: match[2] == null ? null : Number(match[2]),
-    };
+      const tail = text.slice(index + label.length, index + label.length + 260);
+      const match = tail.match(/([0-9][0-9,\\.]*)(?:\\s*\\(([-+]?\\d+(?:\\.\\d+)?)%\\))?/);
+
+      if (match) {
+        const value = Number(String(match[1]).replace(/,/g, ""));
+        if (Number.isFinite(value) && value > 0) {
+          return {
+            valueRial: value,
+            change: match[2] == null ? null : Number(match[2]),
+          };
+        }
+      }
+
+      from = index + label.length;
+    }
   }
 
   return null;
+}
+function parseTgjuDollarProfile(html) {
+  const text = normalizeIranDigits(
+    String(html || "")
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/\s+/g, " ")
+  );
+
+  const patterns = [
+    /نرخ فعلی\s*:?\s*([0-9][0-9,\.]+)/,
+    /Last\s*:?\s*([0-9][0-9,\.]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const value = Number(String(match[1]).replace(/,/g, ""));
+    if (Number.isFinite(value) && value > 0) {
+      return { valueRial: value };
+    }
+  }
+
+  return null;
+}
+
+async function readTgjuDollar() {
+  const sources = [
+    "https://www.tgju.org/profile/price_dollar_rl/today?fresh=" + Date.now(),
+    "https://english.tgju.org/profile/price_dollar_rl/today?fresh=" + Date.now(),
+    "https://gem.tgju.org/profile/price_dollar_rl?fresh=" + Date.now(),
+  ];
+
+  let lastError = null;
+
+  for (const url of sources) {
+    try {
+      const html = await fetchText(url, 7000);
+      const dollar = parseTgjuDollarProfile(html);
+
+      if (!dollar) throw new Error("tgju_dollar_parse_failed");
+
+      return {
+        dollarToman: Math.round(dollar.valueRial / 10),
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("tgju_dollar_unavailable");
 }
 
 async function readTgjuIranMarket() {
@@ -96,15 +161,16 @@ async function readTgjuIranMarket() {
     try {
       const html = await fetchText(url, 7000);
       const gold = parseTgjuMarketRow(html, ["طلا ۱۸", "طلا 18", "طلای 18", "طلای ۱۸"]);
-      const dollar = parseTgjuMarketRow(html, ["دلار"]);
 
-      if (!gold || !dollar) throw new Error("tgju_market_parse_failed");
+      if (!gold) throw new Error("tgju_gold_parse_failed");
+
+      const dollar = await readTgjuDollar();
 
       return {
         gold18Toman: Math.round(gold.valueRial / 10),
-        dollarToman: Math.round(dollar.valueRial / 10),
+        dollarToman: dollar.dollarToman,
         gold18Change: gold.change,
-        dollarChange: dollar.change,
+        dollarChange: null,
         updatedAt: new Date().toISOString(),
       };
     } catch (error) {
