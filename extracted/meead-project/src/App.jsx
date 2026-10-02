@@ -4045,6 +4045,39 @@ function GlobalStyles() {
         box-shadow:0 0 0 2px rgba(18,145,91,0.10);
       }
 
+      .twenty-four-chart-swipe-hint {
+        margin:-5px 0 8px;
+        text-align:center;
+        font-size:9px;
+        color:#A0A9B5;
+        user-select:none;
+        touch-action:none;
+      }
+
+      .twenty-four-chart-nav {
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        gap:7px;
+        margin-top:8px;
+      }
+
+      .twenty-four-chart-dot {
+        width:7px;
+        height:7px;
+        padding:0;
+        border:0;
+        border-radius:50%;
+        background:#CBD1D7;
+        cursor:pointer;
+        transition:transform .18s ease, background .18s ease;
+      }
+
+      .twenty-four-chart-dot.is-active {
+        background:#7D8792;
+        transform:scale(1.35);
+      }
+
       .twenty-four-chart-area {
         position:relative;
         height:178px;
