@@ -66,7 +66,7 @@ function parseTgjuMarketRow(html, labels) {
   );
 
   for (const label of labels) {
-    const index = text.indexOf(label);
+    const index = text.lastIndexOf(label);
     if (index < 0) continue;
     const tail = text.slice(index, index + 180);
     const match = tail.match(/(?:^|\s)([0-9][0-9,\.]*)(?:\s*\(([-+]?\d+(?:\.\d+)?)%\))?/);
@@ -85,20 +85,34 @@ function parseTgjuMarketRow(html, labels) {
 }
 
 async function readTgjuIranMarket() {
-  const html = await fetchText("https://www.tgju.org/widget/get/market-data?fresh=" + Date.now(), 7000);
+  const sources = [
+    "https://www.tgju.org/widget/get/market-data?fresh=" + Date.now(),
+    "https://gem.tgju.org/widget/get/market-data?fresh=" + Date.now(),
+  ];
 
-  const gold = parseTgjuMarketRow(html, ["طلا ۱۸", "طلا 18", "طلای 18", "طلای ۱۸"]);
-  const dollar = parseTgjuMarketRow(html, ["دلار"]);
+  let lastError = null;
 
-  if (!gold || !dollar) throw new Error("tgju_market_parse_failed");
+  for (const url of sources) {
+    try {
+      const html = await fetchText(url, 7000);
+      const gold = parseTgjuMarketRow(html, ["طلا ۱۸", "طلا 18", "طلای 18", "طلای ۱۸"]);
+      const dollar = parseTgjuMarketRow(html, ["دلار"]);
 
-  return {
-    gold18Toman: Math.round(gold.valueRial / 10),
-    dollarToman: Math.round(dollar.valueRial / 10),
-    gold18Change: gold.change,
-    dollarChange: dollar.change,
-    updatedAt: new Date().toISOString(),
-  };
+      if (!gold || !dollar) throw new Error("tgju_market_parse_failed");
+
+      return {
+        gold18Toman: Math.round(gold.valueRial / 10),
+        dollarToman: Math.round(dollar.valueRial / 10),
+        gold18Change: gold.change,
+        dollarChange: dollar.change,
+        updatedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("tgju_market_unavailable");
 }
 
 async function getIranMarket(ctx) {
