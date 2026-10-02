@@ -4185,10 +4185,10 @@ function GlobalStyles() {
       .price-split { display:flex; gap: 10px; }
       .price-half { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; border-radius:12px; padding: 11px 6px; cursor:pointer; font-family:inherit; border:1px solid transparent; transition:0.15s; }
       .price-half:hover { transform: translateY(-2px); }
-      .half-buy { background: rgba(18,145,91,0.08); border-color: rgba(18,145,91,0.2); }
+      .half-buy { background: rgba(18,145,91,0.12); border-color: rgba(18,145,91,0.25); }
       .half-buy:hover { border-color:#12915B; }
       .half-buy .half-label { color:#12915B; }
-      .half-sell { background: rgba(214,72,63,0.08); border-color: rgba(214,72,63,0.2); }
+      .half-sell { background: rgba(214,72,63,0.12); border-color: rgba(214,72,63,0.25); }
       .half-sell:hover { border-color:#D6483F; }
       .half-sell .half-label { color:#D6483F; }
       .half-off { opacity: 0.5; }
