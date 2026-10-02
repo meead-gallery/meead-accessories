@@ -1,4 +1,5 @@
 const METALS_CACHE_KEY = "https://meead-accessories.local/api/metals-cache";
+const IRAN_MARKET_CACHE_KEY = "https://meead-accessories.local/api/iran-market-cache";
 const CRYPTO_CACHE_KEY = "https://meead-accessories.local/api/crypto-cache";
 const NOBITEX_API = "https://apiv2.nobitex.ir";
 const GOLD_API = "https://api.gold-api.com/price";
@@ -22,6 +23,119 @@ async function fetchJson(url, timeoutMs = 7000) {
     return await response.json();
   } finally {
     clearTimeout(timer);
+  }
+}
+
+async function fetchText(url, timeoutMs = 7000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": "Meead/1.0 (+https://meead.sachmeh.workers.dev)",
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) throw new Error(`upstream_${response.status}`);
+    return await response.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function normalizeIranDigits(value) {
+  return String(value || "")
+    .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .replace(/[٬،]/g, ",")
+    .replace(/٫/g, ".");
+}
+
+function parseTgjuMarketRow(html, labels) {
+  const text = normalizeIranDigits(
+    String(html || "")
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/\s+/g, " ")
+  );
+
+  for (const label of labels) {
+    const index = text.indexOf(label);
+    if (index < 0) continue;
+    const tail = text.slice(index, index + 180);
+    const match = tail.match(/(?:^|\s)([0-9][0-9,\.]*)(?:\s*\(([-+]?\d+(?:\.\d+)?)%\))?/);
+    if (!match) continue;
+
+    const value = Number(String(match[1]).replace(/,/g, ""));
+    if (!Number.isFinite(value) || value <= 0) continue;
+
+    return {
+      valueRial: value,
+      change: match[2] == null ? null : Number(match[2]),
+    };
+  }
+
+  return null;
+}
+
+async function readTgjuIranMarket() {
+  const html = await fetchText("https://www.tgju.org/widget/get/market-data?fresh=" + Date.now(), 7000);
+
+  const gold = parseTgjuMarketRow(html, ["طلا ۱۸", "طلا 18", "طلای 18", "طلای ۱۸"]);
+  const dollar = parseTgjuMarketRow(html, ["دلار"]);
+
+  if (!gold || !dollar) throw new Error("tgju_market_parse_failed");
+
+  return {
+    gold18Toman: Math.round(gold.valueRial / 10),
+    dollarToman: Math.round(dollar.valueRial / 10),
+    gold18Change: gold.change,
+    dollarChange: dollar.change,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+async function getIranMarket(ctx) {
+  const cache = caches.default;
+  const cacheKey = new Request(IRAN_MARKET_CACHE_KEY, { method: "GET" });
+  const cached = await cache.match(cacheKey);
+
+  try {
+    const prices = await readTgjuIranMarket();
+    const body = {
+      ok: true,
+      source: "TGJU",
+      ...prices,
+      fetchedAt: new Date().toISOString(),
+    };
+    const result = response(body, {
+      "Cache-Control": "public, max-age=25, stale-if-error=300",
+    });
+    ctx.waitUntil(cache.put(cacheKey, result.clone()));
+    return result;
+  } catch {
+    if (cached) {
+      return new Response(cached.body, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-cache",
+          "Access-Control-Allow-Origin": "*",
+          "X-Iran-Market-Source": "cache",
+        },
+      });
+    }
+
+    return response(
+      { ok: false, reason: "iran_market_unavailable" },
+      { "Cache-Control": "no-store" }
+    );
   }
 }
 
@@ -760,6 +874,27 @@ export default {
       }
 
       return getCrypto(ctx);
+    }
+
+    if (url.pathname === "/api/iran-market") {
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+          },
+        });
+      }
+
+      if (request.method !== "GET") {
+        return response(
+          { ok: false, reason: "method_not_allowed" },
+          { Allow: "GET, OPTIONS" }
+        );
+      }
+
+      return getIranMarket(ctx);
     }
 
     if (url.pathname === "/api/metals") {
