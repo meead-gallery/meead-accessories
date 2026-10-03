@@ -5,8 +5,7 @@ const NOBITEX_API = "https://apiv2.nobitex.ir";
 const GOLD_API = "https://api.gold-api.com/price";
 const ALYAWM_SPOT = "https://alyawmgold.com/api/v1/spot/latest?country=USD";
 const ALYAWM_HISTORY = "https://alyawmgold.com/api/v1/history";
-const XAUS_INTRADAY = "https://xaus.com/api/v1/intraday?symbol=xau&hours=24";
-const XAGS_INTRADAY = "https://xaus.com/api/v1/intraday?symbol=xag&hours=24";
+const XAUS_CHART = "https://xaus.com/api/v1/chart";
 
 async function fetchJson(url, timeoutMs = 7000) {
   const controller = new AbortController();
@@ -532,10 +531,21 @@ async function getXau24h(ctx) {
   const cached = await cache.match(cacheKey);
 
   try {
-    const data = await fetchJson(XAUS_INTRADAY + `&fresh=${Date.now()}`, 7000);
+    const data = await fetchJson(
+      XAUS_CHART + `?symbol=xau&range=1d&interval=15m&fresh=${Date.now()}`,
+      7000
+    );
+    const rows = Array.isArray(data?.points) ? data.points : [];
+    const points = rows
+      .map((row) => ({ t: Number(row?.t) * 1000, p: Number(row?.c) }))
+      .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
+      .sort((a, b) => a.t - b.t);
     const body = {
       ok: true,
-      ...data,
+      points,
+      count: points.length,
+      data_state: data?.data_state || null,
+      source: "XAUS chart XAU/USD 15m",
       fetchedAt: new Date().toISOString(),
     };
     const result = response(body, {
@@ -569,10 +579,21 @@ async function getXag24h(ctx) {
   const cached = await cache.match(cacheKey);
 
   try {
-    const data = await fetchJson(XAGS_INTRADAY + `&fresh=${Date.now()}`, 7000);
+    const data = await fetchJson(
+      XAUS_CHART + `?symbol=silver&range=1d&interval=15m&fresh=${Date.now()}`,
+      7000
+    );
+    const rows = Array.isArray(data?.points) ? data.points : [];
+    const points = rows
+      .map((row) => ({ t: Number(row?.t) * 1000, p: Number(row?.c) }))
+      .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
+      .sort((a, b) => a.t - b.t);
     const body = {
       ok: true,
-      ...data,
+      points,
+      count: points.length,
+      data_state: data?.data_state || null,
+      source: "XAUS chart XAG/USD 15m",
       fetchedAt: new Date().toISOString(),
     };
     const result = response(body, {
