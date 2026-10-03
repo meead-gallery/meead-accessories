@@ -683,24 +683,113 @@ async function getUsdt24h(ctx) {
     return result;
   };
 
-  // Primary: Nobitex native UDF history. Use the exchange's own
-  // USDT/IRT 15-minute candles as the canonical chart source.
   const nobitexHosts = ["https://apiv2.nobitex.ir", "https://api.nobitex.ir"];
 
+  const fetchNobitex = async (url) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "Meead/1.0",
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) throw new Error(`upstream_${response.status}`);
+      return await response.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  const normalizeUdf = (data, divideByTen = true) => {
+    if (!Array.isArray(data?.t) || !Array.isArray(data?.c)) return [];
+
+    return data.t
+      .map((time, index) => ({
+        t: Number(time) * 1000,
+        p: Number(data.c[index]) / (divideByTen ? 10 : 1),
+      }))
+      .filter(
+        (point) =>
+          Number.isFinite(point.t) &&
+          Number.isFinite(point.p) &&
+          point.p > 0 &&
+          point.t >= from * 1000 &&
+          point.t <= now * 1000 + 60 * 60 * 1000
+      )
+      .sort((a, b) => a.t - b.t);
+  };
+
+  // Primary: Nobitex 15-minute USDT/IRT candles.
+  // Nobitex documents USDTIRT as a valid market and exposes public UDF OHLC data.
   for (const host of nobitexHosts) {
     try {
-      const data = await fetchJson(
-        `${host}/market/udf/history?symbol=USDTIRT&resolution=15&from=${from}&to=${now}&countback=96`,
-        7000
+      const data = await fetchNobitex(
+        `${host}/market/udf/history?symbol=USDTIRT&resolution=15&from=${from}&to=${now}&countback=96`
+      );
+      const points = normalizeUdf(data, true);
+
+      if (points.length >= 2) {
+        return makeResponse(points, "Nobitex USDT/IRT OHLC 15m");
+      }
+    } catch {}
+  }
+
+  // Fallback 1: Nobitex 1-hour candles. This uses a smaller dataset if the
+  // 15-minute history endpoint is temporarily unavailable.
+  for (const host of nobitexHosts) {
+    try {
+      const data = await fetchNobitex(
+        `${host}/market/udf/history?symbol=USDTIRT&resolution=60&from=${from}&to=${now}&countback=24`
+      );
+      const points = normalizeUdf(data, true);
+
+      if (points.length >= 2) {
+        return makeResponse(points, "Nobitex USDT/IRT OHLC 1h");
+      }
+    } catch {}
+  }
+
+  // Fallback 2: Wallex native UDF history.
+  try {
+    const data = await fetchJson(
+      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}&countback=24`,
+      7000
+    );
+    const points = normalizeUdf(data, false);
+
+    if (points.length >= 2) {
+      return makeResponse(points, "Wallex USDT/Toman OHLC 1h");
+    }
+  } catch {}
+
+  // Fallback 3: recent Nobitex trades.
+  // Try both public hosts and accept the first usable real-data response.
+  for (const host of nobitexHosts) {
+    try {
+      const data = await fetchNobitex(
+        `${host}/v2/trades/USDTIRT?limit=1000`
       );
 
-      const points = Array.isArray(data?.t) && Array.isArray(data?.c)
-        ? data.t
-            .map((time, index) => ({
-              t: Number(time) * 1000,
-              // Nobitex UDF USDTIRT prices are in rials; the chart displays toman.
-              p: Number(data.c[index]) / 10,
-            }))
+      const points = Array.isArray(data?.trades)
+        ? data.trades
+            .map((trade) => {
+              const rawTime =
+                trade?.time ?? trade?.timestamp ?? trade?.createdAt;
+              let t = Number(rawTime);
+              if (Number.isFinite(t) && t < 100000000000) t *= 1000;
+              if (!Number.isFinite(t)) t = new Date(rawTime).getTime();
+
+              return {
+                t,
+                p: Number(trade?.price) / 10,
+              };
+            })
             .filter(
               (point) =>
                 Number.isFinite(point.t) &&
@@ -713,80 +802,12 @@ async function getUsdt24h(ctx) {
         : [];
 
       if (points.length >= 2) {
-        return makeResponse(points, "Nobitex USDT/IRT OHLC 15m");
+        return makeResponse(points, "Nobitex USDT/IRT trades");
       }
-    } catch {
-      // Try the second Nobitex host before moving to another exchange.
-    }
+    } catch {}
   }
 
-  // Fallback 1: Wallex native UDF history.
-  try {
-    const data = await fetchJson(
-      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}&countback=24`,
-      7000
-    );
-
-    const points = Array.isArray(data?.t) && Array.isArray(data?.c)
-      ? data.t
-          .map((time, index) => ({
-            t: Number(time) * 1000,
-            p: Number(data.c[index]),
-          }))
-          .filter(
-            (point) =>
-              Number.isFinite(point.t) &&
-              Number.isFinite(point.p) &&
-              point.p > 0 &&
-              point.t >= from * 1000 &&
-              point.t <= now * 1000 + 60 * 60 * 1000
-          )
-          .sort((a, b) => a.t - b.t)
-      : [];
-
-    if (points.length >= 2) {
-      return makeResponse(points, "Wallex USDT/Toman OHLC 1h");
-    }
-  } catch {
-    // Continue to the trade-history fallback.
-  }
-
-  // Fallback 2: recent Nobitex trades. This is less granular than OHLC,
-  // but gives the chart real market observations when candle history fails.
-  try {
-    const data = await fetchJson(
-      "https://apiv2.nobitex.ir/v2/trades/USDTIRT?limit=1000",
-      7000
-    );
-
-    const points = Array.isArray(data?.trades)
-      ? data.trades
-          .map((trade) => ({
-            t: new Date(
-              trade?.time || trade?.timestamp || trade?.createdAt
-            ).getTime(),
-            p: Number(trade?.price) / 10,
-          }))
-          .filter(
-            (point) =>
-              Number.isFinite(point.t) &&
-              Number.isFinite(point.p) &&
-              point.p > 0 &&
-              point.t >= from * 1000 &&
-              point.t <= now * 1000 + 60 * 60 * 1000
-          )
-          .sort((a, b) => a.t - b.t)
-      : [];
-
-    if (points.length >= 2) {
-      return makeResponse(points, "Nobitex USDT/IRT trades");
-    }
-  } catch {
-    // Continue to the last-known-good cache.
-  }
-
-  // Last resort: preserve the last valid chart instead of returning an empty
-  // chart during a temporary upstream outage.
+  // Last resort: preserve the last valid chart during a temporary upstream outage.
   if (cached) {
     return new Response(cached.body, {
       status: 200,
