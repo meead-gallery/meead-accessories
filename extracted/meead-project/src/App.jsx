@@ -1626,6 +1626,21 @@ function TwentyFourHourChartCard() {
       .sort((a, b) => a.time - b.time);
   };
 
+  const resampleTo15Minutes = (points) => {
+    const bucketMs = 15 * 60 * 1000;
+    const buckets = new Map();
+
+    points.forEach((point) => {
+      const bucket = Math.floor(point.time.getTime() / bucketMs) * bucketMs;
+      const existing = buckets.get(bucket);
+      if (!existing || point.time.getTime() > existing.time.getTime()) {
+        buckets.set(bucket, point);
+      }
+    });
+
+    return Array.from(buckets.values()).sort((a, b) => a.time - b.time);
+  };
+
   const requestIntraday = async (chart, cacheBust = false) => {
     const url = cacheBust
       ? `${chart.endpoint}?fresh=${Date.now()}`
@@ -1667,6 +1682,10 @@ function TwentyFourHourChartCard() {
       }
 
       const data = result.data;
+      if (chart.key === "gold" || chart.key === "silver") {
+        normalized = resampleTo15Minutes(normalized);
+      }
+
       if (normalized.length < 2) {
         setChartState((current) => ({
           ...current,
