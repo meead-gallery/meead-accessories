@@ -683,212 +683,110 @@ async function getUsdt24h(ctx) {
     return result;
   };
 
-  const normalizePoints = (rows) => {
-    if (!Array.isArray(rows)) return [];
-
-    return rows
-      .map((row) => {
-        if (Array.isArray(row)) {
-          return {
-            t: new Date(row[0] || row[1]).getTime(),
-            p: Number(row[4] ?? row[1] ?? row[0]),
-          };
-        }
-
-        const rawTime = row?.t ?? row?.time ?? row?.timestamp ?? row?.date;
-        const rawPrice =
-          row?.close ??
-          row?.c ??
-          row?.price ??
-          row?.value ??
-          row?.last;
-
-        let t = Number(rawTime);
-        if (Number.isFinite(t) && t < 100000000000) t *= 1000;
-        if (!Number.isFinite(t)) t = new Date(rawTime).getTime();
-
-        return { t, p: Number(rawPrice) };
-      })
-      .filter(
-        (point) =>
-          Number.isFinite(point.t) &&
-          Number.isFinite(point.p) &&
-          point.p > 0 &&
-          point.t >= from * 1000 &&
-          point.t <= now * 1000 + 60 * 60 * 1000
-      )
-      .sort((a, b) => a.t - b.t);
-  };
-
-  // Primary: Arzbin public read-only market-history service.
-  // It provides USDT/Toman OHLC history without requiring an API key.
-  try {
-    const initResponse = await fetch("https://hub.arzbin.com/mcp", {
-      method: "POST",
-      headers: {
-        Accept: "application/json, text/event-stream",
-        "Content-Type": "application/json",
-        "MCP-Protocol-Version": "2025-06-18",
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-06-18",
-          capabilities: {},
-          clientInfo: { name: "Meead", version: "1.0" },
-        },
-      }),
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (!initResponse.ok) throw new Error(`arzbin_init_${initResponse.status}`);
-
-    const sessionId = initResponse.headers.get("Mcp-Session-Id");
-    if (!sessionId) throw new Error("arzbin_session_missing");
-
-    const historyResponse = await fetch("https://hub.arzbin.com/mcp", {
-      method: "POST",
-      headers: {
-        Accept: "application/json, text/event-stream",
-        "Content-Type": "application/json",
-        "MCP-Protocol-Version": "2025-06-18",
-        "Mcp-Session-Id": sessionId,
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 2,
-        method: "tools/call",
-        params: {
-          name: "get_market_history",
-          arguments: { assetType: "crypto", code: "USDT", days: 1 },
-        },
-      }),
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (!historyResponse.ok) throw new Error(`arzbin_history_${historyResponse.status}`);
-
-    const raw = await historyResponse.text();
-    const jsonCandidates = [];
-
-    try {
-      jsonCandidates.push(JSON.parse(raw));
-    } catch {}
-
-    for (const line of raw.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith("data:")) continue;
-      try {
-        jsonCandidates.push(JSON.parse(trimmed.slice(5).trim()));
-      } catch {}
-    }
-
-    const collectRows = (value) => {
-      const found = [];
-      const visit = (node) => {
-        if (!node || typeof node !== "object") return;
-
-        if (Array.isArray(node)) {
-          if (
-            node.length &&
-            node.every(
-              (item) =>
-                Array.isArray(item) ||
-                (item && typeof item === "object" &&
-                  ("close" in item || "c" in item || "price" in item || "value" in item))
-            )
-          ) {
-            found.push(...node);
-          }
-          for (const child of node) visit(child);
-          return;
-        }
-
-        for (const [key, child] of Object.entries(node)) {
-          if (
-            typeof child === "string" &&
-            (key === "text" || key === "data" || key === "result")
-          ) {
-            try {
-              visit(JSON.parse(child));
-            } catch {}
-          }
-          visit(child);
-        }
-      };
-
-      visit(value);
-      return found;
-    };
-
-    for (const candidate of jsonCandidates) {
-      const points = normalizePoints(collectRows(candidate));
-      if (points.length >= 2) {
-        return makeResponse(points, "Arzbin USDT/Toman OHLC");
-      }
-    }
-  } catch {
-    // Continue to direct exchange sources.
-  }
-
-  // Backup: Wallex 1-hour candles.
-  try {
-    const data = await fetchJson(
-      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}&countback=24`,
-      5000
-    );
-    const points = Array.isArray(data?.t) && Array.isArray(data?.c)
-      ? data.t.map((time, index) => ({
-          t: Number(time) * 1000,
-          p: Number(data.c[index]) / 10,
-        }))
-        .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
-        .sort((a, b) => a.t - b.t)
-      : [];
-    if (points.length >= 2) return makeResponse(points, "Wallex OHLC 1h");
-  } catch {}
-
-  // Backup: Nobitex 15-minute candles.
+  // Primary: Nobitex native UDF history. Use the exchange's own
+  // USDT/IRT 15-minute candles as the canonical chart source.
   const nobitexHosts = ["https://apiv2.nobitex.ir", "https://api.nobitex.ir"];
+
   for (const host of nobitexHosts) {
     try {
       const data = await fetchJson(
         `${host}/market/udf/history?symbol=USDTIRT&resolution=15&from=${from}&to=${now}&countback=96`,
-        5000
+        7000
       );
+
       const points = Array.isArray(data?.t) && Array.isArray(data?.c)
-        ? data.t.map((time, index) => ({
-            t: Number(time) * 1000,
-            p: Number(data.c[index]) / 10,
-          }))
-          .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
-          .sort((a, b) => a.t - b.t)
+        ? data.t
+            .map((time, index) => ({
+              t: Number(time) * 1000,
+              // Nobitex UDF USDTIRT prices are in rials; the chart displays toman.
+              p: Number(data.c[index]) / 10,
+            }))
+            .filter(
+              (point) =>
+                Number.isFinite(point.t) &&
+                Number.isFinite(point.p) &&
+                point.p > 0 &&
+                point.t >= from * 1000 &&
+                point.t <= now * 1000 + 60 * 60 * 1000
+            )
+            .sort((a, b) => a.t - b.t)
         : [];
-      if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 15m");
-    } catch {}
+
+      if (points.length >= 2) {
+        return makeResponse(points, "Nobitex USDT/IRT OHLC 15m");
+      }
+    } catch {
+      // Try the second Nobitex host before moving to another exchange.
+    }
   }
 
-  // Last real-data fallback: recent Nobitex trades.
+  // Fallback 1: Wallex native UDF history.
   try {
     const data = await fetchJson(
-      "https://apiv2.nobitex.ir/v2/trades/USDTIRT?limit=1000",
-      5000
+      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}&countback=24`,
+      7000
     );
-    const points = Array.isArray(data?.trades)
-      ? data.trades
-          .map((trade) => ({
-            t: new Date(trade?.time || trade?.timestamp || trade?.createdAt).getTime(),
-            p: Number(trade?.price) / 10,
+
+    const points = Array.isArray(data?.t) && Array.isArray(data?.c)
+      ? data.t
+          .map((time, index) => ({
+            t: Number(time) * 1000,
+            p: Number(data.c[index]),
           }))
-          .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
+          .filter(
+            (point) =>
+              Number.isFinite(point.t) &&
+              Number.isFinite(point.p) &&
+              point.p > 0 &&
+              point.t >= from * 1000 &&
+              point.t <= now * 1000 + 60 * 60 * 1000
+          )
           .sort((a, b) => a.t - b.t)
       : [];
 
-    if (points.length >= 2) return makeResponse(points, "Nobitex trades");
-  } catch {}
+    if (points.length >= 2) {
+      return makeResponse(points, "Wallex USDT/Toman OHLC 1h");
+    }
+  } catch {
+    // Continue to the trade-history fallback.
+  }
 
+  // Fallback 2: recent Nobitex trades. This is less granular than OHLC,
+  // but gives the chart real market observations when candle history fails.
+  try {
+    const data = await fetchJson(
+      "https://apiv2.nobitex.ir/v2/trades/USDTIRT?limit=1000",
+      7000
+    );
+
+    const points = Array.isArray(data?.trades)
+      ? data.trades
+          .map((trade) => ({
+            t: new Date(
+              trade?.time || trade?.timestamp || trade?.createdAt
+            ).getTime(),
+            p: Number(trade?.price) / 10,
+          }))
+          .filter(
+            (point) =>
+              Number.isFinite(point.t) &&
+              Number.isFinite(point.p) &&
+              point.p > 0 &&
+              point.t >= from * 1000 &&
+              point.t <= now * 1000 + 60 * 60 * 1000
+          )
+          .sort((a, b) => a.t - b.t)
+      : [];
+
+    if (points.length >= 2) {
+      return makeResponse(points, "Nobitex USDT/IRT trades");
+    }
+  } catch {
+    // Continue to the last-known-good cache.
+  }
+
+  // Last resort: preserve the last valid chart instead of returning an empty
+  // chart during a temporary upstream outage.
   if (cached) {
     return new Response(cached.body, {
       status: 200,
