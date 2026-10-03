@@ -1848,9 +1848,9 @@ function TwentyFourHourChartCard() {
             {activeChart.key === "gold" && (
               <g fontFamily="Vazirmatn, sans-serif" fontSize="12.5" fontWeight="700" fill={activeChart.lineColor} stroke="#F8F9FA" strokeWidth="4" strokeLinejoin="round" paintOrder="stroke">
                 <text
-                  x={Math.max(chart.last.x - 7, 42)}
+                  x={chart.last.x > 555 ? chart.last.x - 10 : chart.last.x + 10}
                   y={Math.max(chart.last.y - 12, 12)}
-                  textAnchor="end"
+                  textAnchor={chart.last.x > 555 ? "end" : "start"}
                 >
                   {"فعلی: " + formatPrice(chart.last.price)}
                 </text>
