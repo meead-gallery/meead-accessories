@@ -1804,7 +1804,7 @@ function TwentyFourHourChartCard() {
 
     return {
       line: coords.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" "),
-      last: coords[coords.length - 1],
+      last: { ...coords[coords.length - 1], price: points[points.length - 1].price },
       min: { ...coords[minIndex], price: points[minIndex].price },
       max: { ...coords[maxIndex], price: points[maxIndex].price },
     };
@@ -1845,6 +1845,17 @@ function TwentyFourHourChartCard() {
           <svg viewBox="0 0 640 150" preserveAspectRatio="none" style={{ position:"absolute", inset:"12px 12px 30px", width:"calc(100% - 24px)", height:"calc(100% - 42px)", overflow:"visible" }} role="img" aria-label={`روند ۲۴ ساعت گذشته قیمت ${activeChart.badge}`}>
             <polyline points={chart.line} fill="none" stroke={activeChart.lineColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx={chart.last.x} cy={chart.last.y} r="4" fill={activeChart.lineColor} />
+            {activeChart.key === "gold" && (
+              <g fontFamily="Vazirmatn, sans-serif" fontSize="12.5" fontWeight="700" fill={activeChart.lineColor} stroke="#F8F9FA" strokeWidth="4" strokeLinejoin="round" paintOrder="stroke">
+                <text
+                  x={Math.max(chart.last.x - 7, 42)}
+                  y={Math.max(chart.last.y - 12, 12)}
+                  textAnchor="end"
+                >
+                  {"فعلی: " + formatPrice(chart.last.price)}
+                </text>
+              </g>
+            )}
             <g fontFamily="Vazirmatn, sans-serif" fontSize="12.5" fontWeight="700" fill="#667085" stroke="#F8F9FA" strokeWidth="4" strokeLinejoin="round" paintOrder="stroke">
               <circle cx={chart.min.x} cy={chart.min.y} r="3" fill="#667085" />
               <text x={chart.min.x} y={Math.min(chart.min.y + 18, 148)} textAnchor="middle">
