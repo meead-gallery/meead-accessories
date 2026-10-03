@@ -677,22 +677,12 @@ async function getUsdt24h(ctx) {
       t: Number(data.t[index]) * 1000,
       p: Number(data.c[index]) / 10,
     }))
-      .filter(
-        (point) =>
-          Number.isFinite(point.t) &&
-          Number.isFinite(point.p) &&
-          point.p > 0
-      )
+      .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
       .sort((a, b) => a.t - b.t);
   };
 
   const makeResponse = (points, source) => {
-    const body = {
-      ok: true,
-      source,
-      points,
-      fetchedAt: new Date().toISOString(),
-    };
+    const body = { ok: true, source, points, count: points.length, fetchedAt: new Date().toISOString() };
     const result = response(body, {
       "Cache-Control": "public, max-age=60, stale-if-error=300",
     });
@@ -700,58 +690,39 @@ async function getUsdt24h(ctx) {
     return result;
   };
 
-  // Primary: Nobitex 15-minute candles. Keeping the chart at one interval
-  // avoids depending on sparse hourly candles and gives the frontend enough
-  // points for a stable 24h chart.
-  const nobitexHosts = ["https://apiv2.nobitex.ir", "https://api.nobitex.ir"];
+  // Primary: Wallex 1-hour candles. Fewer points make this endpoint faster
+  // and are more than sufficient for a 24-hour chart.
+  try {
+    const data = await fetchJson(
+      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}&countback=24`,
+      5000
+    );
+    const points = parseUdf(data);
+    if (points.length >= 2) return makeResponse(points, "Wallex OHLC 1h");
+  } catch {
+    // Continue to Nobitex.
+  }
 
+  // Backup: Nobitex 15-minute candles.
+  const nobitexHosts = ["https://apiv2.nobitex.ir", "https://api.nobitex.ir"];
   for (const host of nobitexHosts) {
     try {
       const data = await fetchJson(
         `${host}/market/udf/history?symbol=USDTIRT&resolution=15&from=${from}&to=${now}&countback=96`,
-        7000
+        5000
       );
       const points = parseUdf(data);
       if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 15m");
     } catch {
-      // Try the second Nobitex host.
+      // Try the next source.
     }
   }
 
-  // Second attempt: ask Nobitex for the latest 96 candles without a from
-  // window. This handles cases where the UDF endpoint rejects or truncates
-  // a timestamp window.
-  for (const host of nobitexHosts) {
-    try {
-      const data = await fetchJson(
-        `${host}/market/udf/history?symbol=USDTIRT&resolution=15&to=${now}&countback=96`,
-        7000
-      );
-      const points = parseUdf(data);
-      if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 15m");
-    } catch {
-      // Fall through to the next source.
-    }
-  }
-
-  // Backup: Wallex 15-minute UDF candles.
+  // Last real-data fallback: recent Nobitex trades.
   try {
     const data = await fetchJson(
-      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=15&from=${from}&to=${now}&countback=96`,
-      7000
-    );
-    const points = parseUdf(data);
-    if (points.length >= 2) return makeResponse(points, "Wallex OHLC 15m");
-  } catch {
-    // Fall through to trade history.
-  }
-
-  // Last-resort source: timestamped Nobitex trades. This is only used when
-  // OHLC endpoints fail, so the chart can still render real market data.
-  try {
-    const data = await fetchJson(
-      `https://apiv2.nobitex.ir/v2/trades/USDTIRT?limit=1000`,
-      7000
+      "https://apiv2.nobitex.ir/v2/trades/USDTIRT?limit=1000",
+      5000
     );
     const points = Array.isArray(data?.trades)
       ? data.trades
@@ -759,12 +730,7 @@ async function getUsdt24h(ctx) {
             t: new Date(trade?.time || trade?.timestamp || trade?.createdAt).getTime(),
             p: Number(trade?.price) / 10,
           }))
-          .filter(
-            (point) =>
-              Number.isFinite(point.t) &&
-              Number.isFinite(point.p) &&
-              point.p > 0
-          )
+          .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
           .sort((a, b) => a.t - b.t)
       : [];
 
@@ -790,7 +756,6 @@ async function getUsdt24h(ctx) {
     { "Cache-Control": "no-store" }
   );
 }
-
 async function getCrypto(ctx) {
   const cache = caches.default;
   const cacheKey = new Request(CRYPTO_CACHE_KEY, { method: "GET" });
