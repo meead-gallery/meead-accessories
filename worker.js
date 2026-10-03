@@ -672,15 +672,18 @@ async function getUsdt24h(ctx) {
     if (data?.s && data.s !== "ok") return [];
     if (!Array.isArray(data?.t) || !Array.isArray(data?.c)) return [];
 
-    return data.t.map((time, index) => ({
-      t: Number(time) * 1000,
-      p: Number(data.c[index]),
-    })).filter(
-      (point) =>
-        Number.isFinite(point.t) &&
-        Number.isFinite(point.p) &&
-        point.p > 0
-    );
+    const length = Math.min(data.t.length, data.c.length);
+    return Array.from({ length }, (_, index) => ({
+      t: Number(data.t[index]) * 1000,
+      p: Number(data.c[index]) / 10,
+    }))
+      .filter(
+        (point) =>
+          Number.isFinite(point.t) &&
+          Number.isFinite(point.p) &&
+          point.p > 0
+      )
+      .sort((a, b) => a.t - b.t);
   };
 
   const makeResponse = (points, source) => {
@@ -697,31 +700,11 @@ async function getUsdt24h(ctx) {
     return result;
   };
 
-  // Primary: Nobitex hourly OHLC. countback=24 explicitly asks for the
-  // latest 24 hourly candles, which is more reliable for a true 24h chart
-  // than relying on a from/to window alone.
+  // Primary: Nobitex 15-minute candles. Keeping the chart at one interval
+  // avoids depending on sparse hourly candles and gives the frontend enough
+  // points for a stable 24h chart.
   const nobitexHosts = ["https://apiv2.nobitex.ir", "https://api.nobitex.ir"];
-  for (const host of nobitexHosts) {
-    try {
-      const data = await fetchJson(
-        `${host}/market/udf/history?symbol=USDTIRT&resolution=60&from=${from}&to=${now}`,
-        7000
-      );
-      let points = parseUdf(data);
-      if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 1h");
 
-      const countbackData = await fetchJson(
-        `${host}/market/udf/history?symbol=USDTIRT&resolution=60&to=${now}&countback=24`,
-        7000
-      );
-      points = parseUdf(countbackData);
-      if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 1h");
-    } catch {
-      // Try the next Nobitex host.
-    }
-  }
-
-  // Secondary Nobitex resolution: 15-minute candles, up to 96 points.
   for (const host of nobitexHosts) {
     try {
       const data = await fetchJson(
@@ -731,35 +714,60 @@ async function getUsdt24h(ctx) {
       const points = parseUdf(data);
       if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 15m");
     } catch {
-      // Fall through to the other source.
+      // Try the second Nobitex host.
     }
   }
 
-  // Backup: Wallex OHLC/UDF endpoint.
+  // Second attempt: ask Nobitex for the latest 96 candles without a from
+  // window. This handles cases where the UDF endpoint rejects or truncates
+  // a timestamp window.
+  for (const host of nobitexHosts) {
+    try {
+      const data = await fetchJson(
+        `${host}/market/udf/history?symbol=USDTIRT&resolution=15&to=${now}&countback=96`,
+        7000
+      );
+      const points = parseUdf(data);
+      if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 15m");
+    } catch {
+      // Fall through to the next source.
+    }
+  }
+
+  // Backup: Wallex 15-minute UDF candles.
   try {
     const data = await fetchJson(
-      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}`,
+      `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=15&from=${from}&to=${now}&countback=96`,
       7000
     );
     const points = parseUdf(data);
-    if (points.length >= 2) return makeResponse(points, "Wallex");
+    if (points.length >= 2) return makeResponse(points, "Wallex OHLC 15m");
   } catch {
-    // Fall through to cache.
+    // Fall through to trade history.
   }
 
-  // Last-resort chart source: Nobitex trade history. This is not OHLC, but
-  // it gives real timestamped USDT/IRT trades when UDF is unavailable.
+  // Last-resort source: timestamped Nobitex trades. This is only used when
+  // OHLC endpoints fail, so the chart can still render real market data.
   try {
-    const data = await fetchJson("https://apiv2.nobitex.ir/v2/trades/USDTIRT", 7000);
+    const data = await fetchJson(
+      `https://apiv2.nobitex.ir/v2/trades/USDTIRT?limit=1000`,
+      7000
+    );
     const points = Array.isArray(data?.trades)
       ? data.trades
           .map((trade) => ({
             t: new Date(trade?.time || trade?.timestamp || trade?.createdAt).getTime(),
             p: Number(trade?.price) / 10,
           }))
-          .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
+          .filter(
+            (point) =>
+              Number.isFinite(point.t) &&
+              Number.isFinite(point.p) &&
+              point.p > 0
+          )
           .sort((a, b) => a.t - b.t)
       : [];
+
     if (points.length >= 2) return makeResponse(points, "Nobitex trades");
   } catch {
     // Fall through to cache.
