@@ -668,21 +668,14 @@ async function getUsdt24h(ctx) {
   const now = Math.floor(Date.now() / 1000);
   const from = now - 24 * 60 * 60;
 
-  const parseUdf = (data) => {
-    if (data?.s && data.s !== "ok") return [];
-    if (!Array.isArray(data?.t) || !Array.isArray(data?.c)) return [];
-
-    const length = Math.min(data.t.length, data.c.length);
-    return Array.from({ length }, (_, index) => ({
-      t: Number(data.t[index]) * 1000,
-      p: Number(data.c[index]) / 10,
-    }))
-      .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
-      .sort((a, b) => a.t - b.t);
-  };
-
   const makeResponse = (points, source) => {
-    const body = { ok: true, source, points, count: points.length, fetchedAt: new Date().toISOString() };
+    const body = {
+      ok: true,
+      source,
+      points,
+      count: points.length,
+      fetchedAt: new Date().toISOString(),
+    };
     const result = response(body, {
       "Cache-Control": "public, max-age=60, stale-if-error=300",
     });
@@ -690,18 +683,172 @@ async function getUsdt24h(ctx) {
     return result;
   };
 
-  // Primary: Wallex 1-hour candles. Fewer points make this endpoint faster
-  // and are more than sufficient for a 24-hour chart.
+  const normalizePoints = (rows) => {
+    if (!Array.isArray(rows)) return [];
+
+    return rows
+      .map((row) => {
+        if (Array.isArray(row)) {
+          return {
+            t: new Date(row[0] || row[1]).getTime(),
+            p: Number(row[4] ?? row[1] ?? row[0]),
+          };
+        }
+
+        const rawTime = row?.t ?? row?.time ?? row?.timestamp ?? row?.date;
+        const rawPrice =
+          row?.close ??
+          row?.c ??
+          row?.price ??
+          row?.value ??
+          row?.last;
+
+        let t = Number(rawTime);
+        if (Number.isFinite(t) && t < 100000000000) t *= 1000;
+        if (!Number.isFinite(t)) t = new Date(rawTime).getTime();
+
+        return { t, p: Number(rawPrice) };
+      })
+      .filter(
+        (point) =>
+          Number.isFinite(point.t) &&
+          Number.isFinite(point.p) &&
+          point.p > 0 &&
+          point.t >= from * 1000 &&
+          point.t <= now * 1000 + 60 * 60 * 1000
+      )
+      .sort((a, b) => a.t - b.t);
+  };
+
+  // Primary: Arzbin public read-only market-history service.
+  // It provides USDT/Toman OHLC history without requiring an API key.
+  try {
+    const initResponse = await fetch("https://hub.arzbin.com/mcp", {
+      method: "POST",
+      headers: {
+        Accept: "application/json, text/event-stream",
+        "Content-Type": "application/json",
+        "MCP-Protocol-Version": "2025-06-18",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "Meead", version: "1.0" },
+        },
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!initResponse.ok) throw new Error(`arzbin_init_${initResponse.status}`);
+
+    const sessionId = initResponse.headers.get("Mcp-Session-Id");
+    if (!sessionId) throw new Error("arzbin_session_missing");
+
+    const historyResponse = await fetch("https://hub.arzbin.com/mcp", {
+      method: "POST",
+      headers: {
+        Accept: "application/json, text/event-stream",
+        "Content-Type": "application/json",
+        "MCP-Protocol-Version": "2025-06-18",
+        "Mcp-Session-Id": sessionId,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: {
+          name: "get_market_history",
+          arguments: { assetType: "crypto", code: "USDT", days: 1 },
+        },
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!historyResponse.ok) throw new Error(`arzbin_history_${historyResponse.status}`);
+
+    const raw = await historyResponse.text();
+    const jsonCandidates = [];
+
+    try {
+      jsonCandidates.push(JSON.parse(raw));
+    } catch {}
+
+    for (const line of raw.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      try {
+        jsonCandidates.push(JSON.parse(trimmed.slice(5).trim()));
+      } catch {}
+    }
+
+    const collectRows = (value) => {
+      const found = [];
+      const visit = (node) => {
+        if (!node || typeof node !== "object") return;
+
+        if (Array.isArray(node)) {
+          if (
+            node.length &&
+            node.every(
+              (item) =>
+                Array.isArray(item) ||
+                (item && typeof item === "object" &&
+                  ("close" in item || "c" in item || "price" in item || "value" in item))
+            )
+          ) {
+            found.push(...node);
+          }
+          for (const child of node) visit(child);
+          return;
+        }
+
+        for (const [key, child] of Object.entries(node)) {
+          if (
+            typeof child === "string" &&
+            (key === "text" || key === "data" || key === "result")
+          ) {
+            try {
+              visit(JSON.parse(child));
+            } catch {}
+          }
+          visit(child);
+        }
+      };
+
+      visit(value);
+      return found;
+    };
+
+    for (const candidate of jsonCandidates) {
+      const points = normalizePoints(collectRows(candidate));
+      if (points.length >= 2) {
+        return makeResponse(points, "Arzbin USDT/Toman OHLC");
+      }
+    }
+  } catch {
+    // Continue to direct exchange sources.
+  }
+
+  // Backup: Wallex 1-hour candles.
   try {
     const data = await fetchJson(
       `https://api.wallex.ir/v1/udf/history?symbol=USDTTMN&resolution=60&from=${from}&to=${now}&countback=24`,
       5000
     );
-    const points = parseUdf(data);
+    const points = Array.isArray(data?.t) && Array.isArray(data?.c)
+      ? data.t.map((time, index) => ({
+          t: Number(time) * 1000,
+          p: Number(data.c[index]) / 10,
+        }))
+        .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
+        .sort((a, b) => a.t - b.t)
+      : [];
     if (points.length >= 2) return makeResponse(points, "Wallex OHLC 1h");
-  } catch {
-    // Continue to Nobitex.
-  }
+  } catch {}
 
   // Backup: Nobitex 15-minute candles.
   const nobitexHosts = ["https://apiv2.nobitex.ir", "https://api.nobitex.ir"];
@@ -711,11 +858,16 @@ async function getUsdt24h(ctx) {
         `${host}/market/udf/history?symbol=USDTIRT&resolution=15&from=${from}&to=${now}&countback=96`,
         5000
       );
-      const points = parseUdf(data);
+      const points = Array.isArray(data?.t) && Array.isArray(data?.c)
+        ? data.t.map((time, index) => ({
+            t: Number(time) * 1000,
+            p: Number(data.c[index]) / 10,
+          }))
+          .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p) && point.p > 0)
+          .sort((a, b) => a.t - b.t)
+        : [];
       if (points.length >= 2) return makeResponse(points, "Nobitex OHLC 15m");
-    } catch {
-      // Try the next source.
-    }
+    } catch {}
   }
 
   // Last real-data fallback: recent Nobitex trades.
@@ -735,9 +887,7 @@ async function getUsdt24h(ctx) {
       : [];
 
     if (points.length >= 2) return makeResponse(points, "Nobitex trades");
-  } catch {
-    // Fall through to cache.
-  }
+  } catch {}
 
   if (cached) {
     return new Response(cached.body, {
