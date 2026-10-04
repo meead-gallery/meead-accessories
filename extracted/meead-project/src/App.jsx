@@ -2608,7 +2608,7 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
 
         {!bank.cardNumber && !bank.sheba && (
           <p className="pay-note">
-            اطلاعات پرداخت هنوز ثبت نشده — با فروشگاه تماس بگیرید.
+            پس از تأیید کارشناسان فروش، شماره کارت مقصد برای شما پیامک خواهد شد.
           </p>
         )}
 
