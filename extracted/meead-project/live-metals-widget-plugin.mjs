@@ -270,8 +270,7 @@ function LiveIranMarketPrices() {
 
       next = next.replace(
         '  const [bank, setBank] = useState(settings.bank);',
-        '  const [bank, setBank] = useState(settings.bank);\n  const [liveMetalsEnabled, setLiveMetalsEnabled] = useState(settings.liveMetalsEnabled !== false);\n  const [liveCryptoEnabled, setLiveCryptoEnabled] = useState(settings.liveCryptoEnabled !== false);\n  const [liveIranEnabled, setLiveIranEnabled] = useState(settings.liveIranEnabled !== false);
-  const [liveChartEnabled, setLiveChartEnabled] = useState(settings.liveChartEnabled !== false);'
+        '  const [bank, setBank] = useState(settings.bank);\n  const [liveMetalsEnabled, setLiveMetalsEnabled] = useState(settings.liveMetalsEnabled !== false);\n  const [liveCryptoEnabled, setLiveCryptoEnabled] = useState(settings.liveCryptoEnabled !== false);\n  const [liveIranEnabled, setLiveIranEnabled] = useState(settings.liveIranEnabled !== false);\n  const [liveChartEnabled, setLiveChartEnabled] = useState(settings.liveChartEnabled !== false);'
       );
       next = next.replace(
         '  const save = async () => {\n    const patch = {\n      priceLockMinutes: Number(lockMinutes) || 5,\n      sellValidityDays: Number(sellDays) || 3,\n      sellAddress, bank,\n    };',
