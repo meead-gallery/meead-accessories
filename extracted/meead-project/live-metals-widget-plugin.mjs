@@ -290,7 +290,9 @@ liveChartEnabled: sys.live_chart_enabled ?? true,'
 
       const trackButton = "      <button className=\"track-link\" onClick={() => setView(\"track\")}>\n        <Search size={14} /> پیگیری سفارش با کد رهگیری\n      </button>";
 
-      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      {settings.liveCryptoEnabled !== false && <LiveCryptoPrices />}\n\n      {settings.liveIranEnabled !== false && <LiveIranMarketPrices />}\n\n      {settings.liveChartEnabled !== false && <TwentyFourHourChartCard />}");
+      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      {settings.liveCryptoEnabled !== false && <LiveCryptoPrices />}\n\n      {settings.liveIranEnabled !== false && <LiveIranMarketPrices />}");
+
+      next = next.replace("      <TwentyFourHourChartCard />", "      {settings.liveChartEnabled !== false && <TwentyFourHourChartCard />}");
 
       const styleMarker = "      .update-row {";
       const styles = `
