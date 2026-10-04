@@ -1849,7 +1849,7 @@ function TwentyFourHourChartCard() {
           <svg viewBox="0 0 640 150" preserveAspectRatio="none" style={{ position:"absolute", inset:"12px 12px 30px", width:"calc(100% - 24px)", height:"calc(100% - 42px)", overflow:"visible" }} role="img" aria-label={`روند ۲۴ ساعت گذشته قیمت ${activeChart.badge}`}>
             <polyline points={chart.line} fill="none" stroke={activeChart.lineColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx={chart.last.x} cy={chart.last.y} r="4" fill={activeChart.lineColor} />
-            {(activeChart.key === "gold" || activeChart.key === "silver" || activeChart.key === "btc") && (
+            {(activeChart.key === "gold" || activeChart.key === "silver" || activeChart.key === "btc" || activeChart.key === "usdt") && (
               <g fontFamily="Vazirmatn, sans-serif" fontSize="12.5" fontWeight="700" fill={activeChart.lineColor} stroke="#F8F9FA" strokeWidth="4" strokeLinejoin="round" paintOrder="stroke">
                 <text
                   x={chart.last.x > 555 ? chart.last.x - 10 : chart.last.x + 10}
