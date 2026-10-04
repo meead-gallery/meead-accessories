@@ -1866,7 +1866,7 @@ function TwentyFourHourChartCard() {
                 {`کمترین: ${formatPrice(chart.min.price)}`}
               </text>
               <circle cx={chart.max.x} cy={chart.max.y} r="3" fill="#667085" />
-              <text x={chart.max.x} y={Math.max(chart.max.y - 10, 10)} textAnchor="middle">
+              <text x={chart.max.x > 560 ? 630 : chart.max.x < 80 ? 10 : chart.max.x} y={Math.max(chart.max.y - 10, 10)} textAnchor={chart.max.x > 560 ? "end" : chart.max.x < 80 ? "start" : "middle"}>
                 {`بیشترین: ${formatPrice(chart.max.price)}`}
               </text>
             </g>
