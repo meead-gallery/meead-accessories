@@ -4661,6 +4661,36 @@ function GlobalStyles() {
   }
 }
 
+      /* Admin panel design system: visual-only, no business logic changes */
+      .admin { gap:16px; padding:18px; background:#FBFBFA; border-color:rgba(30,40,50,0.08); }
+      .admin .admin-header { min-height:44px; padding-bottom:12px; border-bottom:1px solid rgba(30,40,50,0.08); }
+      .admin .admin-header-title { gap:9px; }
+      .admin .admin-header-title > svg { color:#A9803A; }
+      .admin .admin-header-title .panel-title { font-size:17px; }
+      .admin .icon-btn { width:36px; height:36px; background:#FFFFFF; border-color:rgba(30,40,50,0.10); }
+      .admin-tabs { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; padding:4px; border:1px solid rgba(30,40,50,0.08); border-radius:14px; background:#F1F3F4; }
+      .admin-tab { min-height:38px; justify-content:center; gap:6px; padding:8px 7px; border:1px solid transparent; border-radius:10px; background:transparent; color:#667085; font-size:11px; font-weight:600; white-space:nowrap; transition:background .15s ease,color .15s ease,border-color .15s ease; }
+      .admin-tab:hover { background:rgba(255,255,255,0.75); color:#232A33; }
+      .admin-tab.active { background:#232A33; border-color:#232A33; color:#FFFFFF; box-shadow:0 2px 6px rgba(20,30,45,0.12); }
+      .admin-section { gap:12px; border-top:0; padding-top:0; }
+      .admin-grid,.stat-grid { gap:10px; }
+      .admin .stat-card,.admin .price-edit-card,.admin .order-row { border:1px solid rgba(30,40,50,0.07); box-shadow:0 1px 3px rgba(20,30,45,0.035); }
+      .admin .stat-card { min-height:82px; justify-content:center; background:#FFFFFF; }
+      .admin .price-edit-card { gap:12px; padding:14px; background:#FFFFFF; border-radius:13px; }
+      .admin .price-edit-head { padding-bottom:9px; border-bottom:1px solid rgba(30,40,50,0.07); }
+      .admin .orders-list { gap:9px; }
+      .admin .order-row { padding:12px; background:#FFFFFF; border-radius:12px; }
+      .admin .field > span { font-size:11.5px; font-weight:600; color:#667085; }
+      .admin .field input,.admin .field select,.admin .textarea,.admin select { min-height:40px; border-radius:9px; background:#F7F8F9; }
+      .admin .primary-btn,.admin .ghost-btn,.admin .danger-btn { min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; border-radius:9px; font-size:12px; font-weight:700; }
+      .admin .primary-btn { padding:9px 14px; }
+      .admin .ghost-btn { padding:9px 14px; background:#FFFFFF; }
+      .admin .small-btn { min-height:34px; padding:7px 11px; font-size:11px; }
+      .admin .btn-row { align-items:stretch; gap:8px; }
+      .admin .toggle-row { min-height:34px; padding:6px 9px; border:1px solid rgba(30,40,50,0.07); border-radius:9px; background:#F7F8F9; white-space:nowrap; }
+      .admin .toggle-row input { accent-color:#A9803A; }
+      .admin .status-pill,.admin .tag { min-height:24px; display:inline-flex; align-items:center; }
+      @media (max-width:430px) { .admin { padding:14px; } .admin-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); } .admin-tab { min-height:40px; } }
       .admin-login { align-items:center; text-align:center; }
 
       .admin-header { display:flex; justify-content:space-between; align-items:center; }
