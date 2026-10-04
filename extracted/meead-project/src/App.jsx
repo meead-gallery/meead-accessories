@@ -3955,7 +3955,7 @@ function TabSettings({ settings, setSettings, setToast }) {
             {[2, 3, 5, 10].map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </label>
-        <label className="field"><span>اعتبار فروش (روز)</span><input type="number" value={sellDays} onChange={(e) => setSellDays(e.target.value)} />
+        <label className="field"><span>اعتبار فروش (روز)</span><input type="number" value={sellDays} onChange={(e) => setSellDays(e.target.value)} /></label>
         <label className="field"><span>حد آستانه تأیید خرید (گرم)</span><input type="number" min="0.001" step="0.001" value={highWeightThreshold} onChange={(e) => setHighWeightThreshold(e.target.value)} /></label>
       </div>
 
