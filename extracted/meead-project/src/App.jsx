@@ -3226,11 +3226,29 @@ function TabPrices({ settings, setSettings, setToast }) {
           )}
 
           {order.receiptImage && (
-            <img
-              src={order.receiptImage}
-              alt="رسید"
-              className="receipt-img"
-            />
+            <div className="receipt-preview">
+              <button
+                type="button"
+                className="receipt-preview-btn"
+                onClick={() => window.open(order.receiptImage, "_blank", "noopener,noreferrer")}
+              >
+                <img
+                  src={order.receiptImage}
+                  alt="رسید"
+                  className="receipt-img"
+                />
+                <span className="receipt-preview-hint">برای مشاهده بزرگ‌تر کلیک کنید</span>
+              </button>
+              <a
+                className="receipt-download-btn"
+                href={order.receiptImage}
+                download={`receipt-${order.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                دانلود رسید
+              </a>
+            </div>
           )}
 
           {order.type === "sell" && (
@@ -4621,7 +4639,12 @@ function GlobalStyles() {
       .order-row select { padding:6px 8px; font-size:11px; font-family:'Vazirmatn',sans-serif; }
       .date { color:#93A0AF; font-size:10.5px; }
       .order-detail { border-top: 1px dashed rgba(30,40,50,0.12); margin-top:8px; padding-top:8px; }
-      .receipt-img { max-width:100%; border-radius:8px; margin-bottom:8px; }
+      .receipt-preview { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+      .receipt-preview-btn { position:relative; display:block; width:100%; padding:0; border:0; background:none; cursor:zoom-in; font:inherit; }
+      .receipt-img { display:block; width:100%; max-width:100%; max-height:280px; object-fit:contain; border-radius:8px; margin:0; background:#FFFFFF; border:1px solid rgba(30,40,50,0.08); }
+      .receipt-preview-hint { position:absolute; right:8px; bottom:8px; padding:4px 8px; border-radius:999px; background:rgba(35,42,51,0.78); color:#FFFFFF; font-size:10px; pointer-events:none; }
+      .receipt-download-btn { display:flex; align-items:center; justify-content:center; width:100%; box-sizing:border-box; text-decoration:none; background:#F6F7F8; border:1px solid rgba(30,40,50,0.12); color:#667085; border-radius:10px; padding:9px 12px; font-family:inherit; font-size:11.5px; cursor:pointer; }
+      .receipt-download-btn:hover { border-color:#A9803A; color:#A9803A; }
       .timeline { display:flex; flex-direction:column; gap:3px; }
       .timeline-row { display:flex; justify-content:space-between; font-size:10.5px; color:#667085; }
       .admin-footnote { display:flex; align-items:center; gap:6px; font-size:11px; color:#93A0AF; line-height:1.8; }
