@@ -1788,6 +1788,7 @@ function TwentyFourHourChartCard() {
     const height = 150;
     const padX = 10;
     const padY = 12;
+    const rightPadX = activeChart.key === "usdt" ? 70 : padX;
     const min = Math.min(...points.map((p) => p.price));
     const max = Math.max(...points.map((p) => p.price));
     const span = max - min || Math.max(Math.abs(max) * 0.0001, 0.01);
@@ -1796,7 +1797,7 @@ function TwentyFourHourChartCard() {
     const timeSpan = lastTime - firstTime || 1;
 
     const coords = points.map((point) => {
-      const x = padX + ((point.time.getTime() - firstTime) / timeSpan) * (width - padX * 2);
+      const x = padX + ((point.time.getTime() - firstTime) / timeSpan) * ((width - rightPadX) - padX);
       const y = padY + ((max - point.price) / span) * (height - padY * 2);
       return { x, y };
     });
