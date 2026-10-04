@@ -3268,15 +3268,39 @@ function TabPrices({ settings, setSettings, setToast }) {
                   alt="رسید بزرگ"
                   className="receipt-lightbox-img"
                 />
-                <a
-                  className="receipt-download-btn"
-                  href={order.receiptImage}
-                  download={`receipt-${order.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  دانلود رسید
-                </a>
+                <div className="receipt-download-actions">
+                  <a
+                    className="receipt-download-btn"
+                    href={order.receiptImage}
+                    download={`receipt-${order.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    دانلود رسید
+                  </a>
+                  <button
+                    type="button"
+                    className="receipt-save-photo-btn"
+                    onClick={async () => {
+                      try {
+                        if (navigator.share) {
+                          const response = await fetch(order.receiptImage);
+                          const blob = await response.blob();
+                          const file = new File([blob], `receipt-${order.id}.jpg`, { type: blob.type || "image/jpeg" });
+                          if (navigator.canShare?.({ files: [file] })) {
+                            await navigator.share({ files: [file], title: "رسید سفارش" });
+                            return;
+                          }
+                        }
+                        window.open(order.receiptImage, "_blank", "noopener,noreferrer");
+                      } catch (error) {
+                        console.error("Receipt photo save/share error:", error);
+                      }
+                    }}
+                  >
+                    ذخیره در گالری
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -4673,8 +4697,9 @@ function GlobalStyles() {
       .receipt-preview-btn { position:relative; display:block; width:100%; padding:0; border:0; background:none; cursor:zoom-in; font:inherit; }
       .receipt-img { display:block; width:100%; max-width:100%; max-height:280px; object-fit:contain; border-radius:8px; margin:0; background:#FFFFFF; border:1px solid rgba(30,40,50,0.08); }
       .receipt-preview-hint { position:absolute; right:8px; bottom:8px; padding:4px 8px; border-radius:999px; background:rgba(35,42,51,0.78); color:#FFFFFF; font-size:10px; pointer-events:none; }
-      .receipt-download-btn { display:flex; align-items:center; justify-content:center; width:100%; box-sizing:border-box; text-decoration:none; background:#F6F7F8; border:1px solid rgba(30,40,50,0.12); color:#667085; border-radius:10px; padding:9px 12px; font-family:inherit; font-size:11.5px; cursor:pointer; }
-      .receipt-download-btn:hover { border-color:#A9803A; color:#A9803A; }
+      .receipt-download-actions { display:flex; gap:8px; width:100%; }
+      .receipt-download-btn, .receipt-save-photo-btn { display:flex; align-items:center; justify-content:center; flex:1; min-width:0; box-sizing:border-box; text-decoration:none; background:#F6F7F8; border:1px solid rgba(30,40,50,0.12); color:#667085; border-radius:10px; padding:9px 12px; font-family:inherit; font-size:11.5px; cursor:pointer; }
+      .receipt-download-btn:hover, .receipt-save-photo-btn:hover { border-color:#A9803A; color:#A9803A; }
       .receipt-lightbox { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:18px; background:rgba(15,18,22,0.82); box-sizing:border-box; }
       .receipt-lightbox-card { position:relative; width:min(920px, 100%); max-height:calc(100vh - 36px); display:flex; flex-direction:column; align-items:center; gap:12px; padding:14px; box-sizing:border-box; background:#FFFFFF; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.35); overflow:auto; }
       .receipt-lightbox-img { display:block; width:auto; max-width:100%; max-height:calc(100vh - 130px); object-fit:contain; border-radius:10px; }
