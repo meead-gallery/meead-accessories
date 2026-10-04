@@ -50,6 +50,9 @@ begin
 end;
 $function$;
 
+revoke execute on function public.update_high_weight_threshold(numeric) from public;
+grant execute on function public.update_high_weight_threshold(numeric) to authenticated;
+
 do $migration$
 declare
   v_def text;
