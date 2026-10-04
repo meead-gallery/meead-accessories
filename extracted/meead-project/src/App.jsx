@@ -4700,9 +4700,7 @@ function GlobalStyles() {
       .admin-tab:hover { background:rgba(255,255,255,0.75); color:#232A33; }
       .admin-tab.active { background:#232A33; border-color:#232A33; color:#FFFFFF; box-shadow:0 2px 6px rgba(20,30,45,0.12); }
 
-      .admin-tabs { display:flex; flex-wrap:wrap; gap:6px; padding-bottom: 6px; border-bottom: 1px solid rgba(30,40,50,0.07); }
-      .admin-tab { display:flex; align-items:center; gap:5px; background:#F6F7F8; border:1px solid transparent; color:#667085; padding: 7px 11px; border-radius:999px; font-size:11.5px; font-family:inherit; cursor:pointer; }
-      .admin-tab.active { background:#232A33; color:#F6F7F8; }
+      /* Legacy admin tab overrides neutralized: unified navigation styles are defined above. */
       .admin-section { display:flex; flex-direction:column; gap:10px; border-top:1px solid rgba(30,40,50,0.07); padding-top:14px; }
       .admin-section h3 { font-size:12.5px; color:#667085; margin: 6px 0 0; font-weight:700; }
       .admin-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
