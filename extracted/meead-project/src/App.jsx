@@ -1483,7 +1483,15 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
           />
         )}
 
-        {view === "track" && <TrackOrder onAttachReceipt={attachReceipt} onBack={() => setView("home")} />}
+        {view === "track" && (
+          <TrackOrder
+            onAttachReceipt={attachReceipt}
+            onBack={() => setView("home")}
+            uploadingReceiptId={uploadingReceiptId}
+            receiptUploadStatus={receiptUploadStatus}
+            receiptUploadProgress={receiptUploadProgress}
+          />
+        )}
 
         {view === "order" && quote && (
           <OrderForm
@@ -2010,7 +2018,13 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
 }
 
 /* ------------------------------- Track order ------------------------------ */
-function TrackOrder({ onAttachReceipt, onBack }) {
+function TrackOrder({
+  onAttachReceipt,
+  onBack,
+  uploadingReceiptId,
+  receiptUploadStatus,
+  receiptUploadProgress,
+}) {
   const [code, setCode] = useState("");
   const [phone, setPhone] = useState("");
   const [result, setResult] = useState(null);
@@ -2120,7 +2134,8 @@ function TrackOrder({ onAttachReceipt, onBack }) {
           </div>
 
           {result.type === "buy" &&
-            ["در انتظار پرداخت", "در انتظار تأیید پرداخت"].includes(result.status) && (
+            ["در انتظار پرداخت", "در انتظار تأیید پرداخت"].includes(result.status) &&
+            uploadingReceiptId !== result.id && (
               <label
                 className="upload-btn"
                 style={{ marginTop: 10 }}
@@ -2132,17 +2147,54 @@ function TrackOrder({ onAttachReceipt, onBack }) {
                   type="file"
                   accept="image/*,.pdf"
                   hidden
-                  onChange={(e) => {
+                  disabled={uploadingReceiptId === result.id}
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
 
                     if (file) {
-                      onAttachReceipt(result, file);
+                      const updatedOrder = await onAttachReceipt(result, file);
+                      if (updatedOrder) {
+                        setResult(updatedOrder);
+                      }
                     }
 
                     e.target.value = "";
                   }}
                 />
               </label>
+            )}
+
+          {result.type === "buy" &&
+            uploadingReceiptId === result.id &&
+            receiptUploadStatus === "uploading" && (
+              <div className="receipt-upload-progress">
+                <div className="receipt-upload-progress-top">
+                  <span>در حال ارسال رسید…</span>
+                  <span>{receiptUploadProgress}٪</span>
+                </div>
+
+                <div className="receipt-upload-progress-track">
+                  <div
+                    className="receipt-upload-progress-fill"
+                    style={{ width: `${receiptUploadProgress}%` }}
+                  />
+                </div>
+
+                <p className="pay-note">
+                  لطفاً تا پایان ارسال، صفحه را نبندید.
+                </p>
+              </div>
+            )}
+
+          {result.type === "buy" &&
+            uploadingReceiptId === result.id &&
+            receiptUploadStatus === "success" && (
+              <p
+                className="pay-note"
+                style={{ color: "#12915B", marginTop: 10 }}
+              >
+                ✅ رسید با موفقیت ارسال شد.
+              </p>
             )}
         </div>
       )}
