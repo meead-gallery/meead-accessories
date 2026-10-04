@@ -4695,6 +4695,11 @@ function GlobalStyles() {
 
       .admin-header { display:flex; justify-content:space-between; align-items:center; }
       .admin-header-title { display:flex; align-items:center; gap:8px; }
+      .admin-tabs { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; padding:4px; border:1px solid rgba(30,40,50,0.08); border-radius:14px; background:#F1F3F4; }
+      .admin-tab { min-height:38px; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 7px; border:1px solid transparent; border-radius:10px; background:transparent; color:#667085; font-size:11px; font-weight:600; font-family:inherit; cursor:pointer; white-space:nowrap; transition:background .15s ease,color .15s ease,border-color .15s ease; }
+      .admin-tab:hover { background:rgba(255,255,255,0.75); color:#232A33; }
+      .admin-tab.active { background:#232A33; border-color:#232A33; color:#FFFFFF; box-shadow:0 2px 6px rgba(20,30,45,0.12); }
+
       .admin-tabs { display:flex; flex-wrap:wrap; gap:6px; padding-bottom: 6px; border-bottom: 1px solid rgba(30,40,50,0.07); }
       .admin-tab { display:flex; align-items:center; gap:5px; background:#F6F7F8; border:1px solid transparent; color:#667085; padding: 7px 11px; border-radius:999px; font-size:11.5px; font-family:inherit; cursor:pointer; }
       .admin-tab.active { background:#232A33; color:#F6F7F8; }
