@@ -409,9 +409,6 @@ p_postal_code: customer.postalCode,
 
     const response = await fetch(`${SUPABASE_URL}/functions/v1/upload-receipt`, {
       method: "POST",
-      headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-      },
       body: fd,
     });
 
