@@ -420,13 +420,46 @@ p_postal_code: customer.postalCode,
     }
 
     if (!response.ok || data?.ok === false) {
-      console.error("Receipt upload failed:", response.status, data);
+      const reasonMap = {
+        file_too_large: "حجم فایل از حد مجاز سرور بیشتر است",
+        invalid_file_type: "نوع فایل پشتیبانی نمی‌شود",
+        invalid_input: "اطلاعات فایل یا سفارش ناقص است",
+        order_not_found: "سفارش پیدا نشد",
+        receipt_not_allowed: "ارسال رسید برای این سفارش مجاز نیست",
+        order_closed: "این سفارش بسته شده است",
+        storage_upload_error: "ذخیره فایل در فضای رسیدها با خطای سرور مواجه شد",
+        receipt_update_error: "فایل ذخیره شد اما ثبت رسید روی سفارش ناموفق بود",
+        order_lookup_error: "بررسی سفارش در سرور ناموفق بود",
+        server_configuration_error: "پیکربندی سرور ناقص است",
+        method_not_allowed: "روش ارسال درخواست مجاز نیست",
+      };
+
+      const serverReason = data?.reason || "";
+      const reasonText =
+        reasonMap[serverReason] ||
+        serverReason ||
+        `پاسخ نامعتبر از سرور (HTTP ${response.status})`;
+
+      console.error("Receipt upload failed:", {
+        status: response.status,
+        reason: serverReason,
+        data,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type || "نامشخص",
+      });
 
       return {
         ok: false,
-        reason:
-          data?.reason ||
-          `خطا در ارسال رسید (HTTP ${response.status})`,
+        reason: [
+          "ارسال رسید ناموفق بود",
+          `فایل: ${file.name || "بدون نام"}`,
+          `حجم: ${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+          `نوع: ${file.type || "نامشخص"}`,
+          `مرحله: پاسخ سرور دریافت شد`,
+          `HTTP: ${response.status}`,
+          `علت: ${reasonText}`,
+        ].join("\n"),
       };
     }
 
@@ -447,13 +480,42 @@ p_postal_code: customer.postalCode,
       orders: [],
     };
   } catch (e) {
-    console.error("Receipt upload error:", e);
+    const errorName = e?.name || "UnknownError";
+    const errorMessage = e?.message || "بدون پیام";
+    const onlineState =
+      typeof navigator !== "undefined" && typeof navigator.onLine === "boolean"
+        ? (navigator.onLine ? "آنلاین" : "آفلاین")
+        : "نامشخص";
+
+    const networkReason =
+      errorName === "AbortError"
+        ? "ارسال توسط مرورگر متوقف شد یا زمان انتظار تمام شد"
+        : errorMessage === "Load failed"
+          ? "مرورگر قبل از دریافت پاسخ از سرور، اتصال درخواست را قطع کرد"
+          : "خطای شبکه یا مرورگر هنگام ارسال درخواست";
+
+    console.error("Receipt upload error:", {
+      errorName,
+      errorMessage,
+      onlineState,
+      fileName: file?.name,
+      fileSize: file?.size,
+      fileType: file?.type,
+    });
 
     return {
       ok: false,
-      reason:
-        e?.message ||
-        "آپلود رسید ناموفق بود",
+      reason: [
+        "ارسال رسید ناموفق بود",
+        `فایل: ${file?.name || "بدون نام"}`,
+        `حجم: ${file?.size ? (file.size / (1024 * 1024)).toFixed(2) : "0.00"} MB`,
+        `نوع: ${file?.type || "نامشخص"}`,
+        "مرحله: قبل از دریافت پاسخ از سرور",
+        `وضعیت اتصال: ${onlineState}`,
+        `کد خطا: ${errorName}`,
+        `خطای مرورگر: ${errorMessage}`,
+        `تشخیص: ${networkReason}`,
+      ].join("\n"),
     };
   }
 },
@@ -2153,7 +2215,7 @@ function TrackOrder({
 
                     if (file) {
                       const updatedOrder = await onAttachReceipt(result, file);
-                      if (updatedOrder) {
+                      if (updatedOrder?.id) {
                         setResult(updatedOrder);
                       }
                     }
