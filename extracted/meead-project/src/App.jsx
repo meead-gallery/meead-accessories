@@ -1231,7 +1231,7 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   setLastOrder(res.order);
   const pub = await api.getState();
   setSettings(pub.settings);
-  if (res.order.type === "buy" && res.order.requiresPaymentApproval) {
+  if (res.order.type === "buy" && Number(res.order.weight) > 10) {
     setView("buy-awaiting-approval");
   } else {
     setView(res.order.type === "buy" ? "buy-payment" : "sell-submitted");
