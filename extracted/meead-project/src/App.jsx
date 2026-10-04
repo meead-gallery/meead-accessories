@@ -670,6 +670,10 @@ p_postal_code: customer.postalCode,
     p_support_whatsapp: s.whatsapp || "",
     p_support_telegram: s.telegram || "",
     p_support_instagram: s.instagram || "",
+    p_live_metals_enabled: patch.liveMetalsEnabled ?? current.liveMetalsEnabled ?? true,
+    p_live_crypto_enabled: patch.liveCryptoEnabled ?? current.liveCryptoEnabled ?? true,
+    p_live_iran_enabled: patch.liveIranEnabled ?? current.liveIranEnabled ?? true,
+    p_live_chart_enabled: patch.liveChartEnabled ?? current.liveChartEnabled ?? true,
   });
 
   if (error) throw error;
