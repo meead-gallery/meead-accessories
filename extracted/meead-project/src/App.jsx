@@ -407,22 +407,29 @@ p_postal_code: customer.postalCode,
 
     if (onProgress) onProgress(0);
 
-    const { data, error } = await supabase.functions.invoke(
-      "upload-receipt",
-      {
-        body: fd,
-      }
-    );
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/upload-receipt`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: fd,
+    });
 
-    if (error || data?.ok === false) {
-      console.error("Receipt upload failed:", error, data);
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok || data?.ok === false) {
+      console.error("Receipt upload failed:", response.status, data);
 
       return {
         ok: false,
         reason:
           data?.reason ||
-          error?.message ||
-          "آپلود رسید ناموفق بود",
+          `خطا در ارسال رسید (HTTP ${response.status})`,
       };
     }
 
