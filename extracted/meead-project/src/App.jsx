@@ -163,7 +163,7 @@ function mergeSettings(patch = {}) {
 },
   };
 }
-const BUY_STATUSES = ["در انتظار پرداخت", "در انتظار تأیید پرداخت", "پرداخت تأیید شد", "پرداخت رد شد", "تکمیل شد", "لغو شد"];
+const BUY_STATUSES = ["در انتظار تأیید کارشناس", "در انتظار پرداخت", "در انتظار تأیید پرداخت", "پرداخت تأیید شد", "پرداخت رد شد", "تکمیل شد", "لغو شد"];
 const SELL_STATUSES = ["درخواست جدید", "منتظر دریافت ساچمه", "ساچمه دریافت شد", "در حال بررسی", "وزن نهایی ثبت شد", "مبلغ نهایی تعیین شد", "پرداخت شد", "تکمیل شد", "لغو شد"];
 
 const toman = (n) => (Math.round(Number(n)) || 0).toLocaleString("fa-IR") + " تومان";
@@ -246,7 +246,7 @@ address: row.address || "",
 postalCode: row.postal_code || "",
 createdAt: row.created_at,
     lockExpiresAt: row.lock_expires_at, sellValidUntil: row.sell_valid_until,
-    bankSnapshot: row.bank_snapshot || { cardNumber:"", accountNumber:"", sheba:"", ownerName:"" },
+    bankSnapshot: row.bank_snapshot || null,
     receiptPath: row.receipt_url || null,
     receiptImage: null,
     status: row.status, adminNote: row.admin_note || "",
@@ -497,7 +497,7 @@ p_postal_code: customer.postalCode,
     createdAt: o.created_at,
     lockExpiresAt: o.lock_expires_at,
     sellValidUntil: o.sell_valid_until,
-    bankSnapshot: o.bank_snapshot || {},
+    bankSnapshot: o.bank_snapshot || null,
     receiptPath: o.receipt_url || null,
     receiptImage: null,
     status: o.status,
@@ -697,6 +697,23 @@ p_postal_code: customer.postalCode,
     const dbId = await this.resolveOrderId(order);
     const {data,error}=await supabase.rpc("update_order_status", {p_order_id:dbId,p_status:status});
     if(error || !data?.ok) throw error || new Error(data?.reason || "خطا"); return (await adminState()).orders;
+  },
+  async approveHighWeightOrder(order, payment) {
+    const dbId = await this.resolveOrderId(order);
+    const { data, error } = await supabase.rpc("approve_high_weight_order", {
+      p_order_id: dbId,
+      p_payment: {
+        cardNumber: String(payment.cardNumber || "").trim(),
+        accountNumber: String(payment.accountNumber || "").trim(),
+        sheba: String(payment.sheba || "").replace(/^IR/i, "").trim(),
+        ownerName: String(payment.ownerName || "").trim(),
+        description: String(payment.description || "").trim(),
+      },
+    });
+    if (error || !data?.ok) {
+      throw error || new Error(data?.reason || "تأیید سفارش ناموفق بود");
+    }
+    return (await adminState()).orders;
   },
   async deleteOrder(order) {
     const dbId = await this.resolveOrderId(order);
@@ -1213,7 +1230,11 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   setLastOrder(res.order);
   const pub = await api.getState();
   setSettings(pub.settings);
-  setView(res.order.type === "buy" ? "buy-payment" : "sell-submitted");
+  if (res.order.type === "buy" && res.order.requiresPaymentApproval) {
+    setView("buy-awaiting-approval");
+  } else {
+    setView(res.order.type === "buy" ? "buy-payment" : "sell-submitted");
+  }
 };
 
 
@@ -1464,6 +1485,10 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
             onRefresh={refreshQuote} onEdit={() => setView("order")} onConfirm={submitOrder}
             sellValidityDays={settings.sellValidityDays}
           />
+        )}
+
+        {view === "buy-awaiting-approval" && lastOrder && (
+          <BuyAwaitingApproval order={lastOrder} onDone={() => setView("home")} />
         )}
 
         {view === "buy-payment" && lastOrder && (
@@ -2393,7 +2418,40 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
 
 
 
-    function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
+    function BuyAwaitingApproval({ order, onDone }) {
+  return (
+    <div className="panel confirm">
+      <div className="confirm-icon">
+        <CheckCircle2 size={38} />
+      </div>
+      <h2 className="panel-title">درخواست خرید شما با موفقیت ثبت شد</h2>
+      <span className="order-code mono">کد پیگیری: {order.id}</span>
+      <div className="confirm-summary">
+        <div className="calc-row">
+          <span>وزن سفارش</span>
+          <span className="mono">{order.weight} گرم</span>
+        </div>
+        <div className="calc-row total">
+          <span>مبلغ سفارش</span>
+          <span className="mono">{toman(order.total)}</span>
+        </div>
+      </div>
+      <div className="pay-box">
+        <p className="pay-note" style={{ margin: 0 }}>
+          پس از تأیید سفارش توسط کارشناس فروش، اطلاعات پرداخت برای شما پیامک خواهد شد.
+          لطفاً تا دریافت پیامک از واریز وجه خودداری فرمایید.
+        </p>
+      </div>
+      <button className="primary-btn" onClick={onDone}>
+        بازگشت به صفحه اصلی
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------- Buy payment ------------------------------- */
+
+function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -2920,15 +2978,35 @@ function TabPrices({ settings, setSettings, setToast }) {
   );
 }
 
-  function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onNoteChange, onDelete }) {
+  function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onNoteChange, onDelete, onApproveHighWeight }) {
   const [open, setOpen] = useState(false);
   const [finalWeight, setFinalWeight] = useState(order.finalWeight ?? "");
   const [finalPrice, setFinalPrice] = useState(order.finalPricePerGram ?? order.pricePerGram);
   const [note, setNote] = useState(order.adminNote ?? "");
+  const [payment, setPayment] = useState({
+    cardNumber: order.bankSnapshot?.cardNumber || "",
+    accountNumber: order.bankSnapshot?.accountNumber || "",
+    sheba: order.bankSnapshot?.sheba || "",
+    ownerName: order.bankSnapshot?.ownerName || "",
+    description: order.bankSnapshot?.description || "",
+  });
+  const [approving, setApproving] = useState(false);
   const statuses = order.type === "buy" ? BUY_STATUSES : SELL_STATUSES;
 
   const saveWeight = () => { if (Number(finalWeight) > 0) onRecordWeight(order.id, finalWeight); };
   const saveAmount = () => { if (Number(finalPrice) > 0) onFinalizeAmount(order.id, finalPrice); };
+  const approvePayment = async () => {
+    if (approving) return;
+    if (!payment.ownerName.trim() || (!payment.cardNumber.trim() && !payment.accountNumber.trim() && !payment.sheba.trim())) {
+      return;
+    }
+    setApproving(true);
+    try {
+      await onApproveHighWeight(order, payment);
+    } finally {
+      setApproving(false);
+    }
+  };
 
   return (
     <div className="order-row">
@@ -3061,6 +3139,34 @@ function TabPrices({ settings, setSettings, setToast }) {
                   مبلغ نهایی: {toman(order.finalTotal)}
                 </span>
               )}
+            </div>
+          )}
+
+          {order.type === "buy" && Number(order.weight) > 10 && order.status === "در انتظار تأیید کارشناس" && (
+            <div className="pay-box" style={{ marginTop: 8 }}>
+              <strong>اطلاعات پرداخت این سفارش</strong>
+              <p className="pay-note">این اطلاعات فقط برای همین سفارش ذخیره می‌شود و جایگزین حساب پیش‌فرض سایت نمی‌شود.</p>
+              <div className="admin-grid">
+                <label className="field"><span>شماره کارت</span>
+                  <input value={payment.cardNumber} onChange={(e) => setPayment({ ...payment, cardNumber: e.target.value })} />
+                </label>
+                <label className="field"><span>شماره حساب</span>
+                  <input value={payment.accountNumber} onChange={(e) => setPayment({ ...payment, accountNumber: e.target.value })} />
+                </label>
+                <label className="field"><span>شماره شبا</span>
+                  <input value={payment.sheba} onChange={(e) => setPayment({ ...payment, sheba: e.target.value })} />
+                </label>
+                <label className="field"><span>نام صاحب حساب</span>
+                  <input value={payment.ownerName} onChange={(e) => setPayment({ ...payment, ownerName: e.target.value })} />
+                </label>
+              </div>
+              <label className="field">
+                <span>توضیحات پرداخت (اختیاری)</span>
+                <textarea className="textarea" rows={2} value={payment.description} onChange={(e) => setPayment({ ...payment, description: e.target.value })} />
+              </label>
+              <button className="primary-btn" onClick={approvePayment} disabled={approving}>
+                {approving ? "در حال ثبت..." : "تأیید سفارش و ثبت اطلاعات پرداخت"}
+              </button>
             </div>
           )}
 
@@ -3228,6 +3334,16 @@ function TabOrders({ orders, setOrders, setToast }) {
     setOrders(
       await api.updateOrderStatus(id, status)
     );
+  };
+
+  const handleApproveHighWeight = async (order, payment) => {
+    try {
+      const nextOrders = await api.approveHighWeightOrder(order, payment);
+      setOrders(nextOrders);
+      setToast("سفارش تأیید شد و اطلاعات پرداخت ثبت شد");
+    } catch (e) {
+      setToast(e.message || "تأیید سفارش ناموفق بود");
+    }
   };
    const handleDeleteOrder = async (order) => {
   if (!window.confirm(`آیا از حذف سفارش ${order.id} مطمئن هستید؟`)) {
@@ -3550,6 +3666,9 @@ function TabOrders({ orders, setOrders, setToast }) {
                       onDelete={
   handleDeleteOrder
 }
+                      onApproveHighWeight={
+                        handleApproveHighWeight
+                      }
                     />
                   ))}
 
