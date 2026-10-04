@@ -1788,7 +1788,7 @@ function TwentyFourHourChartCard() {
     const height = 150;
     const padX = 10;
     const padY = 12;
-    const rightPadX = (activeChart.key === "usdt" || activeChart.key === "btc") ? 100 : padX;
+    const rightPadX = (activeChart.key === "gold" || activeChart.key === "silver" || activeChart.key === "usdt" || activeChart.key === "btc") ? 100 : padX;
     const min = Math.min(...points.map((p) => p.price));
     const max = Math.max(...points.map((p) => p.price));
     const span = max - min || Math.max(Math.abs(max) * 0.0001, 0.01);
@@ -1853,9 +1853,9 @@ function TwentyFourHourChartCard() {
             {(activeChart.key === "gold" || activeChart.key === "silver" || activeChart.key === "btc" || activeChart.key === "usdt") && (
               <g fontFamily="Vazirmatn, sans-serif" fontSize="12.5" fontWeight="700" fill={activeChart.lineColor} stroke="#F8F9FA" strokeWidth="4" strokeLinejoin="round" paintOrder="stroke">
                 <text
-                  x={(activeChart.key === "usdt" || activeChart.key === "btc") && chart.last.x > 520 ? chart.last.x - 8 : chart.last.x > 520 ? 620 : chart.last.x + 10}
+                  x={(activeChart.key === "gold" || activeChart.key === "silver" || activeChart.key === "usdt" || activeChart.key === "btc") && chart.last.x > 520 ? chart.last.x - 8 : chart.last.x > 520 ? 620 : chart.last.x + 10}
                   y={Math.max(chart.last.y - 12, 12)}
-                  textAnchor={(activeChart.key === "usdt" || activeChart.key === "btc") && chart.last.x > 520 ? "end" : chart.last.x > 520 ? "end" : "start"}
+                  textAnchor={(activeChart.key === "gold" || activeChart.key === "silver" || activeChart.key === "usdt" || activeChart.key === "btc") && chart.last.x > 520 ? "end" : chart.last.x > 520 ? "end" : "start"}
                 >
                   {"فعلی: " + formatPrice(chart.last.price)}
                 </text>
