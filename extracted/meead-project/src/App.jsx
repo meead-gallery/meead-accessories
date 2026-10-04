@@ -4740,6 +4740,255 @@ function GlobalStyles() {
       .timeline { display:flex; flex-direction:column; gap:3px; }
       .timeline-row { display:flex; justify-content:space-between; font-size:10.5px; color:#667085; }
       .admin-footnote { display:flex; align-items:center; gap:6px; font-size:11px; color:#93A0AF; line-height:1.8; }
+      
+      /* Meead admin visual system — visual-only */
+      .admin {
+        gap:18px !important;
+        padding:20px !important;
+        background:linear-gradient(180deg,#fbfbfa 0%,#f7f8f8 100%) !important;
+        border:1px solid rgba(25,32,40,.08) !important;
+        border-radius:18px !important;
+        box-shadow:0 8px 30px rgba(25,32,40,.05) !important;
+      }
+      .admin .admin-header {
+        min-height:50px !important;
+        padding:0 0 15px !important;
+        border-bottom:1px solid rgba(25,32,40,.09) !important;
+      }
+      .admin .admin-header-title {
+        gap:10px !important;
+      }
+      .admin .admin-header-title > svg {
+        width:34px;
+        height:34px;
+        padding:8px;
+        box-sizing:border-box;
+        color:#A9803A !important;
+        background:#F3EDE2;
+        border:1px solid rgba(169,128,58,.18);
+        border-radius:10px;
+      }
+      .admin .admin-header-title .panel-title {
+        font-size:18px !important;
+        font-weight:800 !important;
+        letter-spacing:-.2px;
+        color:#20262D;
+      }
+      .admin .icon-btn {
+        width:38px !important;
+        height:38px !important;
+        border-radius:10px !important;
+        background:#fff !important;
+        border:1px solid rgba(25,32,40,.10) !important;
+        box-shadow:0 2px 8px rgba(25,32,40,.04);
+      }
+      .admin-tabs {
+        display:grid !important;
+        grid-template-columns:repeat(7,minmax(0,1fr)) !important;
+        gap:6px !important;
+        padding:5px !important;
+        border:1px solid rgba(25,32,40,.09) !important;
+        border-radius:14px !important;
+        background:#ECEFF1 !important;
+        box-shadow:inset 0 1px 1px rgba(255,255,255,.7);
+      }
+      .admin-tab {
+        min-height:42px !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        gap:6px !important;
+        padding:8px 6px !important;
+        border:1px solid transparent !important;
+        border-radius:10px !important;
+        background:transparent !important;
+        color:#66717D !important;
+        font-size:11px !important;
+        font-weight:700 !important;
+        font-family:inherit !important;
+        white-space:nowrap !important;
+        transition:all .16s ease !important;
+      }
+      .admin-tab:hover {
+        background:#fff !important;
+        color:#252C34 !important;
+        border-color:rgba(25,32,40,.07) !important;
+      }
+      .admin-tab.active {
+        background:#252B33 !important;
+        color:#fff !important;
+        border-color:#252B33 !important;
+        box-shadow:0 3px 10px rgba(25,32,40,.16) !important;
+      }
+      .admin-section {
+        gap:14px !important;
+        border-top:0 !important;
+        padding-top:0 !important;
+      }
+      .admin-section h3 {
+        margin:4px 0 0 !important;
+        font-size:13px !important;
+        font-weight:800 !important;
+        color:#303840 !important;
+      }
+      .admin-grid,.stat-grid {
+        gap:12px !important;
+      }
+      .admin .stat-card {
+        min-height:88px !important;
+        padding:14px !important;
+        background:#fff !important;
+        border:1px solid rgba(25,32,40,.07) !important;
+        border-radius:13px !important;
+        box-shadow:0 3px 12px rgba(25,32,40,.045) !important;
+      }
+      .admin .stat-card:hover,
+      .admin .price-edit-card:hover,
+      .admin .order-row:hover {
+        border-color:rgba(169,128,58,.20) !important;
+        box-shadow:0 6px 18px rgba(25,32,40,.07) !important;
+      }
+      .admin .price-edit-card {
+        gap:13px !important;
+        padding:15px !important;
+        background:#fff !important;
+        border:1px solid rgba(25,32,40,.07) !important;
+        border-radius:14px !important;
+        box-shadow:0 3px 12px rgba(25,32,40,.045) !important;
+      }
+      .admin .price-edit-head {
+        padding-bottom:10px !important;
+        border-bottom:1px solid rgba(25,32,40,.07) !important;
+      }
+      .admin .orders-list {
+        gap:10px !important;
+        padding:2px !important;
+      }
+      .admin .order-row {
+        padding:13px !important;
+        background:#fff !important;
+        border:1px solid rgba(25,32,40,.07) !important;
+        border-radius:13px !important;
+        box-shadow:0 3px 12px rgba(25,32,40,.04) !important;
+      }
+      .admin .order-row-top {
+        padding-bottom:8px;
+        border-bottom:1px solid rgba(25,32,40,.06);
+      }
+      .admin .field {
+        gap:7px !important;
+        color:#5F6B77 !important;
+        font-size:11.5px !important;
+      }
+      .admin .field > span {
+        font-size:11px !important;
+        font-weight:700 !important;
+        color:#596572 !important;
+      }
+      .admin .field input,
+      .admin .field select,
+      .admin .textarea,
+      .admin select {
+        min-height:41px !important;
+        border-radius:9px !important;
+        background:#F8F9FA !important;
+        border-color:rgba(25,32,40,.10) !important;
+      }
+      .admin .field input:focus,
+      .admin .field select:focus,
+      .admin .textarea:focus,
+      .admin select:focus {
+        border-color:#A9803A !important;
+        box-shadow:0 0 0 3px rgba(169,128,58,.10) !important;
+      }
+      .admin .primary-btn,
+      .admin .ghost-btn,
+      .admin .danger-btn {
+        min-height:40px !important;
+        display:inline-flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        gap:7px !important;
+        border-radius:9px !important;
+        font-size:12px !important;
+        font-weight:800 !important;
+        transition:all .15s ease !important;
+      }
+      .admin .primary-btn {
+        padding:9px 15px !important;
+        background:linear-gradient(135deg,#2A3038,#171B20) !important;
+        box-shadow:0 3px 8px rgba(25,32,40,.12);
+      }
+      .admin .ghost-btn {
+        padding:9px 15px !important;
+        background:#fff !important;
+        border-color:rgba(25,32,40,.11) !important;
+        color:#4E5965 !important;
+      }
+      .admin .danger-btn {
+        padding:9px 15px !important;
+      }
+      .admin .small-btn {
+        min-height:34px !important;
+        padding:7px 11px !important;
+        border-radius:8px !important;
+        font-size:11px !important;
+        font-weight:700 !important;
+      }
+      .admin .btn-row {
+        align-items:stretch !important;
+        gap:8px !important;
+      }
+      .admin .toggle-row {
+        min-height:36px !important;
+        padding:6px 10px !important;
+        border:1px solid rgba(25,32,40,.08) !important;
+        border-radius:9px !important;
+        background:#F7F8F9 !important;
+      }
+      .admin .toggle-row input {
+        accent-color:#A9803A !important;
+      }
+      .admin .tag,
+      .admin .status-pill {
+        min-height:25px !important;
+        display:inline-flex !important;
+        align-items:center !important;
+        padding:4px 9px !important;
+        border-radius:7px !important;
+        font-weight:800 !important;
+      }
+      .admin .admin-footnote {
+        padding-top:2px;
+        color:#87929D !important;
+      }
+      @media (max-width:900px) {
+        .admin-tabs { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+      }
+      @media (max-width:560px) {
+        .admin {
+          padding:14px !important;
+          gap:14px !important;
+          border-radius:14px !important;
+        }
+        .admin-tabs {
+          grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+          gap:5px !important;
+        }
+        .admin-tab {
+          min-height:42px !important;
+        }
+        .admin .admin-header-title .panel-title {
+          font-size:16px !important;
+        }
+        .admin-grid {
+          grid-template-columns:1fr !important;
+        }
+        .admin .btn-row {
+          flex-wrap:wrap;
+        }
+      }
+
              .pwa-overlay {
         position: fixed;
         inset: 0;
