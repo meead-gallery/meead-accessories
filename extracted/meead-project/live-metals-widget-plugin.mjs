@@ -251,32 +251,32 @@ function LiveIranMarketPrices() {
 
       next = next.replace(
         'lastPriceUpdate: null,',
-        'lastPriceUpdate: null,\nliveMetalsEnabled: true,\nliveCryptoEnabled: true,'
+        'lastPriceUpdate: null,\nliveMetalsEnabled: true,\nliveCryptoEnabled: true,\nliveIranEnabled: true,'
       );
       next = next.replace(
         'lastPriceUpdate: system.lastPriceUpdate ?? null ,',
-        'lastPriceUpdate: system.lastPriceUpdate ?? null ,\nliveMetalsEnabled: system.liveMetalsEnabled ?? true,\nliveCryptoEnabled: system.liveCryptoEnabled ?? true,'
+        'lastPriceUpdate: system.lastPriceUpdate ?? null ,\nliveMetalsEnabled: system.liveMetalsEnabled ?? true,\nliveCryptoEnabled: system.liveCryptoEnabled ?? true,\nliveIranEnabled: system.liveIranEnabled ?? true,'
       );
       next = next.replace(
         'lastPriceUpdate: sys.last_price_update || null,',
-        'lastPriceUpdate: sys.last_price_update || null,\nliveMetalsEnabled: sys.live_metals_enabled ?? true,\nliveCryptoEnabled: sys.live_crypto_enabled ?? true,'
+        'lastPriceUpdate: sys.last_price_update || null,\nliveMetalsEnabled: sys.live_metals_enabled ?? true,\nliveCryptoEnabled: sys.live_crypto_enabled ?? true,\nliveIranEnabled: sys.live_iran_enabled ?? true,'
       );
 
       next = next.replace(
         'p_support_instagram: s.instagram || "",\n  });',
-        'p_support_instagram: s.instagram || "",\n    p_live_metals_enabled: patch.liveMetalsEnabled ?? current.liveMetalsEnabled ?? true,\n    p_live_crypto_enabled: patch.liveCryptoEnabled ?? current.liveCryptoEnabled ?? true,\n  });'
+        'p_support_instagram: s.instagram || "",\n    p_live_metals_enabled: patch.liveMetalsEnabled ?? current.liveMetalsEnabled ?? true,\n    p_live_crypto_enabled: patch.liveCryptoEnabled ?? current.liveCryptoEnabled ?? true,\n    p_live_iran_enabled: patch.liveIranEnabled ?? current.liveIranEnabled ?? true,\n  });'
       );
 
       next = next.replace(
         '  const [bank, setBank] = useState(settings.bank);',
-        '  const [bank, setBank] = useState(settings.bank);\n  const [liveMetalsEnabled, setLiveMetalsEnabled] = useState(settings.liveMetalsEnabled !== false);\n  const [liveCryptoEnabled, setLiveCryptoEnabled] = useState(settings.liveCryptoEnabled !== false);'
+        '  const [bank, setBank] = useState(settings.bank);\n  const [liveMetalsEnabled, setLiveMetalsEnabled] = useState(settings.liveMetalsEnabled !== false);\n  const [liveCryptoEnabled, setLiveCryptoEnabled] = useState(settings.liveCryptoEnabled !== false);\n  const [liveIranEnabled, setLiveIranEnabled] = useState(settings.liveIranEnabled !== false);'
       );
       next = next.replace(
         '  const save = async () => {\n    const patch = {\n      priceLockMinutes: Number(lockMinutes) || 5,\n      sellValidityDays: Number(sellDays) || 3,\n      sellAddress, bank,\n    };',
-        '  const save = async () => {\n    const patch = {\n      priceLockMinutes: Number(lockMinutes) || 5,\n      sellValidityDays: Number(sellDays) || 3,\n      sellAddress, bank,\n      liveMetalsEnabled,\n      liveCryptoEnabled,\n    };'
+        '  const save = async () => {\n    const patch = {\n      priceLockMinutes: Number(lockMinutes) || 5,\n      sellValidityDays: Number(sellDays) || 3,\n      sellAddress, bank,\n      liveMetalsEnabled,\n      liveCryptoEnabled,\n      liveIranEnabled,\n    };'
       );
       const settingsButtonMarker = '      <button className="primary-btn" onClick={save}>ذخیره تنظیمات</button>\n      <p className="admin-footnote"><Package size={14} /> ورود پنل مدیریت با Supabase Authentication و سطح دسترسی مدیر انجام می‌شود.</p>';
-      const settingsToggle = '      <h3>نمایش بازارهای لحظه‌ای</h3>\n      <label className="toggle-row">\n        <input type="checkbox" checked={liveMetalsEnabled} onChange={(e) => setLiveMetalsEnabled(e.target.checked)} />\n        نمایش کارت «بازار جهانی» در صفحه اصلی\n      </label>\n      <label className="toggle-row">\n        <input type="checkbox" checked={liveCryptoEnabled} onChange={(e) => setLiveCryptoEnabled(e.target.checked)} />\n        نمایش کارت «بازار ارز و رمزارز» در صفحه اصلی\n      </label>\n\n' + settingsButtonMarker;
+      const settingsToggle = '      <h3>نمایش بازارهای لحظه‌ای</h3>\n      <label className="toggle-row">\n        <input type="checkbox" checked={liveMetalsEnabled} onChange={(e) => setLiveMetalsEnabled(e.target.checked)} />\n        نمایش کارت «بازار جهانی» در صفحه اصلی\n      </label>\n      <label className="toggle-row">\n        <input type="checkbox" checked={liveCryptoEnabled} onChange={(e) => setLiveCryptoEnabled(e.target.checked)} />\n        نمایش کارت «بازار ارز و رمزارز» در صفحه اصلی\n      </label>\n      <label className="toggle-row">\n        <input type="checkbox" checked={liveIranEnabled} onChange={(e) => setLiveIranEnabled(e.target.checked)} />\n        نمایش کارت «بازار ایران» در صفحه اصلی\n      </label>\n\n' + settingsButtonMarker;
       if (next.includes(settingsButtonMarker)) next = next.replace(settingsButtonMarker, settingsToggle);
 
       const homeMarker = "function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, startQuote, setView }) {";
@@ -285,7 +285,7 @@ function LiveIranMarketPrices() {
 
       const trackButton = "      <button className=\"track-link\" onClick={() => setView(\"track\")}>\n        <Search size={14} /> پیگیری سفارش با کد رهگیری\n      </button>";
 
-      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      {settings.liveCryptoEnabled !== false && <LiveCryptoPrices />}\n\n      <LiveIranMarketPrices />");
+      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      {settings.liveCryptoEnabled !== false && <LiveCryptoPrices />}\n\n      {settings.liveIranEnabled !== false && <LiveIranMarketPrices />}");
 
       const styleMarker = "      .update-row {";
       const styles = `
