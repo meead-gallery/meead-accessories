@@ -3113,6 +3113,7 @@ function TabPrices({ settings, setSettings, setToast }) {
 
   function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onNoteChange, onDelete, onApproveHighWeight }) {
   const [open, setOpen] = useState(false);
+  const [receiptZoomOpen, setReceiptZoomOpen] = useState(false);
   const [finalWeight, setFinalWeight] = useState(order.finalWeight ?? "");
   const [finalPrice, setFinalPrice] = useState(order.finalPricePerGram ?? order.pricePerGram);
   const [note, setNote] = useState(order.adminNote ?? "");
@@ -3230,7 +3231,7 @@ function TabPrices({ settings, setSettings, setToast }) {
               <button
                 type="button"
                 className="receipt-preview-btn"
-                onClick={() => window.open(order.receiptImage, "_blank", "noopener,noreferrer")}
+                onClick={() => setReceiptZoomOpen(true)}
               >
                 <img
                   src={order.receiptImage}
@@ -3248,6 +3249,35 @@ function TabPrices({ settings, setSettings, setToast }) {
               >
                 دانلود رسید
               </a>
+            </div>
+          )}
+
+          {receiptZoomOpen && order.receiptImage && (
+            <div className="receipt-lightbox" role="dialog" aria-modal="true" aria-label="نمایش بزرگ رسید" onClick={() => setReceiptZoomOpen(false)}>
+              <div className="receipt-lightbox-card" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="receipt-lightbox-close"
+                  onClick={() => setReceiptZoomOpen(false)}
+                  aria-label="بستن"
+                >
+                  <X size={18} />
+                </button>
+                <img
+                  src={order.receiptImage}
+                  alt="رسید بزرگ"
+                  className="receipt-lightbox-img"
+                />
+                <a
+                  className="receipt-download-btn"
+                  href={order.receiptImage}
+                  download={`receipt-${order.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  دانلود رسید
+                </a>
+              </div>
             </div>
           )}
 
@@ -4645,6 +4675,10 @@ function GlobalStyles() {
       .receipt-preview-hint { position:absolute; right:8px; bottom:8px; padding:4px 8px; border-radius:999px; background:rgba(35,42,51,0.78); color:#FFFFFF; font-size:10px; pointer-events:none; }
       .receipt-download-btn { display:flex; align-items:center; justify-content:center; width:100%; box-sizing:border-box; text-decoration:none; background:#F6F7F8; border:1px solid rgba(30,40,50,0.12); color:#667085; border-radius:10px; padding:9px 12px; font-family:inherit; font-size:11.5px; cursor:pointer; }
       .receipt-download-btn:hover { border-color:#A9803A; color:#A9803A; }
+      .receipt-lightbox { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:18px; background:rgba(15,18,22,0.82); box-sizing:border-box; }
+      .receipt-lightbox-card { position:relative; width:min(920px, 100%); max-height:calc(100vh - 36px); display:flex; flex-direction:column; align-items:center; gap:12px; padding:14px; box-sizing:border-box; background:#FFFFFF; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.35); overflow:auto; }
+      .receipt-lightbox-img { display:block; width:auto; max-width:100%; max-height:calc(100vh - 130px); object-fit:contain; border-radius:10px; }
+      .receipt-lightbox-close { position:absolute; top:10px; left:10px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; border:0; border-radius:50%; background:rgba(35,42,51,0.78); color:#FFFFFF; cursor:pointer; z-index:2; }
       .timeline { display:flex; flex-direction:column; gap:3px; }
       .timeline-row { display:flex; justify-content:space-between; font-size:10.5px; color:#667085; }
       .admin-footnote { display:flex; align-items:center; gap:6px; font-size:11px; color:#93A0AF; line-height:1.8; }
