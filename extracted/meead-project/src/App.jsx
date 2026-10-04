@@ -2120,7 +2120,7 @@ function TrackOrder({ onAttachReceipt, onBack }) {
           </div>
 
           {result.type === "buy" &&
-            result.status === "در انتظار پرداخت" && (
+            ["در انتظار پرداخت", "در انتظار تأیید پرداخت"].includes(result.status) && (
               <label
                 className="upload-btn"
                 style={{ marginTop: 10 }}
