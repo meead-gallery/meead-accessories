@@ -264,8 +264,7 @@ function LiveIranMarketPrices() {
 
       next = next.replace(
         'p_support_instagram: s.instagram || "",\n    p_live_metals_enabled: patch.liveMetalsEnabled ?? current.liveMetalsEnabled ?? true,\n    p_live_crypto_enabled: patch.liveCryptoEnabled ?? current.liveCryptoEnabled ?? true,\n    p_live_iran_enabled: patch.liveIranEnabled ?? current.liveIranEnabled ?? true,\n    p_live_chart_enabled: patch.liveChartEnabled ?? current.liveChartEnabled ?? true,\n  });',
-        'p_support_instagram: s.instagram || "",\n    p_live_metals_enabled: patch.liveMetalsEnabled ?? current.liveMetalsEnabled ?? true,\n    p_live_crypto_enabled: patch.liveCryptoEnabled ?? current.liveCryptoEnabled ?? true,\n    p_live_iran_enabled: patch.liveIranEnabled ?? current.liveIranEnabled ?? true,
-    p_live_chart_enabled: patch.liveChartEnabled ?? current.liveChartEnabled ?? true,\n  });'
+        'p_support_instagram: s.instagram || "",\n    p_live_metals_enabled: patch.liveMetalsEnabled ?? current.liveMetalsEnabled ?? true,\n    p_live_crypto_enabled: patch.liveCryptoEnabled ?? current.liveCryptoEnabled ?? true,\n    p_live_iran_enabled: patch.liveIranEnabled ?? current.liveIranEnabled ?? true,\n    p_live_chart_enabled: patch.liveChartEnabled ?? current.liveChartEnabled ?? true,\n  });'
       );
 
       next = next.replace(
