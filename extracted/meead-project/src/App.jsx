@@ -3006,7 +3006,11 @@ function TabPrices({ settings, setSettings, setToast }) {
     description: order.bankSnapshot?.description || "",
   });
   const [approving, setApproving] = useState(false);
-  const statuses = order.type === "buy"\n    ? (order.requiresPaymentApproval === true && order.status === "در انتظار تأیید کارشناس"\n        ? ["در انتظار تأیید کارشناس", "لغو شد"]\n        : BUY_STATUSES)\n    : SELL_STATUSES;
+  const statuses = order.type === "buy"
+    ? (order.requiresPaymentApproval === true && order.status === "در انتظار تأیید کارشناس"
+        ? ["در انتظار تأیید کارشناس", "لغو شد"]
+        : BUY_STATUSES)
+    : SELL_STATUSES;
 
   const saveWeight = () => { if (Number(finalWeight) > 0) onRecordWeight(order.id, finalWeight); };
   const saveAmount = () => { if (Number(finalPrice) > 0) onFinalizeAmount(order.id, finalPrice); };
