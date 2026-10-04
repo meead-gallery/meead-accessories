@@ -1743,7 +1743,7 @@ function TwentyFourHourChartCard() {
 
     const slideTimer = window.setInterval(() => {
       setActiveIndex((current) => (current + 1) % charts.length);
-    }, 5000);
+    }, 10000);
 
     return () => {
       window.clearInterval(dataTimer);
