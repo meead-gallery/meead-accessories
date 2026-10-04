@@ -1863,7 +1863,7 @@ function TwentyFourHourChartCard() {
             )}
             <g fontFamily="Vazirmatn, sans-serif" fontSize="12.5" fontWeight="700" fill="#667085" stroke="#F8F9FA" strokeWidth="4" strokeLinejoin="round" paintOrder="stroke">
               <circle cx={chart.min.x} cy={chart.min.y} r="3" fill="#667085" />
-              <text x={chart.min.x} y={Math.min(chart.min.y + 18, 148)} textAnchor="middle">
+              <text x={chart.min.x < 100 ? 100 : chart.min.x > 540 ? 540 : chart.min.x} y={Math.min(chart.min.y + 18, 148)} textAnchor={chart.min.x < 100 ? "start" : chart.min.x > 540 ? "end" : "middle"}>
                 {`کمترین: ${formatPrice(chart.min.price)}`}
               </text>
               <circle cx={chart.max.x} cy={chart.max.y} r="3" fill="#667085" />
