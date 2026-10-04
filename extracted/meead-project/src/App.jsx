@@ -127,6 +127,7 @@ const DEFAULT_SETTINGS = {
   market: { closeStart: "00:00", closeEnd: "11:00", buyEnabled: true, sellEnabled: true, emergencyStop: false },
   priceLockMinutes: 5,
   sellValidityDays: 3,
+  highWeightThreshold: 10,
   bank: { cardNumber: "", accountNumber: "", sheba: "", ownerName: "" },
   sellAddress: "",
   nextOrderSeq: 1058,
@@ -323,6 +324,7 @@ async function adminState() {
 ),
     market: { closeStart:m.close_start ?? "00:00", closeEnd:m.close_end ?? "11:00", buyEnabled:m.buy_enabled ?? true, sellEnabled:m.sell_enabled ?? true, emergencyStop:m.emergency_stop ?? false },
     priceLockMinutes: Number(sys.price_lock_minutes ?? 5), sellValidityDays: Number(sys.sell_validity_days ?? 3),
+    highWeightThreshold: Number(sys.high_weight_threshold ?? 10),
     bank: { cardNumber:sys.bank_card_number || "", accountNumber:sys.bank_account_number || "", sheba:sys.bank_sheba || "", ownerName:sys.bank_owner_name || "" },
     sellAddress: sys.sell_address || "",
 lastPriceUpdate: sys.last_price_update || null,
@@ -337,6 +339,9 @@ support: {
   });
   const orders = await Promise.all((ordersRes.data || []).map(async (r) => {
   const order = mapOrder(r, orderHistoriesRes.data || []);
+  if (order) {
+    order.requiresPaymentApproval = order.type === "buy" && order.weight > settings.highWeightThreshold && order.status === "در انتظار تأیید کارشناس";
+  }
   if (order?.receiptPath) {
     try {
       const { data: signed, error: signedError } = await supabase.storage
@@ -640,6 +645,15 @@ p_postal_code: customer.postalCode,
     if (error) throw error;
     return (await adminState()).settings;
   },
+  async updateHighWeightThreshold(threshold) {
+    const { data, error } = await supabase.rpc("update_high_weight_threshold", {
+      p_threshold: Number(threshold),
+    });
+    if (error) throw error;
+    if (!data?.ok) throw new Error(data?.reason || "ذخیره حد آستانه وزن ناموفق بود");
+    return Number(data.highWeightThreshold ?? threshold);
+  },
+
   async updateSystemSettings(patch) {
   const current = (await adminState()).settings;
 
@@ -1231,7 +1245,7 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
   setLastOrder(res.order);
   const pub = await api.getState();
   setSettings(pub.settings);
-  if (res.order.type === "buy" && Number(res.order.weight) > 10) {
+  if (res.order.type === "buy" && res.order.requiresPaymentApproval === true) {
     setView("buy-awaiting-approval");
   } else {
     setView(res.order.type === "buy" ? "buy-payment" : "sell-submitted");
@@ -3143,7 +3157,7 @@ function TabPrices({ settings, setSettings, setToast }) {
             </div>
           )}
 
-          {order.type === "buy" && Number(order.weight) > 10 && order.status === "در انتظار تأیید کارشناس" && (
+          {order.requiresPaymentApproval === true && order.status === "در انتظار تأیید کارشناس" && (
             <div className="pay-box" style={{ marginTop: 8 }}>
               <strong>اطلاعات پرداخت این سفارش</strong>
               <p className="pay-note">این اطلاعات فقط برای همین سفارش ذخیره می‌شود و جایگزین حساب پیش‌فرض سایت نمی‌شود.</p>
@@ -3916,6 +3930,7 @@ useEffect(() => {
 function TabSettings({ settings, setSettings, setToast }) {
   const [lockMinutes, setLockMinutes] = useState(settings.priceLockMinutes);
   const [sellDays, setSellDays] = useState(settings.sellValidityDays);
+  const [highWeightThreshold, setHighWeightThreshold] = useState(settings.highWeightThreshold ?? 10);
   const [sellAddress, setSellAddress] = useState(settings.sellAddress);
   const [bank, setBank] = useState(settings.bank);
 
@@ -3925,6 +3940,7 @@ function TabSettings({ settings, setSettings, setToast }) {
       sellValidityDays: Number(sellDays) || 3,
       sellAddress, bank,
     };
+    await api.updateHighWeightThreshold(Number(highWeightThreshold) || 10);
     const next = await api.updateSystemSettings(patch);
     setSettings(next);
     setToast("تنظیمات ذخیره شد");
@@ -3939,7 +3955,8 @@ function TabSettings({ settings, setSettings, setToast }) {
             {[2, 3, 5, 10].map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </label>
-        <label className="field"><span>اعتبار فروش (روز)</span><input type="number" value={sellDays} onChange={(e) => setSellDays(e.target.value)} /></label>
+        <label className="field"><span>اعتبار فروش (روز)</span><input type="number" value={sellDays} onChange={(e) => setSellDays(e.target.value)} />
+        <label className="field"><span>حد آستانه تأیید خرید (گرم)</span><input type="number" min="0.001" step="0.001" value={highWeightThreshold} onChange={(e) => setHighWeightThreshold(e.target.value)} /></label>
       </div>
 
       <h3>آدرس دریافت ساچمه</h3>
