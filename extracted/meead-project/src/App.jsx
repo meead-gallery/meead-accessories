@@ -346,7 +346,7 @@ support: {
   const orders = await Promise.all((ordersRes.data || []).map(async (r) => {
   const order = mapOrder(r, orderHistoriesRes.data || []);
   if (order) {
-    order.requiresPaymentApproval = order.type === "buy" && order.weight > settings.highWeightThreshold && order.status === "در انتظار تأیید کارشناس";
+    order.requiresPaymentApproval = order.type === "buy" && order.weight > settings.highWeightThreshold;
   }
   if (order?.receiptPath) {
     try {
@@ -790,16 +790,29 @@ p_postal_code: customer.postalCode,
     const { data, error } = await supabase.rpc("approve_high_weight_order", {
       p_order_id: dbId,
       p_payment: {
-        cardNumber: String(payment.cardNumber || "").trim(),
+        cards: Array.isArray(payment.cards) ? payment.cards.map(v => String(v || "").trim()).filter(Boolean) : [],
+        shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => String(v || "").replace(/^IR/i, "").trim()).filter(Boolean) : [],
         accountNumber: String(payment.accountNumber || "").trim(),
-        sheba: String(payment.sheba || "").replace(/^IR/i, "").trim(),
         ownerName: String(payment.ownerName || "").trim(),
         description: String(payment.description || "").trim(),
       },
     });
-    if (error || !data?.ok) {
-      throw error || new Error(data?.reason || "تأیید سفارش ناموفق بود");
-    }
+    if (error || !data?.ok) throw error || new Error(data?.reason || "تأیید سفارش ناموفق بود");
+    return (await adminState()).orders;
+  },
+  async saveHighWeightPayment(order, payment) {
+    const dbId = await this.resolveOrderId(order);
+    const { data, error } = await supabase.rpc("set_high_weight_payment_info", {
+      p_order_id: dbId,
+      p_payment: {
+        cards: Array.isArray(payment.cards) ? payment.cards.map(v => String(v || "").trim()).filter(Boolean) : [],
+        shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => String(v || "").replace(/^IR/i, "").trim()).filter(Boolean) : [],
+        accountNumber: String(payment.accountNumber || "").trim(),
+        ownerName: String(payment.ownerName || "").trim(),
+        description: String(payment.description || "").trim(),
+      },
+    });
+    if (error || !data?.ok) throw error || new Error(data?.reason || "ثبت اطلاعات پرداخت ناموفق بود");
     return (await adminState()).orders;
   },
   async deleteOrder(order) {
@@ -3128,36 +3141,42 @@ function TabPrices({ settings, setSettings, setToast }) {
   );
 }
 
-  function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onNoteChange, onDelete, onApproveHighWeight }) {
+  function OrderRow({ order, onStatusChange, onRecordWeight, onFinalizeAmount, onNoteChange, onDelete, onApproveHighWeight, onSaveHighWeightPayment }) {
   const [open, setOpen] = useState(false);
   const [receiptZoomOpen, setReceiptZoomOpen] = useState(false);
   const [finalWeight, setFinalWeight] = useState(order.finalWeight ?? "");
   const [finalPrice, setFinalPrice] = useState(order.finalPricePerGram ?? order.pricePerGram);
   const [note, setNote] = useState(order.adminNote ?? "");
+  const initialPayment = getPaymentAccounts(order.bankSnapshot || {});
   const [payment, setPayment] = useState({
-    cardNumber: order.bankSnapshot?.cardNumber || "",
-    accountNumber: order.bankSnapshot?.accountNumber || "",
-    sheba: order.bankSnapshot?.sheba || "",
-    ownerName: order.bankSnapshot?.ownerName || "",
-    description: order.bankSnapshot?.description || "",
+    cards: initialPayment.cards.length ? initialPayment.cards : [""],
+    shebas: initialPayment.shebas.length ? initialPayment.shebas : [""],
+    accountNumber: initialPayment.accountNumber,
+    ownerName: initialPayment.ownerName,
+    description: initialPayment.description,
   });
   const [approving, setApproving] = useState(false);
   const statuses = order.type === "buy" ? BUY_STATUSES : SELL_STATUSES;
 
   const saveWeight = () => { if (Number(finalWeight) > 0) onRecordWeight(order.id, finalWeight); };
   const saveAmount = () => { if (Number(finalPrice) > 0) onFinalizeAmount(order.id, finalPrice); };
+  const hasPaymentDestination = payment.cards.some(v => v.trim()) || payment.shebas.some(v => v.trim()) || payment.accountNumber.trim();
   const approvePayment = async () => {
-    if (approving) return;
-    if (!payment.ownerName.trim() || (!payment.cardNumber.trim() && !payment.accountNumber.trim() && !payment.sheba.trim())) {
-      return;
-    }
+    if (approving || !payment.ownerName.trim() || !hasPaymentDestination) return;
     setApproving(true);
-    try {
-      await onApproveHighWeight(order, payment);
-    } finally {
-      setApproving(false);
-    }
+    try { await onApproveHighWeight(order, payment); } finally { setApproving(false); }
   };
+  const savePayment = async () => {
+    if (approving || !payment.ownerName.trim() || !hasPaymentDestination) return;
+    setApproving(true);
+    try { await onSaveHighWeightPayment(order, payment); } finally { setApproving(false); }
+  };
+  const updateCard = (index, value) => setPayment(prev => ({ ...prev, cards: prev.cards.map((v, i) => i === index ? value : v) }));
+  const updateSheba = (index, value) => setPayment(prev => ({ ...prev, shebas: prev.shebas.map((v, i) => i === index ? value : v) }));
+  const addCard = () => setPayment(prev => ({ ...prev, cards: [...prev.cards, ""] }));
+  const addSheba = () => setPayment(prev => ({ ...prev, shebas: [...prev.shebas, ""] }));
+  const removeCard = (index) => setPayment(prev => ({ ...prev, cards: prev.cards.length > 1 ? prev.cards.filter((_, i) => i !== index) : [""] }));
+  const removeSheba = (index) => setPayment(prev => ({ ...prev, shebas: prev.shebas.length > 1 ? prev.shebas.filter((_, i) => i !== index) : [""] }));
 
   return (
     <div className="order-row">
@@ -3364,30 +3383,31 @@ function TabPrices({ settings, setSettings, setToast }) {
             </div>
           )}
 
-          {order.requiresPaymentApproval === true && order.status === "در انتظار تأیید کارشناس" && (
+          {order.requiresPaymentApproval === true && ["در انتظار تأیید کارشناس", "در انتظار پرداخت"].includes(order.status) && (
             <div className="pay-box" style={{ marginTop: 8 }}>
               <strong>اطلاعات پرداخت این سفارش</strong>
               <p className="pay-note">این اطلاعات فقط برای همین سفارش ذخیره می‌شود و جایگزین حساب پیش‌فرض سایت نمی‌شود.</p>
+              {payment.cards.map((value, index) => (
+                <div className="admin-grid" key={"card-" + index}>
+                  <label className="field"><span>شماره کارت {index + 1}</span><input value={value} onChange={(e) => updateCard(index, e.target.value)} /></label>
+                  <button type="button" className="ghost-btn small-btn" onClick={() => removeCard(index)}>حذف</button>
+                </div>
+              ))}
+              <button type="button" className="ghost-btn small-btn" onClick={addCard}>+ افزودن شماره کارت</button>
+              {payment.shebas.map((value, index) => (
+                <div className="admin-grid" key={"sheba-" + index}>
+                  <label className="field"><span>شماره شبا {index + 1}</span><input value={value} onChange={(e) => updateSheba(index, e.target.value)} /></label>
+                  <button type="button" className="ghost-btn small-btn" onClick={() => removeSheba(index)}>حذف</button>
+                </div>
+              ))}
+              <button type="button" className="ghost-btn small-btn" onClick={addSheba}>+ افزودن شماره شبا</button>
               <div className="admin-grid">
-                <label className="field"><span>شماره کارت</span>
-                  <input value={payment.cardNumber} onChange={(e) => setPayment({ ...payment, cardNumber: e.target.value })} />
-                </label>
-                <label className="field"><span>شماره حساب</span>
-                  <input value={payment.accountNumber} onChange={(e) => setPayment({ ...payment, accountNumber: e.target.value })} />
-                </label>
-                <label className="field"><span>شماره شبا</span>
-                  <input value={payment.sheba} onChange={(e) => setPayment({ ...payment, sheba: e.target.value })} />
-                </label>
-                <label className="field"><span>نام صاحب حساب</span>
-                  <input value={payment.ownerName} onChange={(e) => setPayment({ ...payment, ownerName: e.target.value })} />
-                </label>
+                <label className="field"><span>شماره حساب (اختیاری)</span><input value={payment.accountNumber} onChange={(e) => setPayment({ ...payment, accountNumber: e.target.value })} /></label>
+                <label className="field"><span>نام صاحب حساب</span><input value={payment.ownerName} onChange={(e) => setPayment({ ...payment, ownerName: e.target.value })} /></label>
               </div>
-              <label className="field">
-                <span>توضیحات پرداخت (اختیاری)</span>
-                <textarea className="textarea" rows={2} value={payment.description} onChange={(e) => setPayment({ ...payment, description: e.target.value })} />
-              </label>
-              <button className="primary-btn" onClick={approvePayment} disabled={approving}>
-                {approving ? "در حال ثبت..." : "تأیید سفارش و ثبت اطلاعات پرداخت"}
+              <label className="field"><span>توضیحات پرداخت (اختیاری)</span><textarea className="textarea" rows={2} value={payment.description} onChange={(e) => setPayment({ ...payment, description: e.target.value })} /></label>
+              <button className="primary-btn" onClick={order.status === "در انتظار پرداخت" ? savePayment : approvePayment} disabled={approving}>
+                {approving ? "در حال ثبت..." : order.status === "در انتظار پرداخت" ? "ثبت اطلاعات پرداخت" : "تأیید سفارش و ثبت اطلاعات پرداخت"}
               </button>
             </div>
           )}
@@ -3565,6 +3585,15 @@ function TabOrders({ orders, setOrders, setToast }) {
       setToast("سفارش تأیید شد و اطلاعات پرداخت ثبت شد");
     } catch (e) {
       setToast(e.message || "تأیید سفارش ناموفق بود");
+    }
+  };
+  const handleSaveHighWeightPayment = async (order, payment) => {
+    try {
+      const nextOrders = await api.saveHighWeightPayment(order, payment);
+      setOrders(nextOrders);
+      setToast("اطلاعات پرداخت سفارش ثبت شد");
+    } catch (e) {
+      setToast(e.message || "ثبت اطلاعات پرداخت ناموفق بود");
     }
   };
    const handleDeleteOrder = async (order) => {
@@ -3890,6 +3919,9 @@ function TabOrders({ orders, setOrders, setToast }) {
 }
                       onApproveHighWeight={
                         handleApproveHighWeight
+                      }
+                      onSaveHighWeightPayment={
+                        handleSaveHighWeightPayment
                       }
                     />
                   ))}
