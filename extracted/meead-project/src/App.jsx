@@ -259,6 +259,12 @@ createdAt: row.created_at,
   };
 }
 
+function getPaymentAccounts(bank = {}) {
+  const cards = Array.isArray(bank.cards) && bank.cards.length ? bank.cards.filter(Boolean) : (bank.cardNumber ? [bank.cardNumber] : []);
+  const shebas = Array.isArray(bank.shebas) && bank.shebas.length ? bank.shebas.filter(Boolean) : (bank.sheba ? [String(bank.sheba).replace(/^IR/i, "")] : []);
+  return { cards, shebas, accountNumber: bank.accountNumber || "", ownerName: bank.ownerName || "", description: bank.description || "" };
+}
+
 function mapSettings(publicData) {
   const products = publicData?.products || {};
   const market = publicData?.market || {};
@@ -2195,6 +2201,10 @@ function TrackOrder({
             )}
           </div>
 
+          {result.type === "buy" && result.status === "در انتظار پرداخت" && result.bankSnapshot && (
+            <PaymentAccounts bank={result.bankSnapshot} />
+          )}
+
           {result.type === "buy" &&
             ["در انتظار پرداخت", "در انتظار تأیید پرداخت"].includes(result.status) &&
             uploadingReceiptId !== result.id && (
@@ -2745,41 +2755,10 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
           اطلاعات واریز:
         </span>
 
-        {bank.cardNumber && (
-          <div className="card-number-row">
-            <span className="mono card-number">
-              {bank.cardNumber}
-            </span>
+        <PaymentAccounts bank={bank} />
 
-            <button
-              className="icon-btn"
-              onClick={() => copy(bank.cardNumber)}
-            >
-              {copied ? (
-                <Check size={16} />
-              ) : (
-                <Copy size={16} />
-              )}
-            </button>
-          </div>
-        )}
-
-        {bank.sheba && (
-          <div className="address-box mono">
-            IR{bank.sheba}
-          </div>
-        )}
-
-        {bank.ownerName && (
-          <span className="pay-label">
-            به نام: {bank.ownerName}
-          </span>
-        )}
-
-        {!bank.cardNumber && !bank.sheba && (
-          <p className="pay-note">
-            پس از تأیید کارشناسان فروش، شماره کارت مقصد برای شما پیامک خواهد شد.
-          </p>
+        {!getPaymentAccounts(bank).cards.length && !getPaymentAccounts(bank).shebas.length && !getPaymentAccounts(bank).accountNumber && (
+          <p className="pay-note">اطلاعات واریز هنوز برای این سفارش ثبت نشده است.</p>
         )}
 
         {!uploading && !uploadSuccess && (
