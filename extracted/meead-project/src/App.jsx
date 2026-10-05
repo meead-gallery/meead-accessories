@@ -272,7 +272,15 @@ function getPaymentAccounts(bank = {}) {
   const shebas = Array.isArray(bank.shebas) && bank.shebas.length ? bank.shebas.filter(Boolean).map((value) => ({ number: String(typeof value === "object" ? value.number || "" : value).replace(/^IR/i, ""), amount: typeof value === "object" && value.amount != null && value.amount !== "" ? String(value.amount) : "", ...normalizeOwner(typeof value === "object" ? value : {}) })) : (bank.sheba ? [{ number: String(bank.sheba).replace(/^IR/i, ""), amount: "", ...legacyOwner }] : []);
   const accountSource = bank.account && typeof bank.account === "object" ? bank.account : { number: bank.accountNumber || "", amount: bank.accountAmount ?? "", ...legacyOwner };
   const account = { number: String(accountSource.number || "").trim(), amount: accountSource.amount == null || accountSource.amount === "" ? "" : String(accountSource.amount), ...normalizeOwner(accountSource) };
-  return { cards, shebas, account, accountNumber: account.number, ownerName: bank.ownerName || "", description: bank.description || "" };
+  const destinations = Array.isArray(bank.destinations) ? bank.destinations.filter(Boolean).map((value) => ({
+    cardNumber: formatCardNumber(value?.cardNumber || ""),
+    shebaNumber: String(value?.shebaNumber || "").replace(/^IR/i, ""),
+    accountNumber: String(value?.accountNumber || "").trim(),
+    amount: value?.amount == null || value?.amount === "" ? "" : String(value.amount),
+    ownerFirstName: String(value?.ownerFirstName || "").trim(),
+    ownerLastName: String(value?.ownerLastName || "").trim(),
+  })) : [];
+  return { cards, shebas, account, destinations, accountNumber: account.number, ownerName: bank.ownerName || "", description: bank.description || "" };
 }
 
 function mapSettings(publicData) {
@@ -2592,24 +2600,29 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
 /* ------------------------------- Buy payment ------------------------------- */
 
 function PaymentAccounts({ bank }) {
-  const { cards, shebas, account, description } = getPaymentAccounts(bank || {});
+  const { cards, shebas, account, destinations: savedDestinations, description } = getPaymentAccounts(bank || {});
+  const destinations = savedDestinations.length ? savedDestinations : [
+    ...cards.map((v) => ({ cardNumber: v.number, shebaNumber: "", accountNumber: "", amount: v.amount, ownerFirstName: v.ownerFirstName, ownerLastName: v.ownerLastName })),
+    ...shebas.map((v) => ({ cardNumber: "", shebaNumber: v.number, accountNumber: "", amount: v.amount, ownerFirstName: v.ownerFirstName, ownerLastName: v.ownerLastName })),
+    ...(account?.number ? [{ cardNumber: "", shebaNumber: "", accountNumber: account.number, amount: account.amount, ownerFirstName: account.ownerFirstName, ownerLastName: account.ownerLastName }] : [])
+  ];
   const [copied, setCopied] = useState("");
   const copy = async (value, key) => { try { await navigator.clipboard.writeText(String(value)); setCopied(key); setTimeout(() => setCopied(""), 1500); } catch {} };
-  if (!cards.length && !shebas.length && !account?.number) return null;
-  const DestinationCard = ({ title, number, amount, ownerFirstName, ownerLastName, copyValue, copyKey }) => (
-    <div className="customer-payment-destination">
-      <div className="customer-payment-destination-head"><strong>{title}</strong><button className="icon-btn" type="button" onClick={() => copy(copyValue, copyKey)}>{copied === copyKey ? <Check size={16} /> : <Copy size={16} />}</button></div>
-      <div className="customer-payment-number mono">{number}</div>
-      {(ownerFirstName || ownerLastName) && <div className="customer-payment-owner">به نام: {[ownerFirstName, ownerLastName].filter(Boolean).join(" ")}</div>}
-      {Number(amount) > 0 && <div className="customer-payment-amount">مبلغ واریز: {toman(amount)}</div>}
-    </div>
-  );
+  if (!destinations.length) return null;
   return (
     <div className="pay-box" style={{ marginTop: 10 }}>
-      <span className="pay-label">اطلاعات واریز وجه</span>
-      {cards.map((card, i) => <DestinationCard key={"payment-card-" + i} title={`کارت مقصد ${i + 1}`} number={card.number} amount={card.amount} ownerFirstName={card.ownerFirstName} ownerLastName={card.ownerLastName} copyValue={card.number} copyKey={"card-" + i} />)}
-      {shebas.map((sheba, i) => <DestinationCard key={"payment-sheba-" + i} title={`شبا مقصد ${i + 1}`} number={`IR${sheba.number}`} amount={sheba.amount} ownerFirstName={sheba.ownerFirstName} ownerLastName={sheba.ownerLastName} copyValue={"IR" + sheba.number} copyKey={"sheba-" + i} />)}
-      {account?.number && <DestinationCard title="شماره حساب مقصد" number={account.number} amount={account.amount} ownerFirstName={account.ownerFirstName} ownerLastName={account.ownerLastName} copyValue={account.number} copyKey="account" />}
+      <span className="pay-label">اطلاعات حساب برای پرداخت وجه توسط مشتری</span>
+      {destinations.map((item, i) => (
+        <div className="customer-payment-destination" key={"payment-destination-" + i}>
+          <div className="customer-payment-destination-head"><strong>مقصد پرداخت {i + 1}</strong></div>
+          {item.cardNumber && <div className="customer-payment-line"><span>شماره کارت:</span><span className="mono">{item.cardNumber}</span><button className="icon-btn" type="button" onClick={() => copy(item.cardNumber, "card-" + i)}>{copied === "card-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+          {item.shebaNumber && <div className="customer-payment-line"><span>شماره شبا:</span><span className="mono">IR{item.shebaNumber}</span><button className="icon-btn" type="button" onClick={() => copy("IR" + item.shebaNumber, "sheba-" + i)}>{copied === "sheba-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+          {item.accountNumber && <div className="customer-payment-line"><span>شماره حساب:</span><span className="mono">{item.accountNumber}</span><button className="icon-btn" type="button" onClick={() => copy(item.accountNumber, "account-" + i)}>{copied === "account-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+          <div className="customer-payment-line"><span>مبلغ:</span><strong>{toman(item.amount)}</strong></div>
+          <div className="customer-payment-line"><span>نام:</span><span>{item.ownerFirstName}</span></div>
+          <div className="customer-payment-line"><span>نام خانوادگی:</span><span>{item.ownerLastName}</span></div>
+        </div>
+      ))}
       {description && <p className="pay-note" style={{ marginBottom: 0 }}>{description}</p>}
     </div>
   );
@@ -4821,6 +4834,9 @@ function GlobalStyles() {
       .customer-payment-destination { display:flex; flex-direction:column; gap:7px; margin-top:10px; padding:12px 13px; border:1px solid rgba(169,128,58,.22); border-radius:12px; background:linear-gradient(180deg,#fff 0%,#faf9f6 100%); box-shadow:0 3px 12px rgba(25,32,40,.05); }
       .customer-payment-destination-head { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#303840; font-size:12px; }
       .customer-payment-number { font-size:15px; font-weight:800; letter-spacing:.3px; word-break:break-all; }
+      .customer-payment-line { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:8px; padding:5px 0; font-size:12px; }
+      .customer-payment-line > span:first-child { color:#66717c; }
+      .customer-payment-line .mono { text-align:left; font-weight:700; word-break:break-all; }
       .customer-payment-owner { font-size:12px; color:#596572; }
       .customer-payment-amount { font-size:12px; font-weight:800; color:#A9803A; }
       .admin-footnote { display:flex; align-items:center; gap:6px; font-size:11px; color:#93A0AF; line-height:1.8; }
