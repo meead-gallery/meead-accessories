@@ -3567,6 +3567,7 @@ function TabOrders({ orders, setOrders, setToast }) {
   const [dateFilter, setDateFilter] = useState("all");
   const [customDate, setCustomDate] = useState("");
   const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [openDays, setOpenDays] = useState(new Set());
   const pageSize = 50;
@@ -3808,20 +3809,32 @@ function TabOrders({ orders, setOrders, setToast }) {
         }}
       >
 
-        <label
-          className="field"
-          style={{ margin: 0 }}
-        >
-          <span>جستجوی سفارش</span>
+        <div style={{ margin: 0 }}>
+          <button
+            type="button"
+            className="ghost-btn small-btn"
+            onClick={() => setSearchOpen((prev) => !prev)}
+            style={{ width: "100%", minHeight: 42, display: "flex", alignItems: "center", justifyContent: "space-between" }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+              <Search size={15} />
+              جستجوی سفارش
+            </span>
+            <span>{searchOpen ? "−" : "+"}</span>
+          </button>
 
-          <input
-            value={query}
-            onChange={(e) =>
-              setQuery(e.target.value)
-            }
-            placeholder="کد، نام یا تلفن"
-          />
-        </label>
+          {searchOpen && (
+            <label className="field" style={{ margin: "8px 0 0" }}>
+              <span>کد، نام یا تلفن</span>
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="کد، نام یا تلفن"
+              />
+            </label>
+          )}
+        </div>
 
         <label
           className="field"
