@@ -259,8 +259,18 @@ createdAt: row.created_at,
   };
 }
 
+function normalizeDigits(value = "") {
+  return String(value || "")
+    .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+}
+
+function toPersianDigits(value = "") {
+  return normalizeDigits(value).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+}
+
 function formatCardNumber(value = "") {
-  const digits = String(value || "").replace(/\D/g, "").slice(0, 16);
+  const digits = normalizeDigits(value).replace(/\D/g, "").slice(0, 16);
   return digits.replace(/(.{4})(?=.)/g, "$1-");
 }
 
@@ -2659,10 +2669,10 @@ function PaymentAccounts({ bank }) {
       {destinations.map((item, i) => (
         <div className="customer-payment-destination" key={"payment-destination-" + i}>
           <div className="customer-payment-destination-head"><strong>مقصد پرداخت {i + 1}</strong></div>
-          {item.cardNumber && <div className="customer-payment-line"><span>شماره کارت:</span><span className="mono">{item.cardNumber}</span><button className="icon-btn" type="button" onClick={() => copy(item.cardNumber, "card-" + i)}>{copied === "card-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
-          {item.shebaNumber && <div className="customer-payment-line"><span>شماره شبا:</span><span className="mono">IR{item.shebaNumber}</span><button className="icon-btn" type="button" onClick={() => copy("IR" + item.shebaNumber, "sheba-" + i)}>{copied === "sheba-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
-          {item.accountNumber && <div className="customer-payment-line"><span>شماره حساب:</span><span className="mono">{item.accountNumber}</span><button className="icon-btn" type="button" onClick={() => copy(item.accountNumber, "account-" + i)}>{copied === "account-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
-          <div className="customer-payment-line"><span>مبلغ:</span><strong>{toman(item.amount)}</strong></div>{tomanInWords(item.amount) && <div className="payment-amount-words customer-payment-amount-words">{tomanInWords(item.amount)}</div>}
+          {item.cardNumber && <div className="customer-payment-line"><span>شماره کارت:</span><span className="mono">{toPersianDigits(item.cardNumber)}</span><button className="icon-btn" type="button" onClick={() => copy(item.cardNumber, "card-" + i)}>{copied === "card-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+          {item.shebaNumber && <div className="customer-payment-line"><span>شماره شبا:</span><span className="mono">IR{toPersianDigits(item.shebaNumber)}</span><button className="icon-btn" type="button" onClick={() => copy("IR" + item.shebaNumber, "sheba-" + i)}>{copied === "sheba-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+          {item.accountNumber && <div className="customer-payment-line"><span>شماره حساب:</span><span className="mono">{toPersianDigits(item.accountNumber)}</span><button className="icon-btn" type="button" onClick={() => copy(item.accountNumber, "account-" + i)}>{copied === "account-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+          <div className="customer-payment-line"><span>مبلغ:</span><strong>{toPersianDigits(toman(item.amount))}</strong></div>{tomanInWords(item.amount) && <div className="payment-amount-words customer-payment-amount-words">{toPersianDigits(tomanInWords(item.amount))}</div>}
           <div className="customer-payment-line"><span>نام:</span><span>{item.ownerFirstName}</span></div>
           <div className="customer-payment-line"><span>نام خانوادگی:</span><span>{item.ownerLastName}</span></div>
         </div>
@@ -3483,7 +3493,7 @@ function TabPrices({ settings, setSettings, setToast }) {
                   </div>
                   <div className="admin-grid">
                     <label className="field"><span>شماره کارت</span><input inputMode="numeric" maxLength={19} placeholder="0000-0000-0000-0000" value={value.cardNumber} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, cardNumber: formatCardNumber(e.target.value) } : v) }))} /></label>
-                    <label className="field"><span>شماره شبا</span><input inputMode="numeric" maxLength={26} value={value.shebaNumber ? `IR${String(value.shebaNumber).replace(/^IR/i, "")}` : "IR"} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, shebaNumber: e.target.value.replace(/^IR/i, "").replace(/\D/g, "") } : v) }))} /></label>
+                    <label className="field"><span>شماره شبا</span><input inputMode="numeric" maxLength={26} value={value.shebaNumber ? `IR${String(value.shebaNumber).replace(/^IR/i, "")}` : "IR"} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, shebaNumber: normalizeDigits(e.target.value).replace(/^IR/i, "").replace(/\D/g, "").slice(0, 24) } : v) }))} /></label>
                     <label className="field"><span>شماره حساب</span><input value={value.accountNumber} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, accountNumber: e.target.value } : v) }))} /></label>
                     <label className="field"><span>مبلغ (تومان)</span><input inputMode="numeric" type="text" placeholder="مثلاً 60,000,000" value={value.amount} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, amount: e.target.value.replace(/[^0-9۰-۹,]/g, "") } : v) }))} />{tomanInWords(value.amount) && <small className="payment-amount-words">{tomanInWords(value.amount)}</small>}</label>
                     <label className="field"><span>نام</span><input value={value.ownerFirstName} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, ownerFirstName: e.target.value } : v) }))} /></label>
