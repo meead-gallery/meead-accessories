@@ -266,11 +266,15 @@ function formatCardNumber(value = "") {
 
 function getPaymentAccounts(bank = {}) {
   const cards = Array.isArray(bank.cards) && bank.cards.length
-    ? bank.cards.filter(Boolean).map(formatCardNumber)
-    : (bank.cardNumber ? [formatCardNumber(bank.cardNumber)] : []);
+    ? bank.cards.filter(Boolean).map((value) => typeof value === "object"
+      ? { number: formatCardNumber(value.number || ""), amount: value.amount == null || value.amount === "" ? "" : String(value.amount) }
+      : { number: formatCardNumber(value), amount: "" })
+    : (bank.cardNumber ? [{ number: formatCardNumber(bank.cardNumber), amount: "" }] : []);
   const shebas = Array.isArray(bank.shebas) && bank.shebas.length
-    ? bank.shebas.filter(Boolean)
-    : (bank.sheba ? [String(bank.sheba).replace(/^IR/i, "")] : []);
+    ? bank.shebas.filter(Boolean).map((value) => typeof value === "object"
+      ? { number: String(value.number || "").replace(/^IR/i, ""), amount: value.amount == null || value.amount === "" ? "" : String(value.amount) }
+      : { number: String(value).replace(/^IR/i, ""), amount: "" })
+    : (bank.sheba ? [{ number: String(bank.sheba).replace(/^IR/i, ""), amount: "" }] : []);
   return { cards, shebas, accountNumber: bank.accountNumber || "", ownerName: bank.ownerName || "", description: bank.description || "" };
 }
 
@@ -799,8 +803,8 @@ p_postal_code: customer.postalCode,
     const { data, error } = await supabase.rpc("approve_high_weight_order", {
       p_order_id: dbId,
       p_payment: {
-        cards: Array.isArray(payment.cards) ? payment.cards.map(v => String(v || "").replace(/\D/g, "").slice(0, 16)).filter(Boolean) : [],
-        shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => String(v || "").replace(/^IR/i, "").trim()).filter(Boolean) : [],
+        cards: Array.isArray(payment.cards) ? payment.cards.map(v => ({ number: String(v?.number || "").replace(/\D/g, "").slice(0, 16), amount: Number(String(v?.amount || "").replace(/[^0-9]/g, "")) || 0 })).filter(v => v.number) : [],
+        shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => ({ number: String(v?.number || "").replace(/^IR/i, "").replace(/\D/g, "").trim(), amount: Number(String(v?.amount || "").replace(/[^0-9]/g, "")) || 0 })).filter(v => v.number) : [],
         accountNumber: String(payment.accountNumber || "").trim(),
         ownerName: [payment.ownerFirstName, payment.ownerLastName].map(v => String(v || "").trim()).filter(Boolean).join(" "),
         description: String(payment.description || "").trim(),
@@ -814,8 +818,8 @@ p_postal_code: customer.postalCode,
     const { data, error } = await supabase.rpc("set_high_weight_payment_info", {
       p_order_id: dbId,
       p_payment: {
-        cards: Array.isArray(payment.cards) ? payment.cards.map(v => String(v || "").replace(/\D/g, "").slice(0, 16)).filter(Boolean) : [],
-        shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => String(v || "").replace(/^IR/i, "").trim()).filter(Boolean) : [],
+        cards: Array.isArray(payment.cards) ? payment.cards.map(v => ({ number: String(v?.number || "").replace(/\D/g, "").slice(0, 16), amount: Number(String(v?.amount || "").replace(/[^0-9]/g, "")) || 0 })).filter(v => v.number) : [],
+        shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => ({ number: String(v?.number || "").replace(/^IR/i, "").replace(/\D/g, "").trim(), amount: Number(String(v?.amount || "").replace(/[^0-9]/g, "")) || 0 })).filter(v => v.number) : [],
         accountNumber: String(payment.accountNumber || "").trim(),
         ownerName: [payment.ownerFirstName, payment.ownerLastName].map(v => String(v || "").trim()).filter(Boolean).join(" "),
         description: String(payment.description || "").trim(),
@@ -2602,16 +2606,22 @@ function PaymentAccounts({ bank }) {
       <span className="pay-label">اطلاعات واریز وجه</span>
       {cards.map((card, i) => (
         <div className="card-number-row" key={"payment-card-" + i}>
-          <span className="mono card-number">{card}</span>
-          <button className="icon-btn" type="button" onClick={() => copy(card, "card-" + i)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+            <span className="mono card-number">{card.number}</span>
+            {Number(card.amount) > 0 && <span className="pay-note" style={{ margin: 0 }}>مبلغ واریز: {toman(card.amount)}</span>}
+          </div>
+          <button className="icon-btn" type="button" onClick={() => copy(card.number, "card-" + i)}>
             {copied === "card-" + i ? <Check size={16} /> : <Copy size={16} />}
           </button>
         </div>
       ))}
       {shebas.map((sheba, i) => (
         <div className="card-number-row" key={"payment-sheba-" + i}>
-          <span className="mono card-number">IR{sheba}</span>
-          <button className="icon-btn" type="button" onClick={() => copy("IR" + sheba, "sheba-" + i)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+            <span className="mono card-number">IR{sheba.number}</span>
+            {Number(sheba.amount) > 0 && <span className="pay-note" style={{ margin: 0 }}>مبلغ واریز: {toman(sheba.amount)}</span>}
+          </div>
+          <button className="icon-btn" type="button" onClick={() => copy("IR" + sheba.number, "sheba-" + i)}>
             {copied === "sheba-" + i ? <Check size={16} /> : <Copy size={16} />}
           </button>
         </div>
@@ -3164,8 +3174,8 @@ function TabPrices({ settings, setSettings, setToast }) {
   const initialPayment = getPaymentAccounts(order.bankSnapshot || {});
   const initialOwnerParts = String(initialPayment.ownerName || "").trim().split(/\s+/).filter(Boolean);
   const [payment, setPayment] = useState({
-    cards: initialPayment.cards.length ? initialPayment.cards : [""],
-    shebas: initialPayment.shebas.length ? initialPayment.shebas : [""],
+    cards: initialPayment.cards.length ? initialPayment.cards : [{ number: "", amount: "" }],
+    shebas: initialPayment.shebas.length ? initialPayment.shebas : [{ number: "", amount: "" }],
     accountNumber: initialPayment.accountNumber,
     ownerFirstName: initialOwnerParts[0] || "",
     ownerLastName: initialOwnerParts.slice(1).join(" "),
@@ -3176,24 +3186,33 @@ function TabPrices({ settings, setSettings, setToast }) {
 
   const saveWeight = () => { if (Number(finalWeight) > 0) onRecordWeight(order.id, finalWeight); };
   const saveAmount = () => { if (Number(finalPrice) > 0) onFinalizeAmount(order.id, finalPrice); };
-  const hasPaymentDestination = payment.cards.some(v => v.trim()) || payment.shebas.some(v => v.trim()) || payment.accountNumber.trim();
+  const hasPaymentDestination = payment.cards.some(v => String(v.number || "").trim()) || payment.shebas.some(v => String(v.number || "").trim()) || payment.accountNumber.trim();
+  const paymentRows = [...payment.cards, ...payment.shebas];
+  const paymentTotal = paymentRows.reduce((sum, item) => sum + (Number(String(item.amount || "").replace(/,/g, "")) || 0), 0);
+  const hasMissingPaymentAmount = paymentRows.some(item => String(item.number || "").trim() && !(Number(String(item.amount || "").replace(/,/g, "")) > 0));
+  const paymentTotalMatchesOrder = Math.round(paymentTotal) === Math.round(Number(order.total ?? order.approxTotal ?? 0));
   const ownerName = [payment.ownerFirstName, payment.ownerLastName].map(v => String(v || "").trim()).filter(Boolean).join(" ");
+  const paymentValidationMessage = hasMissingPaymentAmount
+    ? "برای هر شماره کارت یا شبا، مبلغ واریز را وارد کنید."
+    : !paymentTotalMatchesOrder
+      ? `مجموع مبالغ باید دقیقاً برابر مبلغ سفارش یعنی ${toman(order.total ?? order.approxTotal)} باشد. مجموع فعلی: ${toman(paymentTotal)}`
+      : "";
   const approvePayment = async () => {
-    if (approving || !ownerName || !hasPaymentDestination) return;
+    if (approving || !ownerName || !hasPaymentDestination || paymentValidationMessage) return;
     setApproving(true);
     try { await onApproveHighWeight(order, payment); } finally { setApproving(false); }
   };
   const savePayment = async () => {
-    if (approving || !ownerName || !hasPaymentDestination) return;
+    if (approving || !ownerName || !hasPaymentDestination || paymentValidationMessage) return;
     setApproving(true);
     try { await onSaveHighWeightPayment(order, payment); } finally { setApproving(false); }
   };
-  const updateCard = (index, value) => setPayment(prev => ({ ...prev, cards: prev.cards.map((v, i) => i === index ? value : v) }));
-  const updateSheba = (index, value) => setPayment(prev => ({ ...prev, shebas: prev.shebas.map((v, i) => i === index ? value : v) }));
-  const addCard = () => setPayment(prev => ({ ...prev, cards: [...prev.cards, ""] }));
-  const addSheba = () => setPayment(prev => ({ ...prev, shebas: [...prev.shebas, ""] }));
-  const removeCard = (index) => setPayment(prev => ({ ...prev, cards: prev.cards.length > 1 ? prev.cards.filter((_, i) => i !== index) : [""] }));
-  const removeSheba = (index) => setPayment(prev => ({ ...prev, shebas: prev.shebas.length > 1 ? prev.shebas.filter((_, i) => i !== index) : [""] }));
+  const updateCard = (index, key, value) => setPayment(prev => ({ ...prev, cards: prev.cards.map((v, i) => i === index ? { ...v, [key]: value } : v) }));
+  const updateSheba = (index, key, value) => setPayment(prev => ({ ...prev, shebas: prev.shebas.map((v, i) => i === index ? { ...v, [key]: value } : v) }));
+  const addCard = () => setPayment(prev => ({ ...prev, cards: [...prev.cards, { number: "", amount: "" }] }));
+  const addSheba = () => setPayment(prev => ({ ...prev, shebas: [...prev.shebas, { number: "", amount: "" }] }));
+  const removeCard = (index) => setPayment(prev => ({ ...prev, cards: prev.cards.length > 1 ? prev.cards.filter((_, i) => i !== index) : [{ number: "", amount: "" }] }));
+  const removeSheba = (index) => setPayment(prev => ({ ...prev, shebas: prev.shebas.length > 1 ? prev.shebas.filter((_, i) => i !== index) : [{ number: "", amount: "" }] }));
 
   return (
     <div className="order-row">
@@ -3408,7 +3427,11 @@ function TabPrices({ settings, setSettings, setToast }) {
                 <div className="admin-grid" key={"card-" + index}>
                   <label className="field">
                     <span>شماره کارت</span>
-                    <input inputMode="numeric" maxLength={19} placeholder="0000-0000-0000-0000" value={value} onChange={(e) => updateCard(index, formatCardNumber(e.target.value))} />
+                    <input inputMode="numeric" maxLength={19} placeholder="0000-0000-0000-0000" value={value.number} onChange={(e) => updateCard(index, "number", formatCardNumber(e.target.value))} />
+                  </label>
+                  <label className="field">
+                    <span>مبلغ واریز (تومان)</span>
+                    <input inputMode="numeric" type="text" placeholder="مثلاً 60,000,000" value={value.amount} onChange={(e) => updateCard(index, "amount", e.target.value.replace(/[^0-9۰-۹,]/g, ""))} />
                   </label>
                   {index > 0 && <button type="button" className="ghost-btn small-btn" onClick={() => removeCard(index)}>حذف</button>}
                 </div>
@@ -3419,7 +3442,11 @@ function TabPrices({ settings, setSettings, setToast }) {
                 <div className="admin-grid" key={"sheba-" + index}>
                   <label className="field">
                     <span>شماره شبا</span>
-                    <input value={value ? `IR${String(value).replace(/^IR/i, "")}` : "IR"} onChange={(e) => updateSheba(index, e.target.value.replace(/^IR/i, "").replace(/\D/g, ""))} />
+                    <input value={value.number ? `IR${String(value.number).replace(/^IR/i, "")}` : "IR"} onChange={(e) => updateSheba(index, "number", e.target.value.replace(/^IR/i, "").replace(/\D/g, ""))} />
+                  </label>
+                  <label className="field">
+                    <span>مبلغ واریز (تومان)</span>
+                    <input inputMode="numeric" type="text" placeholder="مثلاً 60,000,000" value={value.amount} onChange={(e) => updateSheba(index, "amount", e.target.value.replace(/[^0-9۰-۹,]/g, ""))} />
                   </label>
                   {index > 0 && <button type="button" className="ghost-btn small-btn" onClick={() => removeSheba(index)}>حذف</button>}
                 </div>
@@ -3437,7 +3464,10 @@ function TabPrices({ settings, setSettings, setToast }) {
                 </label>
               </div>
               <label className="field"><span>توضیحات پرداخت (اختیاری)</span><textarea className="textarea" rows={2} value={payment.description} onChange={(e) => setPayment({ ...payment, description: e.target.value })} /></label>
-              <button className="primary-btn" onClick={order.status === "در انتظار پرداخت" ? savePayment : approvePayment} disabled={approving}>
+              {paymentValidationMessage && (
+                <p className="pay-note" style={{ color: "#B42318", margin: 0 }}>{paymentValidationMessage}</p>
+              )}
+              <button className="primary-btn" onClick={order.status === "در انتظار پرداخت" ? savePayment : approvePayment} disabled={approving || !!paymentValidationMessage || !ownerName || !hasPaymentDestination}>
                 {approving ? "در حال ثبت..." : order.status === "در انتظار پرداخت" ? "ثبت اطلاعات پرداخت" : "تأیید سفارش و ثبت اطلاعات پرداخت"}
               </button>
             </div>
