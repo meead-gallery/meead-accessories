@@ -800,10 +800,11 @@ p_postal_code: customer.postalCode,
     const { data, error } = await supabase.rpc("approve_high_weight_order", {
       p_order_id: dbId,
       p_payment: {
-        cards: Array.isArray(payment.cards) ? payment.cards.map(v => ({ number: String(v?.number || "").replace(/\D/g, "").slice(0, 16), amount: Number(String(v?.amount || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[^0-9]/g, "")) || 0, ownerFirstName: String(v?.ownerFirstName || "").trim(), ownerLastName: String(v?.ownerLastName || "").trim() })).filter(v => v.number) : [],
-        shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => ({ number: String(v?.number || "").replace(/^IR/i, "").replace(/\D/g, "").trim(), amount: Number(String(v?.amount || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[^0-9]/g, "")) || 0, ownerFirstName: String(v?.ownerFirstName || "").trim(), ownerLastName: String(v?.ownerLastName || "").trim() })).filter(v => v.number) : [],
-        account: payment.account?.number ? { number: String(payment.account.number || "").trim(), amount: Number(String(payment.account.amount || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[^0-9]/g, "")) || 0, ownerFirstName: String(payment.account.ownerFirstName || "").trim(), ownerLastName: String(payment.account.ownerLastName || "").trim() } : { number: "", amount: 0, ownerFirstName: "", ownerLastName: "" },
-        accountNumber: String(payment.account?.number || "").trim(),
+        destinations: payment.destinations.map(v => ({ cardNumber: String(v.cardNumber || "").replace(/\D/g, "").slice(0, 16), shebaNumber: String(v.shebaNumber || "").replace(/^IR/i, "").replace(/\D/g, "").trim(), accountNumber: String(v.accountNumber || "").trim(), amount: Number(String(v.amount || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[^0-9]/g, "")) || 0, ownerFirstName: String(v.ownerFirstName || "").trim(), ownerLastName: String(v.ownerLastName || "").trim() })).filter(v => v.cardNumber || v.shebaNumber || v.accountNumber),
+        cards: [],
+        shebas: [],
+        account: {},
+        accountNumber: "",
         ownerName: "",
         description: String(payment.description || "").trim(),
       },
@@ -816,10 +817,11 @@ p_postal_code: customer.postalCode,
     const { data, error } = await supabase.rpc("set_high_weight_payment_info", {
       p_order_id: dbId,
       p_payment: {
-        cards: Array.isArray(payment.cards) ? payment.cards.map(v => ({ number: String(v?.number || "").replace(/\D/g, "").slice(0, 16), amount: Number(String(v?.amount || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[^0-9]/g, "")) || 0, ownerFirstName: String(v?.ownerFirstName || "").trim(), ownerLastName: String(v?.ownerLastName || "").trim() })).filter(v => v.number) : [],
-        shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => ({ number: String(v?.number || "").replace(/^IR/i, "").replace(/\D/g, "").trim(), amount: Number(String(v?.amount || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[^0-9]/g, "")) || 0, ownerFirstName: String(v?.ownerFirstName || "").trim(), ownerLastName: String(v?.ownerLastName || "").trim() })).filter(v => v.number) : [],
-        account: payment.account?.number ? { number: String(payment.account.number || "").trim(), amount: Number(String(payment.account.amount || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[^0-9]/g, "")) || 0, ownerFirstName: String(payment.account.ownerFirstName || "").trim(), ownerLastName: String(payment.account.ownerLastName || "").trim() } : { number: "", amount: 0, ownerFirstName: "", ownerLastName: "" },
-        accountNumber: String(payment.account?.number || "").trim(),
+        destinations: payment.destinations.map(v => ({ cardNumber: String(v.cardNumber || "").replace(/\D/g, "").slice(0, 16), shebaNumber: String(v.shebaNumber || "").replace(/^IR/i, "").replace(/\D/g, "").trim(), accountNumber: String(v.accountNumber || "").trim(), amount: Number(String(v.amount || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[^0-9]/g, "")) || 0, ownerFirstName: String(v.ownerFirstName || "").trim(), ownerLastName: String(v.ownerLastName || "").trim() })).filter(v => v.cardNumber || v.shebaNumber || v.accountNumber),
+        cards: [],
+        shebas: [],
+        account: {},
+        accountNumber: "",
         ownerName: "",
         description: String(payment.description || "").trim(),
       },
@@ -3152,23 +3154,29 @@ function TabPrices({ settings, setSettings, setToast }) {
   const [finalPrice, setFinalPrice] = useState(order.finalPricePerGram ?? order.pricePerGram);
   const [note, setNote] = useState(order.adminNote ?? "");
   const initialPayment = getPaymentAccounts(order.bankSnapshot || {});
-  const [payment, setPayment] = useState({
-    cards: initialPayment.cards.length ? initialPayment.cards : [{ number: "", amount: "", ownerFirstName: "", ownerLastName: "" }],
-    shebas: initialPayment.shebas.length ? initialPayment.shebas : [{ number: "", amount: "", ownerFirstName: "", ownerLastName: "" }],
-    account: initialPayment.account || { number: "", amount: "", ownerFirstName: "", ownerLastName: "" },
-    description: initialPayment.description,
-  });
+  const initialDestinations = (() => {
+    const count = Math.max(initialPayment.cards.length, initialPayment.shebas.length, initialPayment.account?.number ? 1 : 0, 1);
+    return Array.from({ length: count }, (_, i) => ({
+      cardNumber: initialPayment.cards[i]?.number || "",
+      shebaNumber: initialPayment.shebas[i]?.number || "",
+      accountNumber: i === 0 ? (initialPayment.account?.number || "") : "",
+      amount: initialPayment.cards[i]?.amount || initialPayment.shebas[i]?.amount || initialPayment.account?.amount || "",
+      ownerFirstName: initialPayment.cards[i]?.ownerFirstName || initialPayment.shebas[i]?.ownerFirstName || initialPayment.account?.ownerFirstName || "",
+      ownerLastName: initialPayment.cards[i]?.ownerLastName || initialPayment.shebas[i]?.ownerLastName || initialPayment.account?.ownerLastName || "",
+    }));
+  })();
+  const [payment, setPayment] = useState({ destinations: initialDestinations, description: initialPayment.description });
   const [approving, setApproving] = useState(false);
   const statuses = order.type === "buy" ? BUY_STATUSES : SELL_STATUSES;
 
   const saveWeight = () => { if (Number(finalWeight) > 0) onRecordWeight(order.id, finalWeight); };
   const saveAmount = () => { if (Number(finalPrice) > 0) onFinalizeAmount(order.id, finalPrice); };
-  const hasPaymentDestination = payment.cards.some(v => String(v.number || "").trim()) || payment.shebas.some(v => String(v.number || "").trim()) || String(payment.account?.number || "").trim();
-  const paymentRows = [...payment.cards, ...payment.shebas, payment.account?.number ? payment.account : null].filter(Boolean);
+  const paymentRows = payment.destinations.filter(v => String(v.cardNumber || v.shebaNumber || v.accountNumber || "").trim());
+  const hasPaymentDestination = paymentRows.length > 0;
   const amountValue = (value) => Number(String(value || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/,/g, "")) || 0;
   const paymentTotal = paymentRows.reduce((sum, item) => sum + amountValue(item.amount), 0);
-  const hasMissingPaymentAmount = paymentRows.some(item => String(item.number || "").trim() && !(amountValue(item.amount) > 0));
-  const hasMissingPaymentOwner = paymentRows.some(item => String(item.number || "").trim() && (!String(item.ownerFirstName || "").trim() || !String(item.ownerLastName || "").trim()));
+  const hasMissingPaymentAmount = paymentRows.some(item => !(amountValue(item.amount) > 0));
+  const hasMissingPaymentOwner = paymentRows.some(item => !String(item.ownerFirstName || "").trim() || !String(item.ownerLastName || "").trim());
   const paymentTotalMatchesOrder = Math.round(paymentTotal) === Math.round(Number(order.total ?? order.approxTotal ?? 0));
   const paymentValidationMessage = hasMissingPaymentOwner
     ? "برای هر مقصد پرداخت، نام و نام خانوادگی صاحب حساب را وارد کنید."
@@ -3177,6 +3185,7 @@ function TabPrices({ settings, setSettings, setToast }) {
       : !paymentTotalMatchesOrder
         ? `مجموع مبالغ باید دقیقاً برابر مبلغ سفارش یعنی ${toman(order.total ?? order.approxTotal)} باشد. مجموع فعلی: ${toman(paymentTotal)}`
         : "";
+
   const approvePayment = async () => {
     if (approving || !hasPaymentDestination || paymentValidationMessage) return;
     setApproving(true);
@@ -3403,41 +3412,24 @@ function TabPrices({ settings, setSettings, setToast }) {
             <div className="pay-box" style={{ marginTop: 8 }}>
               <strong>اطلاعات پرداخت این سفارش</strong>
               <p className="pay-note">این اطلاعات فقط برای همین سفارش ذخیره می‌شود و جایگزین حساب پیش‌فرض سایت نمی‌شود.</p>
-              {payment.cards.map((value, index) => (
-                <div className="payment-destination-card" key={"card-" + index}>
-                  <div className="payment-destination-title"><strong>مقصد کارت {index + 1}</strong>{index > 0 && <button type="button" className="ghost-btn small-btn" onClick={() => removeCard(index)}>حذف</button>}</div>
+              {payment.destinations.map((value, index) => (
+                <div className="payment-destination-card" key={"destination-" + index}>
+                  <div className="payment-destination-title">
+                    <strong>اطلاعات حساب برای پرداخت وجه توسط مشتری {index + 1}</strong>
+                    {index > 0 && <button type="button" className="ghost-btn small-btn" onClick={() => setPayment(prev => ({ ...prev, destinations: prev.destinations.filter((_, i) => i !== index) }))}>حذف</button>}
+                  </div>
                   <div className="admin-grid">
-                    <label className="field"><span>شماره کارت</span><input inputMode="numeric" maxLength={19} placeholder="0000-0000-0000-0000" value={value.number} onChange={(e) => updateCard(index, "number", formatCardNumber(e.target.value))} /></label>
-                    <label className="field"><span>مبلغ واریز (تومان)</span><input inputMode="numeric" type="text" placeholder="مثلاً 60,000,000" value={value.amount} onChange={(e) => updateCard(index, "amount", e.target.value.replace(/[^0-9۰-۹,]/g, ""))} /></label>
-                    <label className="field"><span>نام صاحب کارت</span><input value={value.ownerFirstName} onChange={(e) => updateCard(index, "ownerFirstName", e.target.value)} /></label>
-                    <label className="field"><span>نام خانوادگی صاحب کارت</span><input value={value.ownerLastName} onChange={(e) => updateCard(index, "ownerLastName", e.target.value)} /></label>
+                    <label className="field"><span>شماره کارت</span><input inputMode="numeric" maxLength={19} placeholder="0000-0000-0000-0000" value={value.cardNumber} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, cardNumber: formatCardNumber(e.target.value) } : v) }))} /></label>
+                    <label className="field"><span>شماره شبا</span><input value={value.shebaNumber ? `IR${String(value.shebaNumber).replace(/^IR/i, "")}` : "IR"} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, shebaNumber: e.target.value.replace(/^IR/i, "").replace(/\D/g, "") } : v) }))} /></label>
+                    <label className="field"><span>شماره حساب</span><input value={value.accountNumber} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, accountNumber: e.target.value } : v) }))} /></label>
+                    <label className="field"><span>مبلغ (تومان)</span><input inputMode="numeric" type="text" placeholder="مثلاً 60,000,000" value={value.amount} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, amount: e.target.value.replace(/[^0-9۰-۹,]/g, "") } : v) }))} /></label>
+                    <label className="field"><span>نام</span><input value={value.ownerFirstName} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, ownerFirstName: e.target.value } : v) }))} /></label>
+                    <label className="field"><span>نام خانوادگی</span><input value={value.ownerLastName} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, ownerLastName: e.target.value } : v) }))} /></label>
                   </div>
                 </div>
               ))}
-              <button type="button" className="ghost-btn small-btn" onClick={addCard}>+ افزودن شماره کارت</button>
+              <button type="button" className="ghost-btn small-btn" onClick={() => setPayment(prev => ({ ...prev, destinations: [...prev.destinations, { cardNumber: "", shebaNumber: "", accountNumber: "", amount: "", ownerFirstName: "", ownerLastName: "" }] }))}>+ افزودن مقصد پرداخت</button>
 
-              {payment.shebas.map((value, index) => (
-                <div className="payment-destination-card" key={"sheba-" + index}>
-                  <div className="payment-destination-title"><strong>مقصد شبا {index + 1}</strong>{index > 0 && <button type="button" className="ghost-btn small-btn" onClick={() => removeSheba(index)}>حذف</button>}</div>
-                  <div className="admin-grid">
-                    <label className="field"><span>شماره شبا</span><input value={value.number ? `IR${String(value.number).replace(/^IR/i, "")}` : "IR"} onChange={(e) => updateSheba(index, "number", e.target.value.replace(/^IR/i, "").replace(/\D/g, ""))} /></label>
-                    <label className="field"><span>مبلغ واریز (تومان)</span><input inputMode="numeric" type="text" placeholder="مثلاً 60,000,000" value={value.amount} onChange={(e) => updateSheba(index, "amount", e.target.value.replace(/[^0-9۰-۹,]/g, ""))} /></label>
-                    <label className="field"><span>نام صاحب شبا</span><input value={value.ownerFirstName} onChange={(e) => updateSheba(index, "ownerFirstName", e.target.value)} /></label>
-                    <label className="field"><span>نام خانوادگی صاحب شبا</span><input value={value.ownerLastName} onChange={(e) => updateSheba(index, "ownerLastName", e.target.value)} /></label>
-                  </div>
-                </div>
-              ))}
-              <button type="button" className="ghost-btn small-btn" onClick={addSheba}>+ افزودن شماره شبا</button>
-
-              <div className="payment-destination-card">
-                <div className="payment-destination-title"><strong>مقصد شماره حساب</strong></div>
-                <div className="admin-grid">
-                  <label className="field"><span>شماره حساب</span><input value={payment.account.number} onChange={(e) => setPayment(prev => ({ ...prev, account: { ...prev.account, number: e.target.value } }))} /></label>
-                  <label className="field"><span>مبلغ واریز (تومان)</span><input inputMode="numeric" type="text" placeholder="مثلاً 60,000,000" value={payment.account.amount} onChange={(e) => setPayment(prev => ({ ...prev, account: { ...prev.account, amount: e.target.value.replace(/[^0-9۰-۹,]/g, "") } }))} /></label>
-                  <label className="field"><span>نام صاحب حساب</span><input value={payment.account.ownerFirstName} onChange={(e) => setPayment(prev => ({ ...prev, account: { ...prev.account, ownerFirstName: e.target.value } }))} /></label>
-                  <label className="field"><span>نام خانوادگی صاحب حساب</span><input value={payment.account.ownerLastName} onChange={(e) => setPayment(prev => ({ ...prev, account: { ...prev.account, ownerLastName: e.target.value } }))} /></label>
-                </div>
-              </div>
               <label className="field"><span>توضیحات پرداخت (اختیاری)</span><textarea className="textarea" rows={2} value={payment.description} onChange={(e) => setPayment({ ...payment, description: e.target.value })} /></label>
               {paymentValidationMessage && (
                 <p className="pay-note" style={{ color: "#B42318", margin: 0 }}>{paymentValidationMessage}</p>
