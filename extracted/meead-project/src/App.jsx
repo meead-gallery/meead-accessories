@@ -803,7 +803,7 @@ p_postal_code: customer.postalCode,
     const { data, error } = await supabase.rpc("approve_high_weight_order", {
       p_order_id: dbId,
       p_payment: {
-        cards: Array.isArray(payment.cards) ? payment.cards.map(v => ({ number: String(v?.number || "").replace(/\D/g, "").slice(0, 16), amount: Number(String(v?.amount || "").replace(/[^0-9]/g, "")) || 0 })).filter(v => v.number) : [],
+        cards: Array.isArray(payment.cards) ? payment.cards.map(v => ({ number: String(v?.number || "").replace(/\D/g, "").slice(0, 16), amount: Number(String(v?.amount || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[^0-9]/g, "")) || 0 })).filter(v => v.number) : [],
         shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => ({ number: String(v?.number || "").replace(/^IR/i, "").replace(/\D/g, "").trim(), amount: Number(String(v?.amount || "").replace(/[^0-9]/g, "")) || 0 })).filter(v => v.number) : [],
         accountNumber: String(payment.accountNumber || "").trim(),
         ownerName: [payment.ownerFirstName, payment.ownerLastName].map(v => String(v || "").trim()).filter(Boolean).join(" "),
@@ -3188,8 +3188,9 @@ function TabPrices({ settings, setSettings, setToast }) {
   const saveAmount = () => { if (Number(finalPrice) > 0) onFinalizeAmount(order.id, finalPrice); };
   const hasPaymentDestination = payment.cards.some(v => String(v.number || "").trim()) || payment.shebas.some(v => String(v.number || "").trim()) || payment.accountNumber.trim();
   const paymentRows = [...payment.cards, ...payment.shebas];
-  const paymentTotal = paymentRows.reduce((sum, item) => sum + (Number(String(item.amount || "").replace(/,/g, "")) || 0), 0);
-  const hasMissingPaymentAmount = paymentRows.some(item => String(item.number || "").trim() && !(Number(String(item.amount || "").replace(/,/g, "")) > 0));
+  const amountValue = (value) => Number(String(value || "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/,/g, "")) || 0;
+  const paymentTotal = paymentRows.reduce((sum, item) => sum + amountValue(item.amount), 0);
+  const hasMissingPaymentAmount = paymentRows.some(item => String(item.number || "").trim() && !(amountValue(item.amount) > 0));
   const paymentTotalMatchesOrder = Math.round(paymentTotal) === Math.round(Number(order.total ?? order.approxTotal ?? 0));
   const ownerName = [payment.ownerFirstName, payment.ownerLastName].map(v => String(v || "").trim()).filter(Boolean).join(" ");
   const paymentValidationMessage = hasMissingPaymentAmount
