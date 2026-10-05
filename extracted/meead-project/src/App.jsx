@@ -259,18 +259,18 @@ createdAt: row.created_at,
   };
 }
 
-function normalizeDigits(value = "") {
+function normalizePaymentDigits(value = "") {
   return String(value || "")
     .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
     .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
 }
 
 function toPersianDigits(value = "") {
-  return normalizeDigits(value).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+  return normalizePaymentDigits(value).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
 }
 
 function formatCardNumber(value = "") {
-  const digits = normalizeDigits(value).replace(/\D/g, "").slice(0, 16);
+  const digits = normalizePaymentDigits(value).replace(/\D/g, "").slice(0, 16);
   return digits.replace(/(.{4})(?=.)/g, "$1-");
 }
 
