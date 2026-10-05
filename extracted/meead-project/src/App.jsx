@@ -2193,13 +2193,14 @@ function TrackOrder({
     setSearched(false);
     setResult(null);
 
-    const normalizeDigits = (value) =>
+    const normalizeTrackDigits = (value) =>
       String(value || "")
         .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+        .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
         .trim();
 
-    const normalizedCode = normalizeDigits(code);
-    const normalizedPhone = normalizeDigits(phone);
+    const normalizedCode = normalizeTrackDigits(code);
+    const normalizedPhone = normalizeTrackDigits(phone);
 
     if (!normalizedCode || !normalizedPhone) {
       setSearched(true);
