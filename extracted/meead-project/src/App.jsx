@@ -3798,140 +3798,119 @@ function TabOrders({ orders, setOrders, setToast }) {
       }}
     >
 
-      {/* Filters */}
+      {/* Order search/filter card */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit, minmax(150px, 1fr))",
-          gap: 8,
-          marginBottom: 10
+          marginBottom: 10,
+          border: "1px solid rgba(25,32,40,.08)",
+          borderRadius: 13,
+          background: "#FFFFFF",
+          boxShadow: "0 3px 12px rgba(25,32,40,.04)",
+          overflow: "hidden"
         }}
       >
-
-        <div style={{ margin: 0 }}>
-          <button
-            type="button"
-            className="ghost-btn small-btn"
-            onClick={() => setSearchOpen((prev) => !prev)}
-            style={{ width: "100%", minHeight: 42, display: "flex", alignItems: "center", justifyContent: "space-between" }}
-          >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-              <Search size={15} />
-              جستجوی سفارش
-            </span>
-            <span>{searchOpen ? "−" : "+"}</span>
-          </button>
-
-          {searchOpen && (
-            <label className="field" style={{ margin: "8px 0 0" }}>
-              <span>کد، نام یا تلفن</span>
-              <input
-                autoFocus
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="کد، نام یا تلفن"
-              />
-            </label>
-          )}
-        </div>
-
-        <label
-          className="field"
-          style={{ margin: 0 }}
+        <button
+          type="button"
+          className="ghost-btn small-btn"
+          onClick={() => setSearchOpen((prev) => !prev)}
+          style={{
+            width: "100%",
+            minHeight: 44,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            border: 0,
+            borderRadius: 0,
+            background: "transparent"
+          }}
         >
-          <span>نوع</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <Search size={15} />
+            جستجوی سفارش
+          </span>
+          <span>{searchOpen ? "−" : "+"}</span>
+        </button>
 
-          <select
-            value={typeFilter}
-            onChange={(e) =>
-              setTypeFilter(e.target.value)
-            }
+        {searchOpen && (
+          <div
+            style={{
+              padding: "0 12px 12px",
+              borderTop: "1px solid rgba(25,32,40,.07)"
+            }}
           >
-            <option value="all">همه</option>
-            <option value="buy">خرید</option>
-            <option value="sell">فروش</option>
-          </select>
-        </label>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                gap: 8,
+                paddingTop: 12
+              }}
+            >
+              <label className="field" style={{ margin: 0 }}>
+                <span>کد، نام یا تلفن</span>
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="کد، نام یا تلفن"
+                />
+              </label>
 
-        <label
-          className="field"
-          style={{ margin: 0 }}
-        >
-          <span>وضعیت</span>
+              <label className="field" style={{ margin: 0 }}>
+                <span>نوع</span>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                >
+                  <option value="all">همه</option>
+                  <option value="buy">خرید</option>
+                  <option value="sell">فروش</option>
+                </select>
+              </label>
 
-          <select
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value)
-            }
-          >
-            <option value="all">همه</option>
+              <label className="field" style={{ margin: 0 }}>
+                <span>وضعیت</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">همه</option>
+                  {allStatuses.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            {allStatuses.map((s) => (
-              <option
-                key={s}
-                value={s}
-              >
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
+              <label className="field" style={{ margin: 0 }}>
+                <span>بازه زمانی</span>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                >
+                  <option value="all">همه سفارش‌ها</option>
+                  <option value="today">امروز</option>
+                  <option value="week">این هفته</option>
+                  <option value="month">این ماه</option>
+                  <option value="custom">انتخاب تاریخ</option>
+                </select>
+              </label>
 
-        <label
-          className="field"
-          style={{ margin: 0 }}
-        >
-          <span>بازه زمانی</span>
-
-          <select
-            value={dateFilter}
-            onChange={(e) =>
-              setDateFilter(e.target.value)
-            }
-          >
-            <option value="all">
-              همه سفارش‌ها
-            </option>
-
-            <option value="today">
-              امروز
-            </option>
-
-            <option value="week">
-              این هفته
-            </option>
-
-            <option value="month">
-              این ماه
-            </option>
-
-            <option value="custom">
-              انتخاب تاریخ
-            </option>
-          </select>
-        </label>
-
+              {dateFilter === "custom" && (
+                <label className="field" style={{ margin: 0 }}>
+                  <span>تاریخ موردنظر</span>
+                  <input
+                    type="date"
+                    value={customDate}
+                    onChange={(e) => setCustomDate(e.target.value)}
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Custom date */}
-      {dateFilter === "custom" && (
-        <label
-          className="field"
-          style={{ marginBottom: 10 }}
-        >
-          <span>تاریخ موردنظر</span>
-
-          <input
-            type="date"
-            value={customDate}
-            onChange={(e) =>
-              setCustomDate(e.target.value)
-            }
-          />
-        </label>
-      )}
 
       {/* Result count */}
       <div
