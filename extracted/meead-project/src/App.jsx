@@ -259,9 +259,18 @@ createdAt: row.created_at,
   };
 }
 
+function formatCardNumber(value = "") {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 16);
+  return digits.replace(/(.{4})(?=.)/g, "$1-");
+}
+
 function getPaymentAccounts(bank = {}) {
-  const cards = Array.isArray(bank.cards) && bank.cards.length ? bank.cards.filter(Boolean) : (bank.cardNumber ? [bank.cardNumber] : []);
-  const shebas = Array.isArray(bank.shebas) && bank.shebas.length ? bank.shebas.filter(Boolean) : (bank.sheba ? [String(bank.sheba).replace(/^IR/i, "")] : []);
+  const cards = Array.isArray(bank.cards) && bank.cards.length
+    ? bank.cards.filter(Boolean).map(formatCardNumber)
+    : (bank.cardNumber ? [formatCardNumber(bank.cardNumber)] : []);
+  const shebas = Array.isArray(bank.shebas) && bank.shebas.length
+    ? bank.shebas.filter(Boolean)
+    : (bank.sheba ? [String(bank.sheba).replace(/^IR/i, "")] : []);
   return { cards, shebas, accountNumber: bank.accountNumber || "", ownerName: bank.ownerName || "", description: bank.description || "" };
 }
 
@@ -790,10 +799,10 @@ p_postal_code: customer.postalCode,
     const { data, error } = await supabase.rpc("approve_high_weight_order", {
       p_order_id: dbId,
       p_payment: {
-        cards: Array.isArray(payment.cards) ? payment.cards.map(v => String(v || "").trim()).filter(Boolean) : [],
+        cards: Array.isArray(payment.cards) ? payment.cards.map(v => String(v || "").replace(/\D/g, "").slice(0, 16)).filter(Boolean) : [],
         shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => String(v || "").replace(/^IR/i, "").trim()).filter(Boolean) : [],
         accountNumber: String(payment.accountNumber || "").trim(),
-        ownerName: String(payment.ownerName || "").trim(),
+        ownerName: [payment.ownerFirstName, payment.ownerLastName].map(v => String(v || "").trim()).filter(Boolean).join(" "),
         description: String(payment.description || "").trim(),
       },
     });
@@ -805,10 +814,10 @@ p_postal_code: customer.postalCode,
     const { data, error } = await supabase.rpc("set_high_weight_payment_info", {
       p_order_id: dbId,
       p_payment: {
-        cards: Array.isArray(payment.cards) ? payment.cards.map(v => String(v || "").trim()).filter(Boolean) : [],
+        cards: Array.isArray(payment.cards) ? payment.cards.map(v => String(v || "").replace(/\D/g, "").slice(0, 16)).filter(Boolean) : [],
         shebas: Array.isArray(payment.shebas) ? payment.shebas.map(v => String(v || "").replace(/^IR/i, "").trim()).filter(Boolean) : [],
         accountNumber: String(payment.accountNumber || "").trim(),
-        ownerName: String(payment.ownerName || "").trim(),
+        ownerName: [payment.ownerFirstName, payment.ownerLastName].map(v => String(v || "").trim()).filter(Boolean).join(" "),
         description: String(payment.description || "").trim(),
       },
     });
@@ -3153,26 +3162,30 @@ function TabPrices({ settings, setSettings, setToast }) {
   const [finalPrice, setFinalPrice] = useState(order.finalPricePerGram ?? order.pricePerGram);
   const [note, setNote] = useState(order.adminNote ?? "");
   const initialPayment = getPaymentAccounts(order.bankSnapshot || {});
+  const initialOwnerParts = String(initialPayment.ownerName || "").trim().split(/\s+/).filter(Boolean);
   const [payment, setPayment] = useState({
     cards: initialPayment.cards.length ? initialPayment.cards : [""],
     shebas: initialPayment.shebas.length ? initialPayment.shebas : [""],
     accountNumber: initialPayment.accountNumber,
-    ownerName: initialPayment.ownerName,
+    ownerFirstName: initialOwnerParts[0] || "",
+    ownerLastName: initialOwnerParts.slice(1).join(" "),
     description: initialPayment.description,
   });
   const [approving, setApproving] = useState(false);
+  const [showExtraPaymentFields, setShowExtraPaymentFields] = useState(false);
   const statuses = order.type === "buy" ? BUY_STATUSES : SELL_STATUSES;
 
   const saveWeight = () => { if (Number(finalWeight) > 0) onRecordWeight(order.id, finalWeight); };
   const saveAmount = () => { if (Number(finalPrice) > 0) onFinalizeAmount(order.id, finalPrice); };
   const hasPaymentDestination = payment.cards.some(v => v.trim()) || payment.shebas.some(v => v.trim()) || payment.accountNumber.trim();
+  const ownerName = [payment.ownerFirstName, payment.ownerLastName].map(v => String(v || "").trim()).filter(Boolean).join(" ");
   const approvePayment = async () => {
-    if (approving || !payment.ownerName.trim() || !hasPaymentDestination) return;
+    if (approving || !ownerName || !hasPaymentDestination) return;
     setApproving(true);
     try { await onApproveHighWeight(order, payment); } finally { setApproving(false); }
   };
   const savePayment = async () => {
-    if (approving || !payment.ownerName.trim() || !hasPaymentDestination) return;
+    if (approving || !ownerName || !hasPaymentDestination) return;
     setApproving(true);
     try { await onSaveHighWeightPayment(order, payment); } finally { setApproving(false); }
   };
@@ -3394,21 +3407,35 @@ function TabPrices({ settings, setSettings, setToast }) {
               <p className="pay-note">این اطلاعات فقط برای همین سفارش ذخیره می‌شود و جایگزین حساب پیش‌فرض سایت نمی‌شود.</p>
               {payment.cards.map((value, index) => (
                 <div className="admin-grid" key={"card-" + index}>
-                  <label className="field"><span>شماره کارت {index + 1}</span><input value={value} onChange={(e) => updateCard(index, e.target.value)} /></label>
-                  <button type="button" className="ghost-btn small-btn" onClick={() => removeCard(index)}>حذف</button>
+                  <label className="field">
+                    <span>شماره کارت</span>
+                    <input inputMode="numeric" maxLength={19} placeholder="0000-0000-0000-0000" value={value} onChange={(e) => updateCard(index, formatCardNumber(e.target.value))} />
+                  </label>
+                  {index > 0 && <button type="button" className="ghost-btn small-btn" onClick={() => removeCard(index)}>حذف</button>}
                 </div>
               ))}
-              <button type="button" className="ghost-btn small-btn" onClick={addCard}>+ افزودن شماره کارت</button>
+              <button type="button" className="ghost-btn small-btn" onClick={() => { addCard(); setShowExtraPaymentFields(true); }}>+ افزودن شماره کارت</button>
+
               {payment.shebas.map((value, index) => (
                 <div className="admin-grid" key={"sheba-" + index}>
-                  <label className="field"><span>شماره شبا {index + 1}</span><input value={value} onChange={(e) => updateSheba(index, e.target.value)} /></label>
-                  <button type="button" className="ghost-btn small-btn" onClick={() => removeSheba(index)}>حذف</button>
+                  <label className="field">
+                    <span>شماره شبا</span>
+                    <input value={value} onChange={(e) => updateSheba(index, e.target.value)} />
+                  </label>
+                  {index > 0 && <button type="button" className="ghost-btn small-btn" onClick={() => removeSheba(index)}>حذف</button>}
                 </div>
               ))}
-              <button type="button" className="ghost-btn small-btn" onClick={addSheba}>+ افزودن شماره شبا</button>
+              <button type="button" className="ghost-btn small-btn" onClick={() => { addSheba(); setShowExtraPaymentFields(true); }}>+ افزودن شماره شبا</button>
+
               <div className="admin-grid">
-                <label className="field"><span>شماره حساب (اختیاری)</span><input value={payment.accountNumber} onChange={(e) => setPayment({ ...payment, accountNumber: e.target.value })} /></label>
-                <label className="field"><span>نام صاحب حساب</span><input value={payment.ownerName} onChange={(e) => setPayment({ ...payment, ownerName: e.target.value })} /></label>
+                <label className="field">
+                  <span>نام</span>
+                  <input value={payment.ownerFirstName} onChange={(e) => setPayment({ ...payment, ownerFirstName: e.target.value })} />
+                </label>
+                <label className="field">
+                  <span>نام خانوادگی</span>
+                  <input value={payment.ownerLastName} onChange={(e) => setPayment({ ...payment, ownerLastName: e.target.value })} />
+                </label>
               </div>
               <label className="field"><span>توضیحات پرداخت (اختیاری)</span><textarea className="textarea" rows={2} value={payment.description} onChange={(e) => setPayment({ ...payment, description: e.target.value })} /></label>
               <button className="primary-btn" onClick={order.status === "در انتظار پرداخت" ? savePayment : approvePayment} disabled={approving}>
