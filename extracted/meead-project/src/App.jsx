@@ -264,6 +264,50 @@ function formatCardNumber(value = "") {
   return digits.replace(/(.{4})(?=.)/g, "$1-");
 }
 
+const PERSIAN_ONES = ["","یک","دو","سه","چهار","پنج","شش","هفت","هشت","نه"];
+const PERSIAN_TEENS = ["ده","یازده","دوازده","سیزده","چهارده","پانزده","شانزده","هفده","هجده","نوزده"];
+const PERSIAN_TENS = ["","","بیست","سی","چهل","پنجاه","شصت","هفتاد","هشتاد","نود"];
+const PERSIAN_HUNDREDS = ["","صد","دویست","سیصد","چهارصد","پانصد","ششصد","هفتصد","هشتصد","نهصد"];
+const PERSIAN_SCALES = ["","هزار","میلیون","میلیارد","تریلیون","کوادریلیون"];
+
+function persianIntegerWords(value) {
+  let n = Math.floor(Math.abs(Number(value) || 0));
+  if (n === 0) return "صفر";
+  const parts = [];
+  const underThousand = (num) => {
+    const words = [];
+    const h = Math.floor(num / 100);
+    const r = num % 100;
+    if (h) words.push(PERSIAN_HUNDREDS[h]);
+    if (r >= 20) {
+      words.push(PERSIAN_TENS[Math.floor(r / 10)]);
+      if (r % 10) words.push(PERSIAN_ONES[r % 10]);
+    } else if (r >= 10) {
+      words.push(PERSIAN_TEENS[r - 10]);
+    } else if (r) {
+      words.push(PERSIAN_ONES[r]);
+    }
+    return words.join(" و ");
+  };
+  let scale = 0;
+  while (n > 0) {
+    const chunk = n % 1000;
+    if (chunk) {
+      const text = underThousand(chunk);
+      parts.unshift(scale ? `${text} ${PERSIAN_SCALES[scale]}` : text);
+    }
+    n = Math.floor(n / 1000);
+    scale += 1;
+  }
+  return parts.join(" و ");
+}
+
+function tomanInWords(value) {
+  const digits = String(value ?? "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/,/g, "").replace(/\D/g, "");
+  if (!digits) return "";
+  return `${persianIntegerWords(Number(digits))} تومان`;
+}
+
 function getPaymentAccounts(bank = {}) {
   const legacyOwnerParts = String(bank.ownerName || "").trim().split(/\s+/).filter(Boolean);
   const legacyOwner = { ownerFirstName: legacyOwnerParts[0] || "", ownerLastName: legacyOwnerParts.slice(1).join(" ") };
@@ -2618,7 +2662,7 @@ function PaymentAccounts({ bank }) {
           {item.cardNumber && <div className="customer-payment-line"><span>شماره کارت:</span><span className="mono">{item.cardNumber}</span><button className="icon-btn" type="button" onClick={() => copy(item.cardNumber, "card-" + i)}>{copied === "card-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
           {item.shebaNumber && <div className="customer-payment-line"><span>شماره شبا:</span><span className="mono">IR{item.shebaNumber}</span><button className="icon-btn" type="button" onClick={() => copy("IR" + item.shebaNumber, "sheba-" + i)}>{copied === "sheba-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
           {item.accountNumber && <div className="customer-payment-line"><span>شماره حساب:</span><span className="mono">{item.accountNumber}</span><button className="icon-btn" type="button" onClick={() => copy(item.accountNumber, "account-" + i)}>{copied === "account-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
-          <div className="customer-payment-line"><span>مبلغ:</span><strong>{toman(item.amount)}</strong></div>
+          <div className="customer-payment-line"><span>مبلغ:</span><strong>{toman(item.amount)}</strong></div>{tomanInWords(item.amount) && <div className="payment-amount-words customer-payment-amount-words">{tomanInWords(item.amount)}</div>}
           <div className="customer-payment-line"><span>نام:</span><span>{item.ownerFirstName}</span></div>
           <div className="customer-payment-line"><span>نام خانوادگی:</span><span>{item.ownerLastName}</span></div>
         </div>
@@ -3435,7 +3479,7 @@ function TabPrices({ settings, setSettings, setToast }) {
                     <label className="field"><span>شماره کارت</span><input inputMode="numeric" maxLength={19} placeholder="0000-0000-0000-0000" value={value.cardNumber} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, cardNumber: formatCardNumber(e.target.value) } : v) }))} /></label>
                     <label className="field"><span>شماره شبا</span><input value={value.shebaNumber ? `IR${String(value.shebaNumber).replace(/^IR/i, "")}` : "IR"} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, shebaNumber: e.target.value.replace(/^IR/i, "").replace(/\D/g, "") } : v) }))} /></label>
                     <label className="field"><span>شماره حساب</span><input value={value.accountNumber} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, accountNumber: e.target.value } : v) }))} /></label>
-                    <label className="field"><span>مبلغ (تومان)</span><input inputMode="numeric" type="text" placeholder="مثلاً 60,000,000" value={value.amount} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, amount: e.target.value.replace(/[^0-9۰-۹,]/g, "") } : v) }))} /></label>
+                    <label className="field"><span>مبلغ (تومان)</span><input inputMode="numeric" type="text" placeholder="مثلاً 60,000,000" value={value.amount} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, amount: e.target.value.replace(/[^0-9۰-۹,]/g, "") } : v) }))} />{tomanInWords(value.amount) && <small className="payment-amount-words">{tomanInWords(value.amount)}</small>}</label>
                     <label className="field"><span>نام</span><input value={value.ownerFirstName} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, ownerFirstName: e.target.value } : v) }))} /></label>
                     <label className="field"><span>نام خانوادگی</span><input value={value.ownerLastName} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, ownerLastName: e.target.value } : v) }))} /></label>
                   </div>
@@ -4834,6 +4878,8 @@ function GlobalStyles() {
       .customer-payment-destination { display:flex; flex-direction:column; gap:7px; margin-top:10px; padding:12px 13px; border:1px solid rgba(169,128,58,.22); border-radius:12px; background:linear-gradient(180deg,#fff 0%,#faf9f6 100%); box-shadow:0 3px 12px rgba(25,32,40,.05); }
       .customer-payment-destination-head { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#303840; font-size:12px; }
       .customer-payment-number { font-size:15px; font-weight:800; letter-spacing:.3px; word-break:break-all; }
+      .payment-amount-words { display:block; margin-top:5px; color:#69737d; font-size:11px; line-height:1.8; font-weight:600; }
+      .customer-payment-amount-words { padding:2px 0 6px; }
       .customer-payment-line { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:8px; padding:5px 0; font-size:12px; }
       .customer-payment-line > span:first-child { color:#66717c; }
       .customer-payment-line .mono { text-align:left; font-weight:700; word-break:break-all; }
