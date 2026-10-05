@@ -4140,7 +4140,7 @@ function TabSettings({ settings, setSettings, setToast }) {
     <div className="admin-section" style={{ borderTop: "none", paddingTop: 0 }}>
       <h3>قفل قیمت و اعتبار فروش</h3>
       <div className="admin-grid">
-        <label className="field"><span>مدت قفل قیمت (دقیقه)</span>
+        <label className="field"><span>مدت اعتبار قیمت پس از ثبت سفارش (دقیقه)</span>
           <select value={lockMinutes} onChange={(e) => setLockMinutes(e.target.value)}>
             {[2, 3, 5, 10].map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
