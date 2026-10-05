@@ -3172,7 +3172,6 @@ function TabPrices({ settings, setSettings, setToast }) {
     description: initialPayment.description,
   });
   const [approving, setApproving] = useState(false);
-  const [showExtraPaymentFields, setShowExtraPaymentFields] = useState(false);
   const statuses = order.type === "buy" ? BUY_STATUSES : SELL_STATUSES;
 
   const saveWeight = () => { if (Number(finalWeight) > 0) onRecordWeight(order.id, finalWeight); };
@@ -3414,7 +3413,7 @@ function TabPrices({ settings, setSettings, setToast }) {
                   {index > 0 && <button type="button" className="ghost-btn small-btn" onClick={() => removeCard(index)}>حذف</button>}
                 </div>
               ))}
-              <button type="button" className="ghost-btn small-btn" onClick={() => { addCard(); setShowExtraPaymentFields(true); }}>+ افزودن شماره کارت</button>
+              <button type="button" className="ghost-btn small-btn" onClick={addCard}>+ افزودن شماره کارت</button>
 
               {payment.shebas.map((value, index) => (
                 <div className="admin-grid" key={"sheba-" + index}>
@@ -3425,7 +3424,7 @@ function TabPrices({ settings, setSettings, setToast }) {
                   {index > 0 && <button type="button" className="ghost-btn small-btn" onClick={() => removeSheba(index)}>حذف</button>}
                 </div>
               ))}
-              <button type="button" className="ghost-btn small-btn" onClick={() => { addSheba(); setShowExtraPaymentFields(true); }}>+ افزودن شماره شبا</button>
+              <button type="button" className="ghost-btn small-btn" onClick={addSheba}>+ افزودن شماره شبا</button>
 
               <div className="admin-grid">
                 <label className="field">
