@@ -1524,7 +1524,7 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     <BrandMark size={54} />
     <div className="brand-text">
       <span className="brand-name">MEEAD ACCESSORIES</span>
-      <span className="brand-sub">معاملات فلزات گران‌بها</span>
+      <span className="brand-sub">خرید و فروش تخصصی ساچمه نقره</span>
     </div>
   </div>
   <button
