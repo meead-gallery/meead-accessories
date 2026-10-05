@@ -1600,7 +1600,9 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
         )}
 
         {view === "buy-payment" && lastOrder && (
-          <BuyPayment order={lastOrder} onAttachReceipt={(f) => attachReceipt(lastOrder, f)} onDone={() => setView("home")} setToast={setToast} />
+          lastOrder.type === "buy" && Number(lastOrder.weight) > Number(settings.highWeightThreshold)
+            ? <BuyAwaitingApproval order={lastOrder} onDone={() => setView("home")} />
+            : <BuyPayment order={lastOrder} onAttachReceipt={(f) => attachReceipt(lastOrder, f)} onDone={() => setView("home")} setToast={setToast} />
         )}
 
         {view === "sell-submitted" && lastOrder && (
