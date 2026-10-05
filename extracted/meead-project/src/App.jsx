@@ -2549,9 +2549,44 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
 
 /* ------------------------------- Buy payment ------------------------------- */
 
+function PaymentAccounts({ bank }) {
+  const { cards, shebas, accountNumber, ownerName, description } = getPaymentAccounts(bank || {});
+  const [copied, setCopied] = useState("");
+  const copy = async (value, key) => {
+    try {
+      await navigator.clipboard.writeText(String(value));
+      setCopied(key);
+      setTimeout(() => setCopied(""), 1500);
+    } catch {}
+  };
+  if (!cards.length && !shebas.length && !accountNumber) return null;
+  return (
+    <div className="pay-box" style={{ marginTop: 10 }}>
+      <span className="pay-label">اطلاعات واریز وجه</span>
+      {cards.map((card, i) => (
+        <div className="card-number-row" key={"payment-card-" + i}>
+          <span className="mono card-number">{card}</span>
+          <button className="icon-btn" type="button" onClick={() => copy(card, "card-" + i)}>
+            {copied === "card-" + i ? <Check size={16} /> : <Copy size={16} />}
+          </button>
+        </div>
+      ))}
+      {shebas.map((sheba, i) => (
+        <div className="card-number-row" key={"payment-sheba-" + i}>
+          <span className="mono card-number">IR{sheba}</span>
+          <button className="icon-btn" type="button" onClick={() => copy("IR" + sheba, "sheba-" + i)}>
+            {copied === "sheba-" + i ? <Check size={16} /> : <Copy size={16} />}
+          </button>
+        </div>
+      ))}
+      {accountNumber && <div className="address-box mono">{accountNumber}</div>}
+      {ownerName && <span className="pay-label">به نام: {ownerName}</span>}
+      {description && <p className="pay-note" style={{ marginBottom: 0 }}>{description}</p>}
+    </div>
+  );
+}
 
-
-    function BuyAwaitingApproval({ order, onDone }) {
+function BuyAwaitingApproval({ order, onDone }) {
   return (
     <div className="panel confirm">
       <div className="confirm-icon">
@@ -2569,10 +2604,13 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
           <span className="mono">{toman(order.total)}</span>
         </div>
       </div>
-      <div className="pay-box">
+      <div className="pay-box" style={{ marginTop: 12, textAlign: "center" }}>
+        <div className="confirm-icon" style={{ width: 54, height: 54, margin: "0 auto 10px" }}>
+          <Clock size={28} />
+        </div>
+        <strong style={{ display: "block", marginBottom: 8 }}>مرحله بعدی سفارش شما</strong>
         <p className="pay-note" style={{ margin: 0 }}>
-          پس از تأیید سفارش توسط کارشناس فروش، اطلاعات پرداخت برای شما پیامک خواهد شد.
-          لطفاً تا دریافت پیامک از واریز وجه خودداری فرمایید.
+          پس از تأیید سفارش شما توسط کارشناس مربوطه، می‌توانید از طریق «پیگیری سفارش» داخل سایت، اطلاعات حساب مقصد را دریافت و وجه سفارش را واریز کنید.
         </p>
       </div>
       <button className="primary-btn" onClick={onDone}>
