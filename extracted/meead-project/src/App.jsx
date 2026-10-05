@@ -2656,28 +2656,50 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
 
 function PaymentAccounts({ bank }) {
   const { cards, shebas, account, destinations: savedDestinations, description } = getPaymentAccounts(bank || {});
-  const destinations = savedDestinations.length ? savedDestinations : [
-    ...cards.map((v) => ({ cardNumber: v.number, shebaNumber: "", accountNumber: "", amount: v.amount, ownerFirstName: v.ownerFirstName, ownerLastName: v.ownerLastName })),
-    ...shebas.map((v) => ({ cardNumber: "", shebaNumber: v.number, accountNumber: "", amount: v.amount, ownerFirstName: v.ownerFirstName, ownerLastName: v.ownerLastName })),
-    ...(account?.number ? [{ cardNumber: "", shebaNumber: "", accountNumber: account.number, amount: account.amount, ownerFirstName: account.ownerFirstName, ownerLastName: account.ownerLastName }] : [])
-  ];
   const [copied, setCopied] = useState("");
   const copy = async (value, key) => { try { await navigator.clipboard.writeText(String(value)); setCopied(key); setTimeout(() => setCopied(""), 1500); } catch {} };
-  if (!destinations.length) return null;
+
+  // سفارش‌های مبلغ بالا مقصدهای پرداخت اختصاصی دارند و باید همان ساختار چندمقصدی نمایش داده شود.
+  if (savedDestinations.length) {
+    return (
+      <div className="pay-box" style={{ marginTop: 10 }}>
+        <span className="pay-label">اطلاعات حساب برای پرداخت وجه توسط مشتری</span>
+        {savedDestinations.map((item, i) => (
+          <div className="customer-payment-destination" key={"payment-destination-" + i}>
+            <div className="customer-payment-destination-head"><strong>مقصد پرداخت {i + 1}</strong></div>
+            {item.cardNumber && <div className="customer-payment-line"><span>شماره کارت:</span><span className="mono">{toPersianDigits(item.cardNumber)}</span><button className="icon-btn" type="button" onClick={() => copy(item.cardNumber, "card-" + i)}>{copied === "card-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+            {item.shebaNumber && <div className="customer-payment-line"><span>شماره شبا:</span><span className="mono">IR{toPersianDigits(item.shebaNumber)}</span><button className="icon-btn" type="button" onClick={() => copy("IR" + item.shebaNumber, "sheba-" + i)}>{copied === "sheba-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+            {item.accountNumber && <div className="customer-payment-line"><span>شماره حساب:</span><span className="mono">{toPersianDigits(item.accountNumber)}</span><button className="icon-btn" type="button" onClick={() => copy(item.accountNumber, "account-" + i)}>{copied === "account-" + i ? <Check size={16} /> : <Copy size={16} /></button></div>}
+            <div className="customer-payment-line"><span>مبلغ:</span><strong>{toPersianDigits(toman(item.amount))}</strong></div>
+            {tomanInWords(item.amount) && <div className="payment-amount-words customer-payment-amount-words">{toPersianDigits(tomanInWords(item.amount))}</div>}
+            <div className="customer-payment-line"><span>نام:</span><span>{item.ownerFirstName}</span></div>
+            <div className="customer-payment-line"><span>نام خانوادگی:</span><span>{item.ownerLastName}</span></div>
+          </div>
+        ))}
+        {description && <p className="pay-note" style={{ marginBottom: 0 }}>{description}</p>}
+      </div>
+    );
+  }
+
+  // سفارش‌های عادی: شماره کارت و شبا/حساب پیش‌فرض را در یک کادر واحد نمایش می‌دهیم.
+  const defaultCard = cards[0];
+  const defaultSheba = shebas[0];
+  const defaultAccount = account?.number ? account : null;
+  if (!defaultCard?.number && !defaultSheba?.number && !defaultAccount?.number) return null;
+
+  const ownerFirstName = defaultCard?.ownerFirstName || defaultSheba?.ownerFirstName || defaultAccount?.ownerFirstName || "";
+  const ownerLastName = defaultCard?.ownerLastName || defaultSheba?.ownerLastName || defaultAccount?.ownerLastName || "";
+
   return (
     <div className="pay-box" style={{ marginTop: 10 }}>
       <span className="pay-label">اطلاعات حساب برای پرداخت وجه توسط مشتری</span>
-      {destinations.map((item, i) => (
-        <div className="customer-payment-destination" key={"payment-destination-" + i}>
-          <div className="customer-payment-destination-head"><strong>مقصد پرداخت {i + 1}</strong></div>
-          {item.cardNumber && <div className="customer-payment-line"><span>شماره کارت:</span><span className="mono">{toPersianDigits(item.cardNumber)}</span><button className="icon-btn" type="button" onClick={() => copy(item.cardNumber, "card-" + i)}>{copied === "card-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
-          {item.shebaNumber && <div className="customer-payment-line"><span>شماره شبا:</span><span className="mono">IR{toPersianDigits(item.shebaNumber)}</span><button className="icon-btn" type="button" onClick={() => copy("IR" + item.shebaNumber, "sheba-" + i)}>{copied === "sheba-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
-          {item.accountNumber && <div className="customer-payment-line"><span>شماره حساب:</span><span className="mono">{toPersianDigits(item.accountNumber)}</span><button className="icon-btn" type="button" onClick={() => copy(item.accountNumber, "account-" + i)}>{copied === "account-" + i ? <Check size={16} /> : <Copy size={16} />}</button></div>}
-          <div className="customer-payment-line"><span>مبلغ:</span><strong>{toPersianDigits(toman(item.amount))}</strong></div>{tomanInWords(item.amount) && <div className="payment-amount-words customer-payment-amount-words">{toPersianDigits(tomanInWords(item.amount))}</div>}
-          <div className="customer-payment-line"><span>نام:</span><span>{item.ownerFirstName}</span></div>
-          <div className="customer-payment-line"><span>نام خانوادگی:</span><span>{item.ownerLastName}</span></div>
-        </div>
-      ))}
+      <div className="customer-payment-destination">
+        {defaultCard?.number && <div className="customer-payment-line"><span>شماره کارت:</span><span className="mono">{toPersianDigits(defaultCard.number)}</span><button className="icon-btn" type="button" onClick={() => copy(defaultCard.number, "default-card")}>{copied === "default-card" ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+        {defaultSheba?.number && <div className="customer-payment-line"><span>شماره شبا:</span><span className="mono">IR{toPersianDigits(defaultSheba.number)}</span><button className="icon-btn" type="button" onClick={() => copy("IR" + defaultSheba.number, "default-sheba")}>{copied === "default-sheba" ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+        {defaultAccount?.number && <div className="customer-payment-line"><span>شماره حساب:</span><span className="mono">{toPersianDigits(defaultAccount.number)}</span><button className="icon-btn" type="button" onClick={() => copy(defaultAccount.number, "default-account")}>{copied === "default-account" ? <Check size={16} /> : <Copy size={16} />}</button></div>}
+        <div className="customer-payment-line"><span>نام:</span><span>{ownerFirstName}</span></div>
+        <div className="customer-payment-line"><span>نام خانوادگی:</span><span>{ownerLastName}</span></div>
+      </div>
       {description && <p className="pay-note" style={{ marginBottom: 0 }}>{description}</p>}
     </div>
   );
