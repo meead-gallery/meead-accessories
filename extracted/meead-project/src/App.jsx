@@ -3419,7 +3419,7 @@ function TabPrices({ settings, setSettings, setToast }) {
                 <div className="admin-grid" key={"sheba-" + index}>
                   <label className="field">
                     <span>شماره شبا</span>
-                    <input value={value} onChange={(e) => updateSheba(index, e.target.value)} />
+                    <input value={value ? `IR${String(value).replace(/^IR/i, "")}` : "IR"} onChange={(e) => updateSheba(index, e.target.value.replace(/^IR/i, "").replace(/\D/g, ""))} />
                   </label>
                   {index > 0 && <button type="button" className="ghost-btn small-btn" onClick={() => removeSheba(index)}>حذف</button>}
                 </div>
