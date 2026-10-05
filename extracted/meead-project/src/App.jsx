@@ -2568,7 +2568,7 @@ function OrderSummary({ quote, product, productTitle, weight, customer, total, n
 
       <div className="confirm-summary">
         <div className="calc-row"><span>محصول</span><span>{productTitle}</span></div>
-        <div className="calc-row"><span>عیار</span><span className="mono">{product ? PRODUCTS.find((p) => p.key === quote.purityKey)?.purityLabel : ""}</span></div>
+        <div className="calc-row"><span>عیار</span><span className="mono">{product ? toPersianDigits(PRODUCTS.find((p) => p.key === quote.purityKey)?.purityLabel || "") : ""}</span></div>
         <div className="calc-row"><span>وزن</span><span className="mono">{toPersianDigits(weight)} گرم</span></div>
         <div className="calc-row"><span>قیمت هر گرم</span><span className="mono">{toman(quote.pricePerGram)}</span></div>
         <div className="calc-row total">
