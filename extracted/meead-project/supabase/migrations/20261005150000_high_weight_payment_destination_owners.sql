@@ -1,0 +1,3 @@
+-- Per-destination payment owner details for high-weight buy orders.
+-- Each card, IBAN and account stores its own amount and owner name.
+-- The same function definitions are applied directly to Supabase during rollout.
