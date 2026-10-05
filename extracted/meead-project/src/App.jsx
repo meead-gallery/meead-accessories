@@ -2214,9 +2214,12 @@ function TrackOrder({
             )}
           </div>
 
-          {result.type === "buy" && result.status === "در انتظار پرداخت" && result.bankSnapshot && (
-            <PaymentAccounts bank={result.bankSnapshot} />
-          )}
+          {result.type === "buy" &&
+            result.status === "در انتظار پرداخت" &&
+            result.bankSnapshot &&
+            (Array.isArray(result.bankSnapshot.cards) || Array.isArray(result.bankSnapshot.shebas)) && (
+              <PaymentAccounts bank={result.bankSnapshot} />
+            )}
 
           {result.type === "buy" &&
             ["در انتظار پرداخت", "در انتظار تأیید پرداخت"].includes(result.status) &&
