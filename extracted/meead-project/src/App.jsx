@@ -3234,8 +3234,14 @@ function TabPrices({ settings, setSettings, setToast }) {
   const paymentTotal = paymentRows.reduce((sum, item) => sum + amountValue(item.amount), 0);
   const hasMissingPaymentAmount = paymentRows.some(item => !(amountValue(item.amount) > 0));
   const hasMissingPaymentOwner = paymentRows.some(item => !String(item.ownerFirstName || "").trim() || !String(item.ownerLastName || "").trim());
+  const hasInvalidSheba = paymentRows.some(item => {
+    const sheba = String(item.shebaNumber || "").replace(/^IR/i, "").replace(/\D/g, "");
+    return sheba.length > 0 && sheba.length !== 24;
+  });
   const paymentTotalMatchesOrder = Math.round(paymentTotal) === Math.round(Number(order.total ?? order.approxTotal ?? 0));
-  const paymentValidationMessage = hasMissingPaymentOwner
+  const paymentValidationMessage = hasInvalidSheba
+    ? "شماره شبا باید دقیقاً ۲۴ رقم باشد."
+    : hasMissingPaymentOwner
     ? "برای هر مقصد پرداخت، نام و نام خانوادگی صاحب حساب را وارد کنید."
     : hasMissingPaymentAmount
       ? "برای هر مقصد پرداخت، مبلغ واریز را وارد کنید."
@@ -3477,7 +3483,7 @@ function TabPrices({ settings, setSettings, setToast }) {
                   </div>
                   <div className="admin-grid">
                     <label className="field"><span>شماره کارت</span><input inputMode="numeric" maxLength={19} placeholder="0000-0000-0000-0000" value={value.cardNumber} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, cardNumber: formatCardNumber(e.target.value) } : v) }))} /></label>
-                    <label className="field"><span>شماره شبا</span><input value={value.shebaNumber ? `IR${String(value.shebaNumber).replace(/^IR/i, "")}` : "IR"} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, shebaNumber: e.target.value.replace(/^IR/i, "").replace(/\D/g, "") } : v) }))} /></label>
+                    <label className="field"><span>شماره شبا</span><input inputMode="numeric" maxLength={26} value={value.shebaNumber ? `IR${String(value.shebaNumber).replace(/^IR/i, "")}` : "IR"} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, shebaNumber: e.target.value.replace(/^IR/i, "").replace(/\D/g, "") } : v) }))} /></label>
                     <label className="field"><span>شماره حساب</span><input value={value.accountNumber} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, accountNumber: e.target.value } : v) }))} /></label>
                     <label className="field"><span>مبلغ (تومان)</span><input inputMode="numeric" type="text" placeholder="مثلاً 60,000,000" value={value.amount} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, amount: e.target.value.replace(/[^0-9۰-۹,]/g, "") } : v) }))} />{tomanInWords(value.amount) && <small className="payment-amount-words">{tomanInWords(value.amount)}</small>}</label>
                     <label className="field"><span>نام</span><input value={value.ownerFirstName} onChange={(e) => setPayment(prev => ({ ...prev, destinations: prev.destinations.map((v, i) => i === index ? { ...v, ownerFirstName: e.target.value } : v) }))} /></label>
