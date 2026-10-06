@@ -22,7 +22,12 @@ async function yahoo(symbol: string): Promise<Bar[]> {
   url.searchParams.set("interval", "1d");
   url.searchParams.set("events", "history");
   const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) throw new Error(`Yahoo ${symbol}: HTTP ${res.status}`);
+  if (!res.ok) {
+    if (symbol === "GC=F" || symbol === "SI=F") {
+      return await goldApi(symbol === "GC=F" ? "XAU" : "XAG");
+    }
+    throw new Error(`Yahoo ${symbol}: HTTP ${res.status}`);
+  }
   const json = await res.json();
   const result = json?.chart?.result?.[0];
   const closes = result?.indicators?.quote?.[0]?.close || [];
