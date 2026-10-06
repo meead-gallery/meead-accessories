@@ -14,7 +14,7 @@ create index if not exists orders_receipt_deadline_idx
 create or replace function public.set_buy_receipt_deadline()
 returns trigger
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $function$
 begin
