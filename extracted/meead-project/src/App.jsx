@@ -246,7 +246,7 @@ city: row.city || "",
 address: row.address || "",
 postalCode: row.postal_code || "",
 createdAt: row.created_at,
-    lockExpiresAt: row.lock_expires_at, sellValidUntil: row.sell_valid_until,
+    lockExpiresAt: row.lock_expires_at, receiptDeadlineAt: row.receipt_deadline_at, sellValidUntil: row.sell_valid_until,
     bankSnapshot: row.bank_snapshot || null,
     requiresPaymentApproval: row.requiresPaymentApproval === true || row.requires_payment_approval === true,
     receiptPath: row.receipt_url || null,
@@ -351,6 +351,7 @@ function mapSettings(publicData) {
     priceLockMinutes: Number(system.priceLockMinutes ?? 5),
     sellValidityDays: Number(system.sellValidityDays ?? 3),
     sellAddress: system.sellAddress ?? "",
+    highWeightThreshold: Number(system.highWeightThreshold ?? DEFAULT_SETTINGS.highWeightThreshold),
     lastPriceUpdate: system.lastPriceUpdate ?? null ,
     support: {
 
@@ -472,8 +473,10 @@ p_postal_code: customer.postalCode,
     if (!data?.ok) return data || {ok:false, reason:"ثبت سفارش ناموفق بود"};
     const row = data.order || data;
     const order = mapOrder(row, []);
+    const trackedOrder = await api.findOrder(order.id, customer.phone).catch(() => null);
+    const finalOrder = trackedOrder || order;
     const pub = await publicSettings().catch(()=>null);
-    return { ok:true, order, orders:[], settings:mapSettings(pub || {}) };
+    return { ok:true, order: finalOrder, orders:[], settings:mapSettings(pub || {}) };
   },
   async attachReceipt(order, file, onProgress) {
   try {
@@ -505,6 +508,8 @@ p_postal_code: customer.postalCode,
         order_not_found: "سفارش پیدا نشد",
         receipt_not_allowed: "ارسال رسید برای این سفارش مجاز نیست",
         order_closed: "این سفارش بسته شده است",
+        order_expired: "مهلت ۳۰ دقیقه‌ای ارسال فیش به پایان رسیده و سفارش منقضی شده است.",
+        price_changed: "نرخ خرید تغییر کرده و سفارش قبل از ارسال فیش منقضی شده است.",
         storage_upload_error: "ذخیره فایل در فضای رسیدها با خطای سرور مواجه شد",
         receipt_update_error: "فایل ذخیره شد اما ثبت رسید روی سفارش ناموفق بود",
         order_lookup_error: "بررسی سفارش در سرور ناموفق بود",
@@ -2296,6 +2301,10 @@ function TrackOrder({
 
           {result.type === "buy" &&
             result.status === "در انتظار پرداخت" &&
+            <ReceiptDeadlineNotice deadline={result.receiptDeadlineAt} />}
+
+          {result.type === "buy" &&
+            result.status === "در انتظار پرداخت" &&
             result.bankSnapshot &&
             (Array.isArray(result.bankSnapshot.cards) || Array.isArray(result.bankSnapshot.shebas)) && (
               <PaymentAccounts bank={result.bankSnapshot} />
@@ -2742,6 +2751,53 @@ function BuyAwaitingApproval({ order, onDone }) {
 
 /* ------------------------------- Buy payment ------------------------------- */
 
+function ReceiptDeadlineNotice({ deadline }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!deadline) return undefined;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [deadline]);
+
+  if (!deadline) return null;
+
+  const remain = Math.max(0, Math.floor((new Date(deadline).getTime() - now) / 1000));
+  const mm = String(Math.floor(remain / 60)).padStart(2, "0");
+  const ss = String(remain % 60).padStart(2, "0");
+  const expired = remain <= 0;
+
+  return (
+    <div
+      className="receipt-deadline-warning"
+      style={{
+        marginTop: 10,
+        padding: "11px 12px",
+        borderRadius: 11,
+        background: expired ? "rgba(214,72,63,.08)" : "rgba(169,128,58,.10)",
+        border: expired ? "1px solid rgba(214,72,63,.25)" : "1px solid rgba(169,128,58,.24)",
+        color: expired ? "#B23A31" : "#665532",
+        fontSize: 12,
+        lineHeight: 1.9,
+        textAlign: "right",
+      }}
+    >
+      <strong style={{ display: "block", marginBottom: 3 }}>
+        ⚠️ توجه: سفارش شما تا زمان ارسال عکس فیش قطعی نیست.
+      </strong>
+      {expired ? (
+        <span>مهلت ارسال فیش به پایان رسیده و سفارش شما منقضی شده است.</span>
+      ) : (
+        <span>
+          لطفاً حداکثر تا <strong>۳۰ دقیقه</strong> پس از در اختیار قرار گرفتن اطلاعات پرداخت، تصویر فیش را ارسال کنید.
+          <br />
+          زمان باقی‌مانده: <span className="mono" style={{ fontWeight: 900 }}>{mm}:{ss}</span>
+        </span>
+      )}
+    </div>
+  );
+}
+
 function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -2866,6 +2922,8 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
         </span>
 
         <PaymentAccounts bank={bank} />
+
+        <ReceiptDeadlineNotice deadline={order.receiptDeadlineAt} />
 
         {!getPaymentAccounts(bank).cards.length && !getPaymentAccounts(bank).shebas.length && !getPaymentAccounts(bank).accountNumber && (
           <p className="pay-note">اطلاعات واریز هنوز برای این سفارش ثبت نشده است.</p>
