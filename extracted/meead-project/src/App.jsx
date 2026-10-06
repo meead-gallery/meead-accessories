@@ -559,6 +559,10 @@ p_postal_code: customer.postalCode,
           data?.receiptPath ||
           order.receiptPath ||
           null,
+        receiptDeadlineAt:
+          data?.receiptDeadlineAt ||
+          order.receiptDeadlineAt ||
+          null,
       },
       orders: [],
     };
@@ -651,6 +655,7 @@ p_postal_code: customer.postalCode,
     address: o.address || "",
     createdAt: o.created_at,
     lockExpiresAt: o.lock_expires_at,
+    receiptDeadlineAt: o.receipt_deadline_at,
     sellValidUntil: o.sell_valid_until,
     bankSnapshot: o.bank_snapshot || null,
     receiptPath: o.receipt_url || null,
