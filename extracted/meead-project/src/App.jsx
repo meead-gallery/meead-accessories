@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
   Lock, Unlock, Copy, Check, CheckCircle2, X, ChevronRight,
-  Search, Clock, Upload, Users, Settings as SettingsIcon, Database,
+  Search, Clock, Upload, Users, Settings as SettingsIcon, Database, FileText,
   AlertTriangle, TrendingUp, TrendingDown, Package, History, LayoutDashboard,Headphones,Phone, PhoneCall,
   ShieldAlert ,
 } from "lucide-react";
