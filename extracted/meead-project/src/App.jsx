@@ -226,7 +226,7 @@ function mapProduct(row, history = []) {
   };
 }
 
-function mapOrder(row, histories = []) {
+function mapOrder(row, histories = [], fallbackReceiptDeadlineMinutes = DEFAULT_SETTINGS.receiptDeadlineMinutes) {
   if (!row) return null;
   const history = histories
     .filter(h => Number(h.order_id) === Number(row.id))
@@ -251,7 +251,7 @@ createdAt: row.created_at,
     receiptDeadlineAt:
       row.receipt_deadline_at ||
       (row.type === "buy" && row.status === "در انتظار پرداخت" && row.created_at
-        ? new Date(new Date(row.created_at).getTime() + 30 * 60 * 1000).toISOString()
+        ? new Date(new Date(row.created_at).getTime() + Number(fallbackReceiptDeadlineMinutes || 30) * 60 * 1000).toISOString()
         : null),
     sellValidUntil: row.sell_valid_until,
     bankSnapshot: row.bank_snapshot || null,
@@ -426,7 +426,7 @@ support: {
 }
   });
   const orders = await Promise.all((ordersRes.data || []).map(async (r) => {
-  const order = mapOrder(r, orderHistoriesRes.data || []);
+  const order = mapOrder(r, orderHistoriesRes.data || [], settings.receiptDeadlineMinutes);
   if (order) {
     order.requiresPaymentApproval = order.type === "buy" && order.weight > settings.highWeightThreshold;
   }
@@ -481,11 +481,12 @@ p_postal_code: customer.postalCode,
     if (error) return { ok:false, reason:error.message || "ثبت سفارش ناموفق بود" };
     if (!data?.ok) return data || {ok:false, reason:"ثبت سفارش ناموفق بود"};
     const row = data.order || data;
-    const order = mapOrder(row, []);
+    const pub = await publicSettings().catch(()=>null);
+    const pubSettings = mapSettings(pub || {});
+    const order = mapOrder(row, [], pubSettings.receiptDeadlineMinutes);
     const trackedOrder = await api.findOrder(order.id, customer.phone).catch(() => null);
     const finalOrder = trackedOrder || order;
-    const pub = await publicSettings().catch(()=>null);
-    return { ok:true, order: finalOrder, orders:[], settings:mapSettings(pub || {}) };
+    return { ok:true, order: finalOrder, orders:[], settings:pubSettings };
   },
   async attachReceipt(order, file, onProgress) {
   try {
@@ -517,7 +518,7 @@ p_postal_code: customer.postalCode,
         order_not_found: "سفارش پیدا نشد",
         receipt_not_allowed: "ارسال رسید برای این سفارش مجاز نیست",
         order_closed: "این سفارش بسته شده است",
-        order_expired: "مهلت ۳۰ دقیقه‌ای ارسال فیش به پایان رسیده و سفارش منقضی شده است.",
+        order_expired: "مهلت ارسال فیش به پایان رسیده و سفارش منقضی شده است.",
         price_changed: "نرخ خرید تغییر کرده و سفارش قبل از ارسال فیش منقضی شده است.",
         storage_upload_error: "ذخیره فایل در فضای رسیدها با خطای سرور مواجه شد",
         receipt_update_error: "فایل ذخیره شد اما ثبت رسید روی سفارش ناموفق بود",
@@ -2326,7 +2327,7 @@ function TrackOrder({
             <ReceiptDeadlineNotice deadline={result.receiptDeadlineAt} />}
 
           {result.status === "لغو شد" &&
-            /پایان مهلت ۳۰ دقیقه‌ای|تغییر نرخ خرید/.test(String(result.adminNote || "")) && (
+            /پایان مهلت .*دقیقه‌ای|پایان مهلت ارسال فیش|تغییر نرخ خرید/.test(String(result.adminNote || "")) && (
               <div
                 style={{
                   marginTop: 10,
