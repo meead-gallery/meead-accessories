@@ -2314,6 +2314,28 @@ function TrackOrder({
             result.status === "در انتظار پرداخت" &&
             <ReceiptDeadlineNotice deadline={result.receiptDeadlineAt} />}
 
+          {result.status === "لغو شد" &&
+            /پایان مهلت ۳۰ دقیقه‌ای|تغییر نرخ خرید/.test(String(result.adminNote || "")) && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: "11px 12px",
+                  borderRadius: 11,
+                  background: "rgba(214,72,63,.08)",
+                  border: "1px solid rgba(214,72,63,.25)",
+                  color: "#B23A31",
+                  fontSize: 12,
+                  lineHeight: 1.9,
+                  textAlign: "right",
+                }}
+              >
+                <strong style={{ display: "block", marginBottom: 3 }}>
+                  ⚠️ دلیل لغو سفارش
+                </strong>
+                <span>{result.adminNote}</span>
+              </div>
+            )}
+
           {result.type === "buy" &&
             result.status === "در انتظار پرداخت" &&
             result.bankSnapshot &&
