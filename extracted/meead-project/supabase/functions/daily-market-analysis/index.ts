@@ -5,6 +5,17 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 type Bar = { close: number };
 
+type SourceResult = { bars: Bar[]; source: "Yahoo Finance" | "Gold API" };
+
+async function goldApi(symbol: "XAU" | "XAG"): Promise<Bar[]> {
+  const res = await fetch("https://api.gold-api.com/price/" + symbol);
+  if (!res.ok) throw new Error("Gold API " + symbol + ": HTTP " + res.status);
+  const json = await res.json();
+  const price = Number(json?.price);
+  if (!Number.isFinite(price) || price <= 0) throw new Error("Gold API invalid price");
+  return [{ close: price }];
+}
+
 async function yahoo(symbol: string): Promise<Bar[]> {
   const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
   url.searchParams.set("range", "3mo");
