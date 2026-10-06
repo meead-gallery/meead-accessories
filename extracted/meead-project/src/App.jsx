@@ -2796,7 +2796,7 @@ function BuyAwaitingApproval({ order, onDone }) {
 
 /* ------------------------------- Buy payment ------------------------------- */
 
-function ReceiptDeadlineNotice({ deadline, onExpired }) {
+function ReceiptDeadlineNotice({ deadline }) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -2811,10 +2811,6 @@ function ReceiptDeadlineNotice({ deadline, onExpired }) {
   const mm = String(Math.floor(remain / 60)).padStart(2, "0");
   const ss = String(remain % 60).padStart(2, "0");
   const expired = remain <= 0;
-
-  useEffect(() => {
-    if (expired && onExpired) onExpired();
-  }, [expired, onExpired]);
 
   return (
     <div
@@ -2854,36 +2850,20 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [receiptNow, setReceiptNow] = useState(Date.now());
-  const [receiptExpired, setReceiptExpired] = useState(() =>
-    !order.receiptDeadlineAt ||
-    new Date(order.receiptDeadlineAt).getTime() <= Date.now()
-  );
 
   const bank = order.bankSnapshot || {};
 
   useEffect(() => {
-    if (!order.receiptDeadlineAt) return;
-    setReceiptNow(Date.now());
-    const timer = setInterval(() => setReceiptNow(Date.now()), 1000);
+    if (!order.receiptDeadlineAt) return undefined;
+    const updateNow = () => setReceiptNow(Date.now());
+    updateNow();
+    const timer = setInterval(updateNow, 1000);
     return () => clearInterval(timer);
   }, [order.receiptDeadlineAt]);
 
-  useEffect(() => {
-    const deadline = order.receiptDeadlineAt;
-    if (!deadline) {
-      setReceiptExpired(true);
-      return;
-    }
-
-    const updateExpiry = () => {
-      setReceiptNow(Date.now());
-      setReceiptExpired(new Date(deadline).getTime() <= Date.now());
-    };
-
-    updateExpiry();
-    const timer = setInterval(updateExpiry, 1000);
-    return () => clearInterval(timer);
-  }, [order.receiptDeadlineAt]);
+  const receiptExpired =
+    !order.receiptDeadlineAt ||
+    new Date(order.receiptDeadlineAt).getTime() <= receiptNow;
 
   const copy = async (val) => {
     try {
@@ -3001,10 +2981,7 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
 
         <PaymentAccounts bank={bank} />
 
-        <ReceiptDeadlineNotice
-          deadline={order.receiptDeadlineAt}
-          onExpired={() => setReceiptExpired(true)}
-        />
+        <ReceiptDeadlineNotice deadline={order.receiptDeadlineAt} />
 
         {!getPaymentAccounts(bank).cards.length && !getPaymentAccounts(bank).shebas.length && !getPaymentAccounts(bank).accountNumber && (
           <p className="pay-note">اطلاعات واریز هنوز برای این سفارش ثبت نشده است.</p>
