@@ -22,16 +22,29 @@ async function yahoo(symbol: string): Promise<Bar[]> {
   url.searchParams.set("interval", "1d");
   url.searchParams.set("events", "history");
   const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) {
-    if (symbol === "GC=F" || symbol === "SI=F") {
-      return await goldApi(symbol === "GC=F" ? "XAU" : "XAG");
-    }
-    throw new Error(`Yahoo ${symbol}: HTTP ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`Yahoo ${symbol}: HTTP ${res.status}`);
   const json = await res.json();
   const result = json?.chart?.result?.[0];
   const closes = result?.indicators?.quote?.[0]?.close || [];
   return closes.filter((x: unknown): x is number => typeof x === "number").map((close) => ({ close }));
+}
+
+async function fetchMetal(symbol: "gold" | "silver", yahooSymbol: "GC=F" | "SI=F", goldApiSymbol: "XAU" | "XAG"): Promise<SourceResult> {
+  try {
+    const bars = await yahoo(yahooSymbol);
+    if (bars.length >= 25) return { bars, source: "Yahoo Finance" };
+  } catch (_) {
+    // Fall through to the free backup source.
+  }
+  return { bars: await goldApi(goldApiSymbol), source: "Gold API" };
+}
+
+async function fetchDxy(): Promise<Bar[]> {
+  try {
+    return await yahoo("DX-Y.NYB");
+  } catch (_) {
+    return [];
+  }
 }
 
 function pct(a: number, b: number) {
@@ -46,8 +59,25 @@ function level(n: number) {
   return Number(n).toFixed(2);
 }
 
-function makeAnalysis(metal: "gold" | "silver", bars: Bar[], dxy: Bar[]) {
-  if (bars.length < 25) throw new Error(`Not enough ${metal} data`);
+function makeAnalysis(metal: "gold" | "silver", bars: Bar[], dxy: Bar[], source: SourceResult["source"]) {
+  if (bars.length < 25) {
+    const last = bars.at(-1)?.close;
+    if (!Number.isFinite(last)) throw new Error(`No usable ${metal} price data`);
+    const name = metal === "gold" ? "طلا" : "نقره";
+    return {
+      analysis_date: new Date().toISOString().slice(0, 10),
+      metal,
+      title: `${name}؛ پایش بازار و قیمت جاری`,
+      summary: `قیمت جاری حدود ${level(last!)} است. به‌دلیل در دسترس نبودن سابقه کافی برای محاسبه روندهای چندروزه، این نوبت با داده پشتیبان تولید شده و جهت بازار خنثی در نظر گرفته شده است.`,
+      bias: "خنثی" as const,
+      support: level(last!),
+      resistance: level(last!),
+      key_driver: "قیمت جاری و بازگشت داده‌های تاریخی بازار",
+      risk_note: "تا زمان بازگشت داده‌های تاریخی، سطوح حمایت و مقاومت این نوبت صرفاً مرجع قیمتی هستند؛ این متن تحلیل عمومی است و توصیه سرمایه‌گذاری نیست.",
+      source_note: `منبع این نوبت: ${source}. در صورت در دسترس نبودن سابقه Yahoo Finance، قیمت جاری از منبع پشتیبان رایگان Gold API دریافت می‌شود. تحلیل به‌صورت الگوریتمی و اختصاصی برای Meead تولید شده است.`,
+      published: true,
+    };
+  }
   const closes = bars.map((b) => b.close);
   const last = closes.at(-1)!;
   const prev = closes.at(-2)!;
@@ -82,21 +112,21 @@ function makeAnalysis(metal: "gold" | "silver", bars: Bar[], dxy: Bar[]) {
     resistance: level(resistance),
     key_driver: dxy5 > 0.2 ? "شاخص دلار و جهت حرکت آن" : dxy5 < -0.2 ? "افت شاخص دلار و تقاضای فلزات" : "مومنتوم قیمت و فاصله از میانگین‌های کوتاه‌مدت",
     risk_note: `شکست حمایت ${level(support)} یا مقاومت ${level(resistance)} می‌تواند سناریوی فعلی را تغییر دهد؛ این متن تحلیل عمومی است و توصیه سرمایه‌گذاری نیست.`,
-    source_note: "داده‌های روزانه Yahoo Finance؛ نمادها: GC=F، SI=F و DX-Y.NYB. تحلیل به‌صورت الگوریتمی و اختصاصی برای Meead تولید شده است.",
+    source_note: `داده‌های روزانه ${source} برای فلز مربوطه و Yahoo Finance برای شاخص دلار در صورت دسترسی؛ تحلیل به‌صورت الگوریتمی و اختصاصی برای Meead تولید شده است.`,
     published: true,
   };
 }
 
 async function main() {
   const [gold, silver, dxy] = await Promise.all([
-    yahoo("GC=F"),
-    yahoo("SI=F"),
-    yahoo("DX-Y.NYB"),
+    fetchMetal("gold", "GC=F", "XAU"),
+    fetchMetal("silver", "SI=F", "XAG"),
+    fetchDxy(),
   ]);
 
   const rows = [
-    makeAnalysis("gold", gold, dxy),
-    makeAnalysis("silver", silver, dxy),
+    makeAnalysis("gold", gold.bars, dxy, gold.source),
+    makeAnalysis("silver", silver.bars, dxy, silver.source),
   ];
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/daily_market_analysis?on_conflict=analysis_date,metal`, {
