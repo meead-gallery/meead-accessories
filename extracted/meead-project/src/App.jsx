@@ -2980,7 +2980,10 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
   </p>
 )}
 
-        {!uploading && !uploadSuccess && (
+        {!uploading && !uploadSuccess &&
+          order.status === "در انتظار پرداخت" &&
+          order.receiptDeadlineAt &&
+          new Date(order.receiptDeadlineAt).getTime() > Date.now() && (
           <label
             className="upload-btn"
             style={{ marginTop: 10 }}
