@@ -2217,6 +2217,20 @@ function TrackOrder({
   const [phone, setPhone] = useState("");
   const [result, setResult] = useState(null);
   const [searched, setSearched] = useState(false);
+  const [receiptNow, setReceiptNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!result?.receiptDeadlineAt) return undefined;
+    const updateNow = () => setReceiptNow(Date.now());
+    updateNow();
+    const timer = setInterval(updateNow, 1000);
+    return () => clearInterval(timer);
+  }, [result?.receiptDeadlineAt]);
+
+  const receiptExpired =
+    !result?.receiptDeadlineAt ||
+    !Number.isFinite(new Date(result.receiptDeadlineAt).getTime()) ||
+    new Date(result.receiptDeadlineAt).getTime() <= receiptNow;
 
   const search = async () => {
     setSearched(false);
@@ -2357,6 +2371,7 @@ function TrackOrder({
 
           {result.type === "buy" &&
             ["در انتظار پرداخت", "در انتظار تأیید پرداخت"].includes(result.status) &&
+            !receiptExpired &&
             uploadingReceiptId !== result.id && (
               <label
                 className="upload-btn"
