@@ -130,6 +130,7 @@ const DEFAULT_SETTINGS = {
   sellValidityDays: 3,
   receiptDeadlineMinutes: 30,
   highWeightThreshold: 10,
+  liveAnalysisEnabled: true,
   bank: { cardNumber: "", accountNumber: "", sheba: "", ownerName: "" },
   sellAddress: "",
   nextOrderSeq: 1058,
@@ -361,6 +362,7 @@ function mapSettings(publicData) {
     receiptDeadlineMinutes: Number(system.receiptDeadlineMinutes ?? 30),
     sellAddress: system.sellAddress ?? "",
     highWeightThreshold: Number(system.highWeightThreshold ?? DEFAULT_SETTINGS.highWeightThreshold),
+    liveAnalysisEnabled: system.liveAnalysisEnabled ?? true,
     lastPriceUpdate: system.lastPriceUpdate ?? null ,
     support: {
 
@@ -418,6 +420,7 @@ async function adminState() {
     sellAddress: sys.sell_address || "",
 lastPriceUpdate: sys.last_price_update || null,
 nextOrderSeq: Number(sys.next_order_seq ?? 1058),
+liveAnalysisEnabled: sys.live_analysis_enabled ?? true,
 support: {
   landline: sys.support_landline || "",
   mobile: sys.support_mobile || "",
@@ -874,6 +877,12 @@ p_postal_code: customer.postalCode,
 
   return (await adminState()).settings;
 },
+  async updateAnalysisVisibility(enabled) {
+    const { data, error } = await supabase.rpc("update_analysis_visibility", { p_enabled: !!enabled });
+    if (error) throw error;
+    if (!data?.ok) throw new Error(data?.reason || "ذخیره وضعیت تحلیل ناموفق بود");
+    return !!data.liveAnalysisEnabled;
+  },
   async resolveOrderId(orderOrId) {
     if (orderOrId && typeof orderOrId === "object" && orderOrId.dbId) return Number(orderOrId.dbId);
     const st = await adminState();
@@ -2202,7 +2211,7 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
         <Search size={14} /> پیگیری سفارش با کد رهگیری
       </button>
       <TwentyFourHourChartCard />
-      <MarketAnalysisCard supabase={supabase} />
+      {settings.liveAnalysisEnabled !== false && <MarketAnalysisCard supabase={supabase} />}
     </div>
   );
 }
@@ -4440,6 +4449,23 @@ function TabSettings({ settings, setSettings, setToast }) {
   const [highWeightThreshold, setHighWeightThreshold] = useState(settings.highWeightThreshold ?? 10);
   const [sellAddress, setSellAddress] = useState(settings.sellAddress);
   const [bank, setBank] = useState(settings.bank);
+  const [analysisEnabled, setAnalysisEnabled] = useState(settings.liveAnalysisEnabled !== false);
+
+  useEffect(() => {
+    setAnalysisEnabled(settings.liveAnalysisEnabled !== false);
+  }, [settings.liveAnalysisEnabled]);
+
+  const toggleAnalysis = async (enabled) => {
+    setAnalysisEnabled(enabled);
+    try {
+      const saved = await api.updateAnalysisVisibility(enabled);
+      setSettings((prev) => ({ ...prev, liveAnalysisEnabled: saved }));
+      setToast(saved ? "کارت تحلیل فعال شد" : "کارت تحلیل خاموش شد");
+    } catch (error) {
+      setAnalysisEnabled(!enabled);
+      setToast(error?.message || "ذخیره وضعیت کارت تحلیل ناموفق بود");
+    }
+  };
 
   const save = async () => {
     const patch = {
@@ -4467,6 +4493,12 @@ function TabSettings({ settings, setSettings, setToast }) {
         <label className="field"><span>سفارش‌های خرید بالاتر از این وزن، نیازمند تأیید دستی هستند (گرم)</span><input type="number" min="0.001" step="0.001" value={highWeightThreshold} onChange={(e) => setHighWeightThreshold(e.target.value)} /></label>
         <label className="field"><span>مهلت ارسال فیش پرداخت (دقیقه)</span><input type="number" min="5" max="120" step="1" value={receiptDeadlineMinutes} onChange={(e) => setReceiptDeadlineMinutes(e.target.value)} /><small style={{ color: "#87929D", lineHeight: 1.7 }}>بین ۵ تا ۱۲۰ دقیقه</small></label>
       </div>
+
+      <h3>نمایش بخش‌های سایت</h3>
+      <label className="toggle-row">
+        <input type="checkbox" checked={analysisEnabled} onChange={(e) => toggleAnalysis(e.target.checked)} />
+        نمایش کارت تحلیل روزانه
+      </label>
 
       <h3>آدرس دریافت ساچمه</h3>
       <textarea className="textarea" rows={2} value={sellAddress} onChange={(e) => setSellAddress(e.target.value)} />
