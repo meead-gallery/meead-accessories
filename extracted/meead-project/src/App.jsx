@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { iranLocations } from "./iranLocations";
 import { trackSiteVisit } from "./siteAnalytics";
+import MarketAnalysisCard from "./MarketAnalysisCard";
 import TabAnalytics from "./TabAnalytics";
 function PwaInstallPrompt({ onClose }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -2201,6 +2202,7 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
         <Search size={14} /> پیگیری سفارش با کد رهگیری
       </button>
       <TwentyFourHourChartCard />
+      <MarketAnalysisCard supabase={supabase} />
     </div>
   );
 }
@@ -4678,6 +4680,29 @@ function GlobalStyles() {
       .icon-btn:hover { border-color:#A9803A; color:#A9803A; }
 
       .app-main { max-width: 480px; margin: 0 auto; padding: 18px 15px 0; }
+
+      .market-analysis-isolated { margin-top:16px; padding:15px; border:1px solid rgba(169,128,58,.20); border-radius:14px; background:linear-gradient(180deg,#fff 0%,#faf9f6 100%); box-shadow:0 4px 16px rgba(25,32,40,.05); }
+      .market-analysis-isolated-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:11px; border-bottom:1px solid rgba(25,32,40,.07); color:#A9803A; }
+      .market-analysis-isolated-head h2 { margin:3px 0 2px; color:#252B33; font-size:15px; }
+      .market-analysis-isolated-head p { margin:0; color:#8A949E; font-size:10.5px; }
+      .market-analysis-isolated-kicker { color:#A9803A; font-size:10px; font-weight:800; }
+      .market-analysis-isolated-list { display:flex; flex-direction:column; gap:9px; margin-top:11px; }
+      .market-analysis-isolated-item { padding:11px; border:1px solid rgba(25,32,40,.07); border-radius:11px; background:#fff; }
+      .market-analysis-isolated-item-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+      .market-analysis-isolated-item-head div { display:flex; flex-direction:column; gap:3px; }
+      .market-analysis-isolated-item-head strong { color:#303840; font-size:12px; }
+      .market-analysis-isolated-item-head span:not(.market-analysis-isolated-bias) { color:#89939D; font-size:10px; }
+      .market-analysis-isolated-bias { padding:4px 7px; border-radius:999px; font-size:9px; font-weight:800; }
+      .market-analysis-isolated-bias.bullish { background:rgba(18,145,91,.10); color:#12915B; }
+      .market-analysis-isolated-bias.bearish { background:rgba(214,72,63,.10); color:#D6483F; }
+      .market-analysis-isolated-bias.neutral { background:rgba(169,128,58,.10); color:#A9803A; }
+      .market-analysis-isolated-item p { margin:8px 0; color:#596572; font-size:10.5px; line-height:1.9; }
+      .market-analysis-isolated-levels { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+      .market-analysis-isolated-levels span { padding:7px 8px; border-radius:8px; background:#F7F8F9; color:#87919B; font-size:9.5px; }
+      .market-analysis-isolated-levels b { display:block; margin-top:2px; color:#303840; font-size:10.5px; }
+      .market-analysis-isolated-driver,.market-analysis-isolated-risk { margin-top:7px; color:#69737D; font-size:9.5px; line-height:1.8; }
+      .market-analysis-isolated-driver b { color:#A9803A; }
+      .market-analysis-isolated-risk b { color:#D6483F; }
 
       .market-banner { display:flex; align-items:center; gap:8px; padding: 10px 14px; border-radius: 12px; font-size: 12.5px; font-weight:600; margin-bottom: 12px; }
       .banner-closed { background: rgba(214,72,63,0.1); color:#B23A31; }
