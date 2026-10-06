@@ -1620,6 +1620,7 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     <div className="brand-text">
       <span className="brand-name">MEEAD ACCESSORIES</span>
       <span className="brand-sub">خرید و فروش تخصصی ساچمه نقره</span>
+      <span style={{ display: "block", marginTop: 4, fontSize: 12, fontWeight: 800, letterSpacing: ".8px", color: "#A9803A", textShadow: "0 1px 8px rgba(169,128,58,.18)" }}>نوری فرد</span>
     </div>
   </div>
   <button
