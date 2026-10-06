@@ -4685,7 +4685,7 @@ function GlobalStyles() {
       .market-analysis-isolated-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:11px; border-bottom:1px solid rgba(25,32,40,.07); color:#A9803A; }
       .market-analysis-isolated-head h2 { margin:3px 0 2px; color:#252B33; font-size:15px; }
       .market-analysis-isolated-head p { margin:0; color:#8A949E; font-size:10.5px; }
-      .market-analysis-isolated-kicker { color:#A9803A; font-size:10px; font-weight:800; }
+      .market-analysis-isolated-kicker { color:#A9803A; font-size:10px; font-weight:800; }\n      .market-analysis-isolated-brand { color:#A9803A; font-weight:800; }
       .market-analysis-isolated-list { display:flex; flex-direction:column; gap:9px; margin-top:11px; }
       .market-analysis-isolated-item { padding:11px; border:1px solid rgba(25,32,40,.07); border-radius:11px; background:#fff; }
       .market-analysis-isolated-item-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
