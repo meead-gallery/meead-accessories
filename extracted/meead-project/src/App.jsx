@@ -9,6 +9,7 @@ import {
 import { iranLocations } from "./iranLocations";
 import { trackSiteVisit } from "./siteAnalytics";
 import TabAnalytics from "./TabAnalytics";
+import { MarketAnalysisPage, MarketAnalysisTeaser, TabMarketAnalysis } from "./MarketAnalysis";
 function PwaInstallPrompt({ onClose }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isIOS, setIsIOS] = useState(false);
@@ -1665,8 +1666,12 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
           <Home
             settings={settings} orders={orders}
             closedByHours={closedByHours} marketBuyOpen={marketBuyOpen} marketSellOpen={marketSellOpen}
-            startQuote={startQuote} setView={setView}
+            startQuote={startQuote} setView={setView} supabase={supabase}
           />
+        )}
+
+        {view === "analysis" && (
+          <MarketAnalysisPage supabase={supabase} onBack={() => setView("home")} />
         )}
 
         {view === "track" && (
@@ -2143,7 +2148,7 @@ function TwentyFourHourChartCard() {
     </section>
   );
 }
-function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, startQuote, setView }) {
+function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, startQuote, setView, supabase }) {
   return (
     <div className="home">
       <MarketBanner closedByHours={closedByHours} market={settings.market} />
@@ -2196,6 +2201,8 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
         <div className="bar-card"><BarIcon tone="silver" /><span>شمش نقره</span></div>
         <div className="bar-card"><BarIcon tone="gold" /><span>شمش طلا</span></div>
       </div>
+
+      <MarketAnalysisTeaser supabase={supabase} onOpen={() => setView("analysis")} />
 
       <button className="track-link" onClick={() => setView("track")}>
         <Search size={14} /> پیگیری سفارش با کد رهگیری
@@ -3164,6 +3171,7 @@ const TABS = [
   { key: "orders", label: "سفارش‌ها", icon: Package },
   { key: "customers", label: "مشتریان", icon: Users },
   { key: "market", label: "بازار", icon: Clock },
+  { key: "analysis", label: "تحلیل روزانه", icon: FileText },
   { key: "settings", label: "تنظیمات", icon: SettingsIcon },
   { key: "support", label: "پشتیبانی", icon: Headphones },
   { key: "log", label: "لاگ", icon: History },
@@ -3194,6 +3202,7 @@ function Admin({ settings, setSettings, orders, setOrders, log, onExit, setToast
       {tab === "orders" && <TabOrders orders={orders} setOrders={setOrders} setToast={setToast} />}
       {tab === "customers" && <TabCustomers orders={orders} />}
       {tab === "market" && <TabMarket settings={settings} setSettings={setSettings} setToast={setToast} />}
+      {tab === "analysis" && <TabMarketAnalysis supabase={supabase} setToast={setToast} />}
       {tab === "settings" && <TabSettings settings={settings} setSettings={setSettings} setToast={setToast} />}
       {tab === "support" && <TabSupport settings={settings} setSettings={setSettings} setToast={setToast} />}
       {tab === "log" && <TabLog log={log} />}
@@ -4977,6 +4986,56 @@ function GlobalStyles() {
     transform: rotate(360deg);
   }
 }
+
+
+      .market-analysis-teaser { margin-top: 20px; margin-bottom: 18px; }
+      .market-analysis-teaser-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+      .market-analysis-card { background:#FFFFFF; border:1px solid rgba(30,40,50,.07); border-radius:14px; padding:14px; box-shadow:0 2px 9px rgba(20,30,45,.035); text-align:right; }
+      .market-analysis-card.compact { padding:11px; }
+      .market-analysis-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+      .market-analysis-metal { font-size:10px; color:#A9803A; font-weight:800; margin-bottom:3px; }
+      .market-analysis-card h3 { margin:0; color:#232A33; font-size:13px; line-height:1.7; font-weight:800; }
+      .market-analysis-date { margin-top:2px; color:#9AA3AD; font-size:9.5px; }
+      .market-analysis-bias { flex:0 0 auto; border-radius:999px; padding:4px 8px; font-size:9.5px; font-weight:800; }
+      .market-analysis-bias.bullish { background:rgba(18,145,91,.10); color:#12915B; }
+      .market-analysis-bias.bearish { background:rgba(214,72,63,.10); color:#D6483F; }
+      .market-analysis-bias.neutral { background:rgba(169,128,58,.11); color:#A9803A; }
+      .market-analysis-summary { color:#4E5965; font-size:11.5px; line-height:2; margin:10px 0 0; }
+      .market-analysis-card.compact .market-analysis-summary { display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
+      .market-analysis-levels { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:10px; }
+      .market-analysis-levels > div { background:#F7F8F9; border-radius:9px; padding:7px; display:flex; flex-direction:column; gap:3px; }
+      .market-analysis-levels span { color:#89939E; font-size:9px; }
+      .market-analysis-levels strong { color:#2C343C; font-size:11px; }
+      .market-analysis-driver,.market-analysis-risk { display:flex; flex-direction:column; gap:4px; margin-top:9px; padding:9px 10px; border-radius:9px; font-size:10.5px; line-height:1.8; }
+      .market-analysis-driver { background:rgba(169,128,58,.07); color:#5E5239; }
+      .market-analysis-risk { background:rgba(214,72,63,.07); color:#7A3832; }
+      .market-analysis-driver strong,.market-analysis-risk strong { font-size:10px; }
+      .market-analysis-source { margin-top:9px; color:#9AA3AD; font-size:9px; line-height:1.7; }
+      .market-analysis-more { width:100%; margin-top:9px; display:flex; align-items:center; justify-content:center; gap:6px; border:1px solid rgba(30,40,50,.09); background:#FFFFFF; color:#596572; border-radius:10px; min-height:38px; font:inherit; font-size:11px; font-weight:700; cursor:pointer; }
+      .market-analysis-page-head,.market-analysis-admin-head,.market-analysis-editor-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+      .market-analysis-page-head { margin-bottom:2px; }
+      .market-analysis-page-head .pay-note { margin-top:4px; }
+      .market-analysis-list { display:flex; flex-direction:column; gap:10px; }
+      .market-analysis-archive-title { margin:8px 0 0; color:#303840; font-size:13px; }
+      .market-analysis-disclaimer { margin:2px 0 0; color:#98A1AB; font-size:10px; line-height:1.9; }
+      .market-analysis-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:150px; color:#98A1AB; font-size:11px; }
+      .market-analysis-spin { animation:market-analysis-spin .8s linear infinite; }
+      @keyframes market-analysis-spin { to { transform:rotate(360deg); } }
+      .market-analysis-editor { display:flex; flex-direction:column; gap:12px; padding:14px; border:1px solid rgba(25,32,40,.08); border-radius:14px; background:#FFFFFF; box-shadow:0 3px 12px rgba(25,32,40,.04); }
+      .market-analysis-editor-head { padding-bottom:9px; border-bottom:1px solid rgba(25,32,40,.07); }
+      .market-analysis-textarea { line-height:2; }
+      .market-analysis-admin-list { display:flex; flex-direction:column; gap:8px; }
+      .market-analysis-admin-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 12px; border:1px solid rgba(25,32,40,.07); border-radius:12px; background:#FFFFFF; }
+      .market-analysis-admin-row-title { display:flex; align-items:center; flex-wrap:wrap; gap:7px; font-size:10.5px; color:#69737D; }
+      .market-analysis-admin-row-title strong { color:#303840; }
+      .market-analysis-admin-row-sub { margin-top:5px; color:#56616D; font-size:11px; font-weight:700; }
+      .market-analysis-admin-row-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+      @media (max-width:560px) {
+        .market-analysis-teaser-grid { grid-template-columns:1fr; }
+        .market-analysis-admin-row { align-items:flex-start; flex-direction:column; }
+        .market-analysis-admin-row-actions { width:100%; }
+        .market-analysis-admin-row-actions .small-btn { flex:1; }
+      }
 
       /* Admin panel design system: visual-only, no business logic changes */
       .admin { gap:16px; padding:18px; background:#FBFBFA; border-color:rgba(30,40,50,0.08); }
