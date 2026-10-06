@@ -30,7 +30,7 @@ export default function MarketAnalysisCard({ supabase }) {
         <div>
           <div className="market-analysis-isolated-kicker">تحلیل روزانه</div>
           <h2>تحلیل بازار طلا و نقره</h2>
-          <p>بررسی روزانه انس جهانی طلا و انس نقره</p>
+          <p>دیدگاه اختصاصی <span className="market-analysis-isolated-brand">فروشگاه میعاد</span> بر پایه داده‌های بازار جهانی</p>
         </div>
         <FileText size={22} />
       </div>
