@@ -2850,20 +2850,29 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [receiptNow, setReceiptNow] = useState(Date.now());
+  const [receiptDeadlineClosed, setReceiptDeadlineClosed] = useState(false);
 
   const bank = order.bankSnapshot || {};
 
   useEffect(() => {
-    if (!order.receiptDeadlineAt) return undefined;
-    const updateNow = () => setReceiptNow(Date.now());
+    if (!order.receiptDeadlineAt) {
+      setReceiptDeadlineClosed(true);
+      return undefined;
+    }
+
+    const deadlineMs = new Date(order.receiptDeadlineAt).getTime();
+    const updateNow = () => {
+      const current = Date.now();
+      setReceiptNow(current);
+      setReceiptDeadlineClosed(!Number.isFinite(deadlineMs) || current >= deadlineMs);
+    };
+
     updateNow();
     const timer = setInterval(updateNow, 1000);
     return () => clearInterval(timer);
   }, [order.receiptDeadlineAt]);
 
-  const receiptExpired =
-    !order.receiptDeadlineAt ||
-    new Date(order.receiptDeadlineAt).getTime() <= receiptNow;
+  const receiptExpired = receiptDeadlineClosed;
 
   const copy = async (val) => {
     try {
@@ -2877,6 +2886,12 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
 
   const handleReceiptUpload = async (file) => {
     if (!file || uploading) return;
+
+    if (receiptExpired) {
+      setReceiptDeadlineClosed(true);
+      setUploadError("مهلت ارسال فیش به پایان رسیده و سفارش منقضی شده است.");
+      return;
+    }
 
     if (file.size > 5 * 1024 * 1024) {
       setUploadError("حجم فایل نباید بیشتر از ۵ مگابایت باشد");
@@ -2987,11 +3002,11 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
           <p className="pay-note">اطلاعات واریز هنوز برای این سفارش ثبت نشده است.</p>
         )}
 
-        {!uploading && !uploadSuccess && (
-  <p className="pay-note">
-    پس از واریز، تصویر رسید را آپلود کنید تا سفارش شما بررسی شود.
-  </p>
-)}
+        {!uploading && !uploadSuccess && !receiptExpired && (
+          <p className="pay-note">
+            پس از واریز، تصویر رسید را آپلود کنید تا سفارش شما بررسی شود.
+          </p>
+        )}
 
         {!uploading && !uploadSuccess &&
           order.status === "در انتظار پرداخت" &&
