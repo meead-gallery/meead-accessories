@@ -3160,7 +3160,7 @@ function Admin({ settings, setSettings, orders, setOrders, log, onExit, setToast
 function TabDashboard({ settings, orders }) {
   const today = new Date().toDateString();
   const todays = orders.filter((o) => new Date(o.createdAt).toDateString() === today);
-  const buySum = todays.filter((o) => o.type === "buy").reduce((s, o) => s + (o.total || 0), 0);
+  const buySum = todays.filter((o) => o.type === "buy" && !["لغو شد", "پرداخت رد شد"].includes(o.status)).reduce((s, o) => s + (o.total || 0), 0);
   const sellSum = todays.filter((o) => o.type === "sell").reduce((s, o) => s + (o.approxTotal || 0), 0);
   const pending = orders.filter((o) => !["تکمیل شد", "لغو شد", "پرداخت رد شد"].includes(o.status)).length;
 
