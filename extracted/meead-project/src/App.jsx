@@ -127,6 +127,7 @@ const DEFAULT_SETTINGS = {
   market: { closeStart: "00:00", closeEnd: "11:00", buyEnabled: true, sellEnabled: true, emergencyStop: false },
   priceLockMinutes: 5,
   sellValidityDays: 3,
+  receiptDeadlineMinutes: 30,
   highWeightThreshold: 10,
   bank: { cardNumber: "", accountNumber: "", sheba: "", ownerName: "" },
   sellAddress: "",
@@ -356,6 +357,7 @@ function mapSettings(publicData) {
     },
     priceLockMinutes: Number(system.priceLockMinutes ?? 5),
     sellValidityDays: Number(system.sellValidityDays ?? 3),
+    receiptDeadlineMinutes: Number(system.receiptDeadlineMinutes ?? 30),
     sellAddress: system.sellAddress ?? "",
     highWeightThreshold: Number(system.highWeightThreshold ?? DEFAULT_SETTINGS.highWeightThreshold),
     lastPriceUpdate: system.lastPriceUpdate ?? null ,
@@ -409,6 +411,7 @@ async function adminState() {
 ),
     market: { closeStart:m.close_start ?? "00:00", closeEnd:m.close_end ?? "11:00", buyEnabled:m.buy_enabled ?? true, sellEnabled:m.sell_enabled ?? true, emergencyStop:m.emergency_stop ?? false },
     priceLockMinutes: Number(sys.price_lock_minutes ?? 5), sellValidityDays: Number(sys.sell_validity_days ?? 3),
+    receiptDeadlineMinutes: Number(sys.receipt_deadline_minutes ?? 30),
     highWeightThreshold: Number(sys.high_weight_threshold ?? 10),
     bank: { cardNumber:sys.bank_card_number || "", accountNumber:sys.bank_account_number || "", sheba:sys.bank_sheba || "", ownerName:sys.bank_owner_name || "" },
     sellAddress: sys.sell_address || "",
@@ -812,6 +815,14 @@ p_postal_code: customer.postalCode,
     if (error) throw error;
     if (!data?.ok) throw new Error(data?.reason || "ذخیره حد آستانه وزن ناموفق بود");
     return Number(data.highWeightThreshold ?? threshold);
+  },
+  async updateReceiptDeadlineMinutes(minutes) {
+    const { data, error } = await supabase.rpc("update_receipt_deadline_minutes", {
+      p_minutes: Number(minutes),
+    });
+    if (error) throw error;
+    if (!data?.ok) throw new Error(data?.reason || "ذخیره مهلت ارسال فیش ناموفق بود");
+    return Number(data.receiptDeadlineMinutes ?? minutes);
   },
 
   async updateSystemSettings(patch) {
@@ -2822,7 +2833,7 @@ function ReceiptDeadlineNotice({ deadline }) {
         <span>مهلت ارسال فیش به پایان رسیده و سفارش شما منقضی شده است.</span>
       ) : (
         <span>
-          لطفاً حداکثر تا <strong>۳۰ دقیقه</strong> پس از در اختیار قرار گرفتن اطلاعات پرداخت، تصویر فیش را ارسال کنید.
+          لطفاً پیش از پایان زمان باقی‌مانده، تصویر فیش پرداخت را ارسال کنید.
           <br />
           زمان باقی‌مانده: <span className="mono" style={{ fontWeight: 900 }}>{mm}:{ss}</span>
         </span>
@@ -4377,6 +4388,7 @@ useEffect(() => {
 function TabSettings({ settings, setSettings, setToast }) {
   const [lockMinutes, setLockMinutes] = useState(settings.priceLockMinutes);
   const [sellDays, setSellDays] = useState(settings.sellValidityDays);
+  const [receiptDeadlineMinutes, setReceiptDeadlineMinutes] = useState(settings.receiptDeadlineMinutes ?? 30);
   const [highWeightThreshold, setHighWeightThreshold] = useState(settings.highWeightThreshold ?? 10);
   const [sellAddress, setSellAddress] = useState(settings.sellAddress);
   const [bank, setBank] = useState(settings.bank);
@@ -4388,6 +4400,7 @@ function TabSettings({ settings, setSettings, setToast }) {
       sellAddress, bank,
     };
     await api.updateHighWeightThreshold(Number(highWeightThreshold) || 10);
+    await api.updateReceiptDeadlineMinutes(Number(receiptDeadlineMinutes) || 30);
     const next = await api.updateSystemSettings(patch);
     setSettings(next);
     setToast("تنظیمات ذخیره شد");
@@ -4404,6 +4417,7 @@ function TabSettings({ settings, setSettings, setToast }) {
         </label>
         <label className="field"><span>مهلت تحویل ساچمه پس از ثبت فروش (روز)</span><input type="number" value={sellDays} onChange={(e) => setSellDays(e.target.value)} /></label>
         <label className="field"><span>سفارش‌های خرید بالاتر از این وزن، نیازمند تأیید دستی هستند (گرم)</span><input type="number" min="0.001" step="0.001" value={highWeightThreshold} onChange={(e) => setHighWeightThreshold(e.target.value)} /></label>
+        <label className="field"><span>مهلت ارسال فیش پرداخت (دقیقه)</span><input type="number" min="5" max="120" step="1" value={receiptDeadlineMinutes} onChange={(e) => setReceiptDeadlineMinutes(e.target.value)} /><small style={{ color: "#87929D", lineHeight: 1.7 }}>بین ۵ تا ۱۲۰ دقیقه</small></label>
       </div>
 
       <h3>آدرس دریافت ساچمه</h3>
