@@ -2849,8 +2849,20 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [receiptNow, setReceiptNow] = useState(Date.now());
 
   const bank = order.bankSnapshot || {};
+
+  useEffect(() => {
+    if (!order.receiptDeadlineAt) return;
+    setReceiptNow(Date.now());
+    const timer = setInterval(() => setReceiptNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [order.receiptDeadlineAt]);
+
+  const receiptExpired =
+    !order.receiptDeadlineAt ||
+    new Date(order.receiptDeadlineAt).getTime() <= receiptNow;
 
   const copy = async (val) => {
     try {
@@ -2982,8 +2994,7 @@ function BuyPayment({ order, onAttachReceipt, onDone, setToast }) {
 
         {!uploading && !uploadSuccess &&
           order.status === "در انتظار پرداخت" &&
-          order.receiptDeadlineAt &&
-          new Date(order.receiptDeadlineAt).getTime() > Date.now() && (
+          !receiptExpired && (
           <label
             className="upload-btn"
             style={{ marginTop: 10 }}
