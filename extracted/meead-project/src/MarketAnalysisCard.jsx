@@ -23,12 +23,18 @@ export default function MarketAnalysisCard({ supabase }) {
 
   const label = (metal) => metal === "gold" ? "انس طلا" : "انس نقره";
   const biasClass = (bias) => bias === "صعودی" ? "bullish" : bias === "نزولی" ? "bearish" : "neutral";
+  const analysisDate = items[0]?.analysis_date
+    ? new Intl.DateTimeFormat("fa-IR-u-ca-persian", { day: "numeric", month: "long", year: "numeric" }).format(new Date(items[0].analysis_date + "T12:00:00"))
+    : "";
 
   return (
     <section className="market-analysis-isolated" dir="rtl">
       <div className="market-analysis-isolated-head">
         <div>
-          <div className="market-analysis-isolated-kicker">تحلیل روزانه</div>
+          <div className="market-analysis-isolated-kicker-row">
+            <div className="market-analysis-isolated-kicker">تحلیل روزانه</div>
+            {analysisDate && <span className="market-analysis-isolated-date">{analysisDate}</span>}
+          </div>
           <h2>تحلیل بازار طلا و نقره</h2>
           <p>دیدگاه اختصاصی <span className="market-analysis-isolated-brand">فروشگاه میعاد</span> بر پایه داده‌های بازار جهانی</p>
         </div>
