@@ -246,7 +246,13 @@ city: row.city || "",
 address: row.address || "",
 postalCode: row.postal_code || "",
 createdAt: row.created_at,
-    lockExpiresAt: row.lock_expires_at, receiptDeadlineAt: row.receipt_deadline_at, sellValidUntil: row.sell_valid_until,
+    lockExpiresAt: row.lock_expires_at,
+    receiptDeadlineAt:
+      row.receipt_deadline_at ||
+      (row.type === "buy" && row.status === "در انتظار پرداخت" && row.created_at
+        ? new Date(new Date(row.created_at).getTime() + 30 * 60 * 1000).toISOString()
+        : null),
+    sellValidUntil: row.sell_valid_until,
     bankSnapshot: row.bank_snapshot || null,
     requiresPaymentApproval: row.requiresPaymentApproval === true || row.requires_payment_approval === true,
     receiptPath: row.receipt_url || null,
