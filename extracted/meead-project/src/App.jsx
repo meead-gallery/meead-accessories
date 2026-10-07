@@ -4565,7 +4565,7 @@ function TabSupport({ settings, setSettings, setToast }) {
               setSupport({ ...support, landline: e.target.value })
             }
             placeholder="مثلاً ۰۲۸..."
-            inputMode="tel"
+            inputMode="numeric"
           />
         </label>
 
