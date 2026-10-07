@@ -2533,6 +2533,7 @@ function OrderForm({ quote, product, productTitle, weight, setWeight, customer, 
     <span>شماره تلفن</span>
     <input
       type="tel"
+      inputMode="numeric"
       value={customer.phone}
       onChange={(e) =>
         setCustomer({ ...customer, phone: e.target.value })
