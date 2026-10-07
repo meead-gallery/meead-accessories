@@ -4507,7 +4507,7 @@ function TabSettings({ settings, setSettings, setToast }) {
 
       <h3>اطلاعات حساب بانکی</h3>
       <div className="admin-grid">
-        <label className="field"><span>شماره کارت</span><input value={bank.cardNumber} onChange={(e) => setBank({ ...bank, cardNumber: e.target.value })} /></label>
+        <label className="field"><span>شماره کارت</span><input inputMode="numeric" value={bank.cardNumber} onChange={(e) => setBank({ ...bank, cardNumber: e.target.value })} /></label>
         <label className="field"><span>شماره حساب</span><input value={bank.accountNumber} onChange={(e) => setBank({ ...bank, accountNumber: e.target.value })} /></label>
         <label className="field"><span>شماره شبا (بدون IR)</span><input value={bank.sheba} onChange={(e) => setBank({ ...bank, sheba: e.target.value })} /></label>
         <label className="field"><span>نام صاحب حساب</span><input value={bank.ownerName} onChange={(e) => setBank({ ...bank, ownerName: e.target.value })} /></label>
