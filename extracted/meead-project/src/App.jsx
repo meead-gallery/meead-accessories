@@ -4589,7 +4589,7 @@ function TabSupport({ settings, setSettings, setToast }) {
               setSupport({ ...support, whatsapp: e.target.value })
             }
             placeholder="شماره واتساپ"
-            inputMode="tel"
+            inputMode="numeric"
           />
         </label>
 
