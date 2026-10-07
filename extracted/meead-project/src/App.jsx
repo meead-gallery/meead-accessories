@@ -502,19 +502,14 @@ p_postal_code: customer.postalCode,
 
     if (onProgress) onProgress(0);
 
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/upload-receipt`, {
-      method: "POST",
+    const { data, error: invokeError } = await supabase.functions.invoke("upload-receipt", {
       body: fd,
     });
 
-    let data = null;
-    try {
-      data = await response.json();
-    } catch {
-      data = null;
-    }
+    const response = invokeError?.context || null;
+    const responseStatus = response?.status || 0;
 
-    if (!response.ok || data?.ok === false) {
+    if (invokeError || data?.ok === false) {
       const reasonMap = {
         file_too_large: "حجم فایل از حد مجاز سرور بیشتر است",
         invalid_file_type: "نوع فایل پشتیبانی نمی‌شود",
@@ -538,7 +533,7 @@ p_postal_code: customer.postalCode,
         `پاسخ نامعتبر از سرور (HTTP ${response.status})`;
 
       console.error("Receipt upload failed:", {
-        status: response.status,
+        status: responseStatus,
         reason: serverReason,
         data,
         fileName: file.name,
@@ -554,7 +549,7 @@ p_postal_code: customer.postalCode,
           `حجم: ${(file.size / (1024 * 1024)).toFixed(2)} MB`,
           `نوع: ${file.type || "نامشخص"}`,
           `مرحله: پاسخ سرور دریافت شد`,
-          `HTTP: ${response.status}`,
+          `HTTP: ${responseStatus || "نامشخص"}`,
           `علت: ${reasonText}`,
         ].join("\n"),
       };
