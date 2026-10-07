@@ -1075,6 +1075,26 @@ export default {
       return getMetals(ctx);
     }
 
-    return env.ASSETS.fetch(request);
+    const assetResponse = await env.ASSETS.fetch(request);
+
+    // Always revalidate the HTML shell so a device cannot keep an older
+    // index.html that points to a previous JavaScript bundle.
+    if (
+      request.method === "GET" &&
+      (url.pathname === "/" || url.pathname === "/index.html")
+    ) {
+      const headers = new Headers(assetResponse.headers);
+      headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+      headers.set("Pragma", "no-cache");
+      headers.set("Expires", "0");
+
+      return new Response(assetResponse.body, {
+        status: assetResponse.status,
+        statusText: assetResponse.statusText,
+        headers,
+      });
+    }
+
+    return assetResponse;
   },
 };
