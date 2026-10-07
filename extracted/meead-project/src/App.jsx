@@ -2294,6 +2294,7 @@ function TrackOrder({
       <label className="field">
         <span>شماره تماس</span>
         <input
+          inputMode="numeric"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="09xxxxxxxxx"
