@@ -530,7 +530,7 @@ p_postal_code: customer.postalCode,
       const reasonText =
         reasonMap[serverReason] ||
         serverReason ||
-        `پاسخ نامعتبر از سرور (HTTP ${response.status})`;
+        `پاسخ نامعتبر از سرور (HTTP ${responseStatus || "نامشخص"})`;
 
       console.error("Receipt upload failed:", {
         status: responseStatus,
@@ -548,7 +548,7 @@ p_postal_code: customer.postalCode,
           `فایل: ${file.name || "بدون نام"}`,
           `حجم: ${(file.size / (1024 * 1024)).toFixed(2)} MB`,
           `نوع: ${file.type || "نامشخص"}`,
-          `مرحله: پاسخ سرور دریافت شد`,
+          `مرحله: ${response ? "پاسخ سرور دریافت شد" : "قبل از دریافت پاسخ از سرور"}`,
           `HTTP: ${responseStatus || "نامشخص"}`,
           `علت: ${reasonText}`,
         ].join("\n"),
