@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { FileText } from "lucide-react";
+import { FileText, Info } from "lucide-react";
 
 export default function MarketAnalysisCard({ supabase }) {
   const [items, setItems] = useState([]);
+  const iranWeekday = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Tehran", weekday: "short" }).format(new Date());
+  const isMarketWeekend = iranWeekday === "Sat" || iranWeekday === "Sun";
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +42,15 @@ export default function MarketAnalysisCard({ supabase }) {
         </div>
         <FileText size={22} />
       </div>
+      {isMarketWeekend && (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, margin: "0 0 14px", padding: "11px 13px", border: "1px solid rgba(169,128,58,.22)", borderRadius: 11, background: "#FAF7F0", color: "#735521", fontSize: 12, lineHeight: 1.9 }}>
+          <Info size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <strong style={{ display: "block", fontSize: 12.5 }}>بازار در تعطیلات پایان هفته است</strong>
+            این تحلیل، آخرین تحلیل منتشرشده پیش از تعطیلی بازار در روز جمعه است.
+          </div>
+        </div>
+      )}
       <div className="market-analysis-isolated-list">
         {items.map((item) => (
           <article className="market-analysis-isolated-item" key={item.id}>
