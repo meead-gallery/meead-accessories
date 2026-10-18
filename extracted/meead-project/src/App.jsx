@@ -10,6 +10,48 @@ import { iranLocations } from "./iranLocations";
 import { trackSiteVisit } from "./siteAnalytics";
 import MarketAnalysisCard from "./MarketAnalysisCard";
 import TabAnalytics from "./TabAnalytics";
+function HeaderDateStrip() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const timeZone = "Asia/Tehran";
+  const persianDate = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone,
+  }).format(now);
+  const gregorianDate = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone,
+  }).format(now);
+  const clock = new Intl.DateTimeFormat("fa-IR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZone,
+  }).format(now);
+
+  return (
+    <section className="header-date-strip" aria-label="تاریخ و ساعت">
+      <div className="header-date-primary">
+        <span>{persianDate}</span>
+        <span className="header-date-clock"><Clock size={12} aria-hidden="true" />{clock}</span>
+      </div>
+      <div className="header-date-secondary" dir="ltr">{gregorianDate}</div>
+    </section>
+  );
+}
+
 function PwaInstallPrompt({ onClose }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isIOS, setIsIOS] = useState(false);
@@ -1664,6 +1706,8 @@ const [receiptUploadStatus, setReceiptUploadStatus] = useState("idle");
     <Lock size={16} />
   </button>
 </header>
+
+      <HeaderDateStrip />
 
       <main className="app-main">
         {view === "home" && (
@@ -4699,6 +4743,10 @@ function GlobalStyles() {
       .loading-screen { display:flex; align-items:center; justify-content:center; height:100vh; color:#7A8494; }
 
       .app-header { display:grid; grid-template-columns: 36px 1fr 36px; align-items:center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid rgba(30,40,50,0.07); position: sticky; top:0; backdrop-filter: blur(10px); background: rgba(246,247,248,0.88); z-index: 10; }
+      .header-date-strip { max-width:480px; margin:0 auto; padding:7px 16px 8px; border-bottom:1px solid rgba(30,40,50,.055); background:rgba(255,255,255,.42); color:#596572; text-align:center; font-variant-numeric:tabular-nums; }
+      .header-date-primary { display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; font-size:11px; font-weight:600; line-height:1.8; }
+      .header-date-clock { display:inline-flex; align-items:center; gap:4px; color:#A9803A; font-size:11px; font-weight:700; direction:ltr; }
+      .header-date-secondary { margin-top:1px; color:#929AA3; font-size:9px; line-height:1.5; letter-spacing:.1px; }
       .header-spacer { width: 36px; height: 36px; }
       .brand { display:flex; flex-direction:column; align-items:center; justify-self:center; gap: 4px; text-align:center; }
       .brand-text { display:flex; flex-direction:column; align-items:center; }
