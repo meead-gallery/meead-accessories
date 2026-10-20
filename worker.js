@@ -1075,6 +1075,35 @@ export default {
       return getMetals(ctx);
     }
 
+    if (request.method === "GET" && url.pathname === "/sitemap.xml") {
+      return new Response(
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+          '  <url>\n' +
+          '    <loc>https://meead.sachmeh.workers.dev/</loc>\n' +
+          '  </url>\n' +
+          '</urlset>\n',
+        {
+          headers: {
+            "Content-Type": "application/xml; charset=utf-8",
+            "Cache-Control": "public, max-age=3600",
+          },
+        }
+      );
+    }
+
+    if (request.method === "GET" && url.pathname === "/robots.txt") {
+      return new Response(
+        "User-agent: *\nAllow: /\n\nSitemap: https://meead.sachmeh.workers.dev/sitemap.xml\n",
+        {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "public, max-age=3600",
+          },
+        }
+      );
+    }
+
     const assetResponse = await env.ASSETS.fetch(request);
 
     // Always revalidate the HTML shell so a device cannot keep an older
