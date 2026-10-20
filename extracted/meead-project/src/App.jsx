@@ -2305,7 +2305,12 @@ function TrackOrder({
       setResult(found);
     } catch (error) {
       console.error("Find order failed:", error);
-      alert("خطای پیگیری سفارش:\n" + (error?.message || error));
+      const errorMessage = String(error?.message || error || "");
+      if (errorMessage.includes("order_not_found")) {
+        alert("سفارشی با اطلاعات واردشده یافت نشد. لطفاً شماره تلفن و کد پیگیری سفارش را بررسی کرده و دوباره تلاش کنید.");
+      } else {
+        alert("خطای پیگیری سفارش:\n" + (error?.message || error));
+      }
     } finally {
       setSearched(true);
     }
