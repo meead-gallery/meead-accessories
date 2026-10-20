@@ -2306,9 +2306,7 @@ function TrackOrder({
     } catch (error) {
       console.error("Find order failed:", error);
       const errorMessage = String(error?.message || error || "");
-      if (errorMessage.includes("order_not_found")) {
-        alert("سفارشی با اطلاعات واردشده یافت نشد. لطفاً شماره تلفن و کد پیگیری سفارش را بررسی کرده و دوباره تلاش کنید.");
-      } else {
+      if (!errorMessage.includes("order_not_found")) {
         alert("خطای پیگیری سفارش:\n" + (error?.message || error));
       }
     } finally {
