@@ -378,6 +378,7 @@ function GoldShowcaseCalculator() {
   const sellerProfit = inputsValid ? (rawGold + laborCost) * profitRate / 100 : 0;
   const vat = inputsValid ? (laborCost + sellerProfit) * taxRate / 100 : 0;
   const finalPrice = rawGold + laborCost + sellerProfit + vat;
+  const formatPickerNumber = (n) => Number.isInteger(n) ? n.toLocaleString("fa-IR") : String(Math.floor(n)).replace(/[0-9]/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]) + "/۵";
   const formatToman = (value) => Math.round(Number(value)).toLocaleString("fa-IR") + " تومان";
 
   return (
@@ -423,7 +424,7 @@ function GoldShowcaseCalculator() {
               <span>اجرت ساخت (درصد)</span>
               <div className="gold-showcase-picker-wrap">
                 <input type="text" inputMode="decimal" dir="ltr" autoComplete="off" value={laborPercent} placeholder="مثلاً 8" aria-label="درصد اجرت ساخت" aria-expanded={activePicker === "labor"} onFocus={() => setActivePicker("labor")} onBlur={() => setActivePicker(null)} onClick={() => setActivePicker("labor")} onChange={(event) => { setLaborPercent(event.target.value); setActivePicker("labor"); }} />
-                {activePicker === "labor" && <div className="gold-showcase-number-list" role="listbox" aria-label="انتخاب درصد اجرت">{Array.from({ length: 50 }, (_, i) => i + 1).map((n) => <button type="button" role="option" aria-selected={parseNumber(laborPercent) === n} key={n} onMouseDown={(event) => event.preventDefault()} onClick={() => { setLaborPercent(String(n)); setActivePicker(null); }}>{n.toLocaleString("fa-IR")}</button>)}</div>}
+                {activePicker === "labor" && <div className="gold-showcase-number-list" role="listbox" aria-label="انتخاب درصد اجرت">{Array.from({ length: 99 }, (_, i) => i / 2 + 1).map((n) => <button type="button" role="option" aria-selected={parseNumber(laborPercent) === n} key={n} onMouseDown={(event) => event.preventDefault()} onClick={() => { setLaborPercent(String(n)); setActivePicker(null); }}>{formatPickerNumber(n)}</button>)}</div>}
               </div>
             </div>
 
@@ -431,7 +432,7 @@ function GoldShowcaseCalculator() {
               <span>سود فروشنده (درصد)</span>
               <div className="gold-showcase-picker-wrap">
                 <input type="text" inputMode="decimal" dir="ltr" autoComplete="off" value={profitPercent} aria-label="درصد سود فروشنده" aria-expanded={activePicker === "profit"} onFocus={() => setActivePicker("profit")} onBlur={() => setActivePicker(null)} onClick={() => setActivePicker("profit")} onChange={(event) => { setProfitPercent(event.target.value); setActivePicker("profit"); }} />
-                {activePicker === "profit" && <div className="gold-showcase-number-list" role="listbox" aria-label="انتخاب درصد سود">{Array.from({ length: 7 }, (_, i) => i + 1).map((n) => <button type="button" role="option" aria-selected={parseNumber(profitPercent) === n} key={n} onMouseDown={(event) => event.preventDefault()} onClick={() => { setProfitPercent(String(n)); setActivePicker(null); }}>{n.toLocaleString("fa-IR")}</button>)}</div>}
+                {activePicker === "profit" && <div className="gold-showcase-number-list" role="listbox" aria-label="انتخاب درصد سود">{Array.from({ length: 13 }, (_, i) => i / 2 + 1).map((n) => <button type="button" role="option" aria-selected={parseNumber(profitPercent) === n} key={n} onMouseDown={(event) => event.preventDefault()} onClick={() => { setProfitPercent(String(n)); setActivePicker(null); }}>{formatPickerNumber(n)}</button>)}</div>}
               </div>
             </div>
 
@@ -439,7 +440,7 @@ function GoldShowcaseCalculator() {
               <span>مالیات بر ارزش افزوده (درصد)</span>
               <div className="gold-showcase-picker-wrap">
                 <input type="text" inputMode="decimal" dir="ltr" autoComplete="off" value={taxPercent} aria-label="درصد مالیات بر ارزش افزوده" aria-expanded={activePicker === "tax"} onFocus={() => setActivePicker("tax")} onBlur={() => setActivePicker(null)} onClick={() => setActivePicker("tax")} onChange={(event) => { setTaxPercent(event.target.value); setActivePicker("tax"); }} />
-                {activePicker === "tax" && <div className="gold-showcase-number-list" role="listbox" aria-label="انتخاب درصد مالیات">{Array.from({ length: 20 }, (_, i) => i + 1).map((n) => <button type="button" role="option" aria-selected={parseNumber(taxPercent) === n} key={n} onMouseDown={(event) => event.preventDefault()} onClick={() => { setTaxPercent(String(n)); setActivePicker(null); }}>{n.toLocaleString("fa-IR")}</button>)}</div>}
+                {activePicker === "tax" && <div className="gold-showcase-number-list" role="listbox" aria-label="انتخاب درصد مالیات">{Array.from({ length: 39 }, (_, i) => i / 2 + 1).map((n) => <button type="button" role="option" aria-selected={parseNumber(taxPercent) === n} key={n} onMouseDown={(event) => event.preventDefault()} onClick={() => { setTaxPercent(String(n)); setActivePicker(null); }}>{formatPickerNumber(n)}</button>)}</div>}
               </div>
             </div>
 
