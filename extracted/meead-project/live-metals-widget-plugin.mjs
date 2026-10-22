@@ -561,8 +561,8 @@ function GoldShowcaseCalculator() {
       .gold-showcase-field { display:flex; flex-direction:column; gap:6px; min-width:0; color:#475467; font-size:11px; font-weight:700; }
       .gold-showcase-field input { width:100%; min-width:0; min-height:42px; padding:10px 11px; border:1px solid #E1E5EA; border-radius:10px; outline:none; background:#FFFFFF; color:#1E242B; font-family:'Vazirmatn',sans-serif; font-size:13px; font-weight:600; transition:border-color .15s ease,box-shadow .15s ease; }
       .gold-showcase-picker-wrap { position:relative; width:100%; }
-      .gold-showcase-number-list { position:absolute; z-index:50; top:calc(100% + 4px); left:0; right:0; max-height:190px; overflow-y:auto; overscroll-behavior:contain; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:3px; padding:5px; border:1px solid #D9C69F; border-radius:10px; background:#FFFFFF; box-shadow:0 8px 24px rgba(20,30,45,0.16); }
-      .gold-showcase-number-list button { min-height:32px; border:0; border-radius:6px; background:#F8F9FA; color:#344054; font:600 12px 'Vazirmatn',sans-serif; cursor:pointer; }
+      .gold-showcase-number-list { position:absolute; z-index:50; top:calc(100% + 4px); left:0; right:0; max-height:none; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; scrollbar-width:thin; display:flex; flex-flow:row nowrap; gap:4px; padding:5px; border:1px solid #D9C69F; border-radius:10px; background:#FFFFFF; box-shadow:0 8px 24px rgba(20,30,45,0.16); }
+      .gold-showcase-number-list button { flex:0 0 36px; width:36px; min-height:32px; border:0; border-radius:6px; background:#F8F9FA; color:#344054; font:600 12px 'Vazirmatn',sans-serif; cursor:pointer; }
       .gold-showcase-number-list button:hover, .gold-showcase-number-list button[aria-selected="true"] { background:#A9803A; color:#FFFFFF; }
       .gold-showcase-field input:focus { border-color:#B08A47; box-shadow:0 0 0 3px rgba(169,128,58,0.11); }
       .gold-showcase-field input::placeholder { color:#A0A8B3; font-size:11px; font-weight:400; }
