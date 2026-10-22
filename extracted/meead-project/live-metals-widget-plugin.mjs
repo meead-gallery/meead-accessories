@@ -309,6 +309,192 @@ function DerivedGramPrices() {
 
 `;
 
+const goldShowcaseCalculatorComponent = `
+
+function GoldShowcaseCalculator() {
+  const [open, setOpen] = useState(false);
+  const [goldPrice, setGoldPrice] = useState("");
+  const [priceEdited, setPriceEdited] = useState(false);
+  const [laborPercent, setLaborPercent] = useState("");
+  const [profitPercent, setProfitPercent] = useState("7");
+  const [taxPercent, setTaxPercent] = useState("10");
+  const [weight, setWeight] = useState("");
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [priceError, setPriceError] = useState(false);
+
+  const parseNumber = (value) => {
+    const normalized = String(value == null ? "" : value)
+      .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+      .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+      .replace(/[٬,،]/g, "")
+      .replace(/٫/g, ".")
+      .split(" ").join("");
+    return normalized === "" ? NaN : Number(normalized);
+  };
+
+  useEffect(() => {
+    if (!open) return undefined;
+    let cancelled = false;
+    setPriceLoading(true);
+    setPriceError(false);
+
+    fetch("/api/iran-market", { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) throw new Error("iran_market_unavailable");
+        return response.json();
+      })
+      .then((result) => {
+        const currentGoldPrice = Number(result && result.gold18Toman);
+        if (!result || !result.ok || !Number.isFinite(currentGoldPrice) || currentGoldPrice <= 0) {
+          throw new Error("invalid_iran_market_data");
+        }
+        if (!cancelled && !priceEdited) setGoldPrice(String(Math.round(currentGoldPrice)));
+      })
+      .catch(() => {
+        if (!cancelled) setPriceError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setPriceLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [open, priceEdited]);
+
+  const price = parseNumber(goldPrice);
+  const labor = parseNumber(laborPercent);
+  const profitRate = parseNumber(profitPercent);
+  const taxRate = parseNumber(taxPercent);
+  const grams = parseNumber(weight);
+  const inputsValid =
+    Number.isFinite(price) && price > 0 &&
+    Number.isFinite(labor) && labor >= 0 &&
+    Number.isFinite(profitRate) && profitRate >= 0 &&
+    Number.isFinite(taxRate) && taxRate >= 0 &&
+    Number.isFinite(grams) && grams > 0;
+
+  const rawGold = inputsValid ? price * grams : 0;
+  const laborCost = inputsValid ? rawGold * labor / 100 : 0;
+  const sellerProfit = inputsValid ? (rawGold + laborCost) * profitRate / 100 : 0;
+  const vat = inputsValid ? (laborCost + sellerProfit) * taxRate / 100 : 0;
+  const finalPrice = rawGold + laborCost + sellerProfit + vat;
+  const formatToman = (value) => Math.round(Number(value)).toLocaleString("fa-IR") + " تومان";
+
+  return (
+    <section className="gold-showcase-calculator" dir="rtl" aria-label="محاسبه قیمت طلای ویترین">
+      <button
+        type="button"
+        className="gold-showcase-toggle"
+        aria-expanded={open}
+        aria-controls="gold-showcase-calculator-panel"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="gold-showcase-heading">
+          <span className="gold-showcase-symbol" aria-hidden="true">Au</span>
+          <span>
+            <strong>محاسبه قیمت طلای ویترین</strong>
+            <small>محاسبه قیمت نهایی بر اساس وزن و درصدها</small>
+          </span>
+        </span>
+        <ChevronRight size={17} className={"gold-showcase-chevron " + (open ? "is-open" : "")} aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div id="gold-showcase-calculator-panel" className="gold-showcase-panel">
+          <div className="gold-showcase-fields">
+            <label className="gold-showcase-field">
+              <span>مظنه (نرخ هر گرم طلای ۱۸ عیار)</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                autoComplete="off"
+                value={goldPrice}
+                placeholder={priceLoading ? "در حال دریافت نرخ..." : "قیمت هر گرم به تومان"}
+                onChange={(event) => {
+                  setPriceEdited(true);
+                  setGoldPrice(event.target.value);
+                }}
+              />
+              <small>{priceError ? "دریافت نرخ خودکار ناموفق بود؛ قیمت را دستی وارد کنید." : "قیمت از کارت «بازار ایران» خوانده می‌شود و قابل ویرایش است."}</small>
+            </label>
+
+            <label className="gold-showcase-field">
+              <span>اجرت ساخت (درصد)</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                autoComplete="off"
+                value={laborPercent}
+                placeholder="مثلاً 8"
+                onChange={(event) => setLaborPercent(event.target.value)}
+              />
+            </label>
+
+            <label className="gold-showcase-field">
+              <span>سود فروشنده (درصد)</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                autoComplete="off"
+                value={profitPercent}
+                onChange={(event) => setProfitPercent(event.target.value)}
+              />
+            </label>
+
+            <label className="gold-showcase-field">
+              <span>مالیات بر ارزش افزوده (درصد)</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                autoComplete="off"
+                value={taxPercent}
+                onChange={(event) => setTaxPercent(event.target.value)}
+              />
+            </label>
+
+            <label className="gold-showcase-field gold-showcase-weight">
+              <span>وزن طلا (گرم)</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                autoComplete="off"
+                value={weight}
+                placeholder="وزن را وارد کنید"
+                onChange={(event) => setWeight(event.target.value)}
+              />
+            </label>
+          </div>
+
+          {inputsValid ? (
+            <div className="gold-showcase-result" aria-live="polite">
+              <div className="gold-showcase-breakdown">
+                <div><span>ارزش طلای خام</span><strong>{formatToman(rawGold)}</strong></div>
+                <div><span>اجرت ساخت</span><strong>{formatToman(laborCost)}</strong></div>
+                <div><span>سود فروشنده</span><strong>{formatToman(sellerProfit)}</strong></div>
+                <div><span>مالیات</span><strong>{formatToman(vat)}</strong></div>
+              </div>
+              <div className="gold-showcase-total">
+                <span>قیمت نهایی</span>
+                <strong>{formatToman(finalPrice)}</strong>
+              </div>
+            </div>
+          ) : (
+            <div className="gold-showcase-hint" aria-live="polite">
+              برای مشاهده قیمت نهایی، نرخ طلا، درصد اجرت و وزن را وارد کنید.
+            </div>
+          )}
+          <p className="gold-showcase-note">این محاسبه تخمینی است؛ تغییر اعداد در این بخش، قیمت بازار سایت را تغییر نمی‌دهد.</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+`;
       let next = code;
 
       const barsBlock = `      <div className="section-head bars-head">
@@ -360,16 +546,44 @@ function DerivedGramPrices() {
       const homeMarker = "function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, startQuote, setView }) {";
       if (!next.includes(homeMarker)) return null;
       next = next.replace(homeMarker, derivedPricesComponent + homeMarker);
-      next = next.replace(homeMarker, cryptoComponent + metalsComponent + iranComponent + homeMarker);
+      next = next.replace(homeMarker, cryptoComponent + metalsComponent + iranComponent + goldShowcaseCalculatorComponent + homeMarker);
 
       const trackButton = "      <button className=\"track-link\" onClick={() => setView(\"track\")}>\n        <Search size={14} /> پیگیری سفارش با کد رهگیری\n      </button>";
 
-      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      {settings.liveCryptoEnabled !== false && <LiveCryptoPrices />}\n\n      {settings.liveIranEnabled !== false && <LiveIranMarketPrices />}\n\n      {settings.derivedGramPricesEnabled !== false && <DerivedGramPrices />}");
+      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      {settings.liveCryptoEnabled !== false && <LiveCryptoPrices />}\n\n      {settings.liveIranEnabled !== false && <LiveIranMarketPrices />}\n\n      <GoldShowcaseCalculator />\n\n      {settings.derivedGramPricesEnabled !== false && <DerivedGramPrices />}");
 
       next = next.replace("      <TwentyFourHourChartCard />", "      {settings.liveChartEnabled !== false && <TwentyFourHourChartCard />}");
 
       const styleMarker = "      .update-row {";
       const styles = `
+
+      .gold-showcase-calculator { margin-top:10px; overflow:hidden; border:1px solid rgba(169,128,58,0.24); border-radius:16px; background:linear-gradient(145deg,#FFFFFF 0%,#F8F9FA 100%); box-shadow:0 5px 18px rgba(20,30,45,0.06); color:#1E242B; }
+      .gold-showcase-toggle { width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px; border:0; background:transparent; color:inherit; text-align:right; cursor:pointer; font:inherit; }
+      .gold-showcase-toggle:focus-visible { outline:2px solid #A9803A; outline-offset:-3px; border-radius:14px; }
+      .gold-showcase-heading { display:flex; align-items:center; gap:10px; min-width:0; }
+      .gold-showcase-symbol { width:34px; height:34px; flex:0 0 34px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid rgba(169,128,58,0.3); background:rgba(169,128,58,0.11); color:#9A732F; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:800; }
+      .gold-showcase-heading strong { display:block; font-size:13px; font-weight:800; line-height:1.7; }
+      .gold-showcase-heading small { display:block; margin-top:1px; color:#93A0AF; font-size:10px; line-height:1.7; }
+      .gold-showcase-chevron { flex:0 0 auto; color:#9A732F; transition:transform .18s ease; transform:rotate(0deg); }
+      .gold-showcase-chevron.is-open { transform:rotate(90deg); }
+      .gold-showcase-panel { padding:0 14px 13px; border-top:1px solid rgba(30,40,50,0.07); }
+      .gold-showcase-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding-top:13px; }
+      .gold-showcase-field { display:flex; flex-direction:column; gap:6px; min-width:0; color:#475467; font-size:11px; font-weight:700; }
+      .gold-showcase-field input { width:100%; min-width:0; min-height:42px; padding:10px 11px; border:1px solid #E1E5EA; border-radius:10px; outline:none; background:#FFFFFF; color:#1E242B; font-family:'Vazirmatn',sans-serif; font-size:13px; font-weight:600; transition:border-color .15s ease,box-shadow .15s ease; }
+      .gold-showcase-field input:focus { border-color:#B08A47; box-shadow:0 0 0 3px rgba(169,128,58,0.11); }
+      .gold-showcase-field input::placeholder { color:#A0A8B3; font-size:11px; font-weight:400; }
+      .gold-showcase-field small { color:#98A1AD; font-size:9px; font-weight:400; line-height:1.8; }
+      .gold-showcase-weight { grid-column:1 / -1; }
+      .gold-showcase-hint { margin-top:13px; padding:11px 12px; border:1px dashed rgba(169,128,58,0.28); border-radius:10px; background:rgba(169,128,58,0.045); color:#7A818B; font-size:10.5px; line-height:1.9; }
+      .gold-showcase-result { margin-top:13px; padding:12px; border:1px solid rgba(169,128,58,0.17); border-radius:12px; background:#FCFBF8; }
+      .gold-showcase-breakdown { display:grid; gap:8px; }
+      .gold-showcase-breakdown > div { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; color:#667085; font-size:10.5px; line-height:1.8; }
+      .gold-showcase-breakdown strong { color:#344054; font-size:10.5px; font-weight:700; text-align:left; }
+      .gold-showcase-total { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:11px; padding-top:11px; border-top:1px solid rgba(169,128,58,0.2); color:#5C4827; font-size:12px; font-weight:800; }
+      .gold-showcase-total strong { color:#9A732F; font-size:17px; font-weight:900; text-align:left; line-height:1.8; }
+      .gold-showcase-note { margin:10px 0 0; color:#98A1AD; font-size:9px; line-height:1.9; }
+      @media (max-width:480px) { .home .gold-showcase-calculator { margin-top:8px; } .home .gold-showcase-toggle { padding:11px; } .home .gold-showcase-symbol { width:30px; height:30px; flex-basis:30px; } .home .gold-showcase-heading strong { font-size:12px; } .home .gold-showcase-heading small { font-size:9px; } .home .gold-showcase-panel { padding:0 11px 11px; } .home .gold-showcase-fields { gap:9px; padding-top:11px; } .home .gold-showcase-field { font-size:10px; } .home .gold-showcase-field input { min-height:40px; padding:9px; font-size:12px; } .home .gold-showcase-total strong { font-size:15px; } }
+      @media (max-width:360px) { .home .gold-showcase-fields { grid-template-columns:minmax(0,1fr); } .home .gold-showcase-weight { grid-column:auto; } }
 
       .derived-gram-card { background:linear-gradient(145deg,#FFFFFF 0%,#F8F9FA 100%); border:1px solid rgba(169,128,58,0.22); border-radius:16px; padding:13px 14px 10px; margin-top:10px; box-shadow:0 5px 18px rgba(20,30,45,0.06); }
       .derived-gram-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
