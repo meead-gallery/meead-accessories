@@ -353,9 +353,8 @@ function DerivedGramPrices() {
       if (next.includes(settingsButtonMarker)) next = next.replace(settingsButtonMarker, settingsToggle);
 
       const homeMarker = "function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, startQuote, setView }) {";
-      if (!next.includes(homeMarker.slice(26, -2))) throw new Error("Meead Home marker missing");
-      next = next.replace(homeMarker.slice(26, -2), derivedPricesComponent + homeMarker.slice(26, -2));
       if (!next.includes(homeMarker)) return null;
+      next = next.replace(homeMarker, derivedPricesComponent + homeMarker);
       next = next.replace(homeMarker, cryptoComponent + metalsComponent + iranComponent + homeMarker);
 
       const trackButton = "      <button className=\"track-link\" onClick={() => setView(\"track\")}>\n        <Search size={14} /> پیگیری سفارش با کد رهگیری\n      </button>";
