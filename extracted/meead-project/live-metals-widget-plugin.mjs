@@ -393,7 +393,7 @@ function GoldShowcaseCalculator() {
         <span className="gold-showcase-heading">
           <span className="gold-showcase-symbol" aria-hidden="true">Au</span>
           <span>
-            <strong>محاسبه قیمت طلای ویترین</strong>
+            <strong>ماشین حساب محاسبه قیمت طلای ویترین</strong>
             <small>محاسبه قیمت نهایی بر اساس وزن و درصدها</small>
           </span>
         </span>
