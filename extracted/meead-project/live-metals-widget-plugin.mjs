@@ -364,6 +364,8 @@ function DerivedGramPrices() {
 
       next = next.replace("      <TwentyFourHourChartCard />", "      {settings.liveChartEnabled !== false && <TwentyFourHourChartCard />}");
 
+      const styleMarker = "      .update-row {";
+      const styles = `
 
       .derived-gram-card { background:linear-gradient(145deg,#FFFFFF 0%,#F8F9FA 100%); border:1px solid rgba(169,128,58,0.22); border-radius:16px; padding:13px 14px 10px; margin-top:10px; box-shadow:0 5px 18px rgba(20,30,45,0.06); }
       .derived-gram-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
@@ -387,8 +389,6 @@ function DerivedGramPrices() {
       @media (max-width:480px) { .home .derived-gram-card { padding:10px 11px 8px; margin-top:8px; } .home .derived-gram-grid { gap:8px; margin-top:9px; } .home .derived-gram-divider { height:38px; } .home .derived-gram-label { font-size:10px; gap:4px; } .home .derived-gram-symbol { width:21px; height:21px; flex-basis:21px; font-size:8px; } .home .derived-gram-value { font-size:12.5px; } .home .derived-gram-footer { margin-top:7px; padding-top:6px; font-size:7.5px; } }
       @media (max-width:380px) { .home .derived-gram-label small { display:none; } .home .derived-gram-value { font-size:11.5px; } .home .derived-gram-footer { font-size:7px; } }
 
-      const styleMarker = "      .update-row {";
-      const styles = `
       .iran-market-card { background:linear-gradient(145deg,#FFFFFF 0%,#F8F9FA 100%); border:1px solid rgba(169,128,58,0.22); border-radius:16px; padding:13px 14px 10px; margin-top:10px; box-shadow:0 5px 18px rgba(20,30,45,0.06); }
       .iran-market-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
       .iran-market-title { font-size:13px; font-weight:800; color:#1E242B; }
