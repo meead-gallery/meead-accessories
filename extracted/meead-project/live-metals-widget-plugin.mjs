@@ -550,9 +550,11 @@ function GoldShowcaseCalculator() {
 
       const trackButton = "      <button className=\"track-link\" onClick={() => setView(\"track\")}>\n        <Search size={14} /> پیگیری سفارش با کد رهگیری\n      </button>";
 
-      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      {settings.liveCryptoEnabled !== false && <LiveCryptoPrices />}\n\n      {settings.liveIranEnabled !== false && <LiveIranMarketPrices />}\n\n      <GoldShowcaseCalculator />\n\n      {settings.derivedGramPricesEnabled !== false && <DerivedGramPrices />}");
+      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      {settings.liveCryptoEnabled !== false && <LiveCryptoPrices />}\n\n      {settings.liveIranEnabled !== false && <LiveIranMarketPrices />}\n\n      {settings.derivedGramPricesEnabled !== false && <DerivedGramPrices />}");
 
       next = next.replace("      <TwentyFourHourChartCard />", "      {settings.liveChartEnabled !== false && <TwentyFourHourChartCard />}");
+      
+      next = next.replace('      {settings.liveAnalysisEnabled !== false && <MarketAnalysisCard supabase={supabase} />}', '      {settings.liveAnalysisEnabled !== false && <MarketAnalysisCard supabase={supabase} />}\n\n      <GoldShowcaseCalculator />');
 
       const styleMarker = "      .update-row {";
       const styles = `
