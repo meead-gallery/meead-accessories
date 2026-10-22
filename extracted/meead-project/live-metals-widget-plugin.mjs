@@ -280,8 +280,8 @@ function DerivedGramPrices() {
     <section className="derived-gram-card" aria-label="قیمت محاسباتی هر گرم نقره و طلای ۱۸ عیار">
       <div className="derived-gram-head">
         <div>
-          <div className="derived-gram-title">قیمت محاسباتی فلزات</div>
-          <div className="derived-gram-subtitle">برآورد هر گرم بر پایه انس جهانی و دلار آزاد</div>
+          <div className="derived-gram-title">قیمت جهانی طلا و نقره</div>
+          <div className="derived-gram-subtitle">قیمت هر گرم به تومان، بر اساس نرخ جهانی و نرخ ارز</div>
         </div>
         <span className={"derived-gram-status " + (prices ? "is-live" : "")}>
           <span className="derived-gram-dot" />
