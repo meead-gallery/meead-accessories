@@ -318,6 +318,7 @@ function GoldShowcaseCalculator() {
   const [laborPercent, setLaborPercent] = useState("");
   const [profitPercent, setProfitPercent] = useState("7");
   const [taxPercent, setTaxPercent] = useState("10");
+  const [activePicker, setActivePicker] = useState(null);
   const [weight, setWeight] = useState("");
   const [priceLoading, setPriceLoading] = useState(false);
   const [priceError, setPriceError] = useState(false);
@@ -418,42 +419,29 @@ function GoldShowcaseCalculator() {
               <small>{priceError ? "دریافت نرخ خودکار ناموفق بود؛ قیمت را دستی وارد کنید." : "قیمت از کارت «بازار ایران» خوانده می‌شود و قابل ویرایش است."}</small>
             </label>
 
-            <label className="gold-showcase-field">
+            <div className="gold-showcase-field">
               <span>اجرت ساخت (درصد)</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                dir="ltr"
-                autoComplete="off"
-                value={laborPercent}
-                placeholder="مثلاً 8"
-                onChange={(event) => setLaborPercent(event.target.value)}
-              />
-            </label>
+              <div className="gold-showcase-picker-wrap">
+                <input type="text" inputMode="decimal" dir="ltr" autoComplete="off" value={laborPercent} placeholder="مثلاً 8" aria-label="درصد اجرت ساخت" aria-expanded={activePicker === "labor"} onFocus={() => setActivePicker("labor")} onClick={() => setActivePicker("labor")} onChange={(event) => { setLaborPercent(event.target.value); setActivePicker("labor"); }} />
+                {activePicker === "labor" && <div className="gold-showcase-number-list" role="listbox" aria-label="انتخاب درصد اجرت">{Array.from({ length: 50 }, (_, i) => i + 1).map((n) => <button type="button" role="option" aria-selected={parseNumber(laborPercent) === n} key={n} onMouseDown={(event) => event.preventDefault()} onClick={() => { setLaborPercent(String(n)); setActivePicker(null); }}>{n.toLocaleString("fa-IR")}</button>)}</div>}
+              </div>
+            </div>
 
-            <label className="gold-showcase-field">
+            <div className="gold-showcase-field">
               <span>سود فروشنده (درصد)</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                dir="ltr"
-                autoComplete="off"
-                value={profitPercent}
-                onChange={(event) => setProfitPercent(event.target.value)}
-              />
-            </label>
+              <div className="gold-showcase-picker-wrap">
+                <input type="text" inputMode="decimal" dir="ltr" autoComplete="off" value={profitPercent} aria-label="درصد سود فروشنده" aria-expanded={activePicker === "profit"} onFocus={() => setActivePicker("profit")} onClick={() => setActivePicker("profit")} onChange={(event) => { setProfitPercent(event.target.value); setActivePicker("profit"); }} />
+                {activePicker === "profit" && <div className="gold-showcase-number-list" role="listbox" aria-label="انتخاب درصد سود">{Array.from({ length: 7 }, (_, i) => i + 1).map((n) => <button type="button" role="option" aria-selected={parseNumber(profitPercent) === n} key={n} onMouseDown={(event) => event.preventDefault()} onClick={() => { setProfitPercent(String(n)); setActivePicker(null); }}>{n.toLocaleString("fa-IR")}</button>)}</div>}
+              </div>
+            </div>
 
-            <label className="gold-showcase-field">
+            <div className="gold-showcase-field">
               <span>مالیات بر ارزش افزوده (درصد)</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                dir="ltr"
-                autoComplete="off"
-                value={taxPercent}
-                onChange={(event) => setTaxPercent(event.target.value)}
-              />
-            </label>
+              <div className="gold-showcase-picker-wrap">
+                <input type="text" inputMode="decimal" dir="ltr" autoComplete="off" value={taxPercent} aria-label="درصد مالیات بر ارزش افزوده" aria-expanded={activePicker === "tax"} onFocus={() => setActivePicker("tax")} onClick={() => setActivePicker("tax")} onChange={(event) => { setTaxPercent(event.target.value); setActivePicker("tax"); }} />
+                {activePicker === "tax" && <div className="gold-showcase-number-list" role="listbox" aria-label="انتخاب درصد مالیات">{Array.from({ length: 20 }, (_, i) => i + 1).map((n) => <button type="button" role="option" aria-selected={parseNumber(taxPercent) === n} key={n} onMouseDown={(event) => event.preventDefault()} onClick={() => { setTaxPercent(String(n)); setActivePicker(null); }}>{n.toLocaleString("fa-IR")}</button>)}</div>}
+              </div>
+            </div>
 
             <label className="gold-showcase-field gold-showcase-weight">
               <span>وزن طلا (گرم)</span>
@@ -572,6 +560,10 @@ function GoldShowcaseCalculator() {
       .gold-showcase-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding-top:13px; }
       .gold-showcase-field { display:flex; flex-direction:column; gap:6px; min-width:0; color:#475467; font-size:11px; font-weight:700; }
       .gold-showcase-field input { width:100%; min-width:0; min-height:42px; padding:10px 11px; border:1px solid #E1E5EA; border-radius:10px; outline:none; background:#FFFFFF; color:#1E242B; font-family:'Vazirmatn',sans-serif; font-size:13px; font-weight:600; transition:border-color .15s ease,box-shadow .15s ease; }
+      .gold-showcase-picker-wrap { position:relative; width:100%; }
+      .gold-showcase-number-list { position:absolute; z-index:50; top:calc(100% + 4px); left:0; right:0; max-height:190px; overflow-y:auto; overscroll-behavior:contain; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:3px; padding:5px; border:1px solid #D9C69F; border-radius:10px; background:#FFFFFF; box-shadow:0 8px 24px rgba(20,30,45,0.16); }
+      .gold-showcase-number-list button { min-height:32px; border:0; border-radius:6px; background:#F8F9FA; color:#344054; font:600 12px 'Vazirmatn',sans-serif; cursor:pointer; }
+      .gold-showcase-number-list button:hover, .gold-showcase-number-list button[aria-selected="true"] { background:#A9803A; color:#FFFFFF; }
       .gold-showcase-field input:focus { border-color:#B08A47; box-shadow:0 0 0 3px rgba(169,128,58,0.11); }
       .gold-showcase-field input::placeholder { color:#A0A8B3; font-size:11px; font-weight:400; }
       .gold-showcase-field small { color:#98A1AD; font-size:9px; font-weight:400; line-height:1.8; }
