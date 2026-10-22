@@ -236,6 +236,79 @@ function LiveIranMarketPrices() {
 
 `;
 
+      const derivedPricesComponent = `
+function DerivedGramPrices() {
+  const [prices, setPrices] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const loadPrices = useCallback(async () => {
+    try {
+      const [metalsResponse, iranResponse] = await Promise.all([
+        fetch("/api/metals", { cache: "no-store" }),
+        fetch("/api/iran-market", { cache: "no-store" }),
+      ]);
+      if (!metalsResponse.ok || !iranResponse.ok) throw new Error("derived_prices_unavailable");
+      const [metals, iran] = await Promise.all([metalsResponse.json(), iranResponse.json()]);
+      const gold = Number(metals?.gold);
+      const silver = Number(metals?.silver);
+      const dollar = Number(iran?.dollarToman);
+      if (!metals?.ok || !iran?.ok || ![gold, silver, dollar].every(Number.isFinite) || gold <= 0 || silver <= 0 || dollar <= 0) {
+        throw new Error("invalid_derived_price_data");
+      }
+      setPrices({
+        goldPerGram: (gold * dollar / 31.1035) * 0.75,
+        silverPerGram: silver * dollar / 31.1,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.warn("Derived gram prices refresh failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    loadPrices();
+    const timer = setInterval(loadPrices, 30000);
+    return () => clearInterval(timer);
+  }, [loadPrices]);
+  const formatToman = (value) => Math.round(Number(value)).toLocaleString("fa-IR");
+  const formatTime = (value) => {
+    if (!value) return "اکنون";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "اکنون" : date.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
+  };
+  return (
+    <section className="derived-gram-card" aria-label="قیمت محاسباتی هر گرم نقره و طلای ۱۸ عیار">
+      <div className="derived-gram-head">
+        <div>
+          <div className="derived-gram-title">قیمت محاسباتی فلزات</div>
+          <div className="derived-gram-subtitle">برآورد هر گرم بر پایه انس جهانی و دلار آزاد</div>
+        </div>
+        <span className={"derived-gram-status " + (prices ? "is-live" : "")}>
+          <span className="derived-gram-dot" />
+          {prices ? "آنلاین" : "در حال دریافت"}
+        </span>
+      </div>
+      <div className="derived-gram-grid">
+        <div className="derived-gram-item derived-silver">
+          <div className="derived-gram-label"><span className="derived-gram-symbol">Ag</span><span>نقره ۹۹۹</span><small>هر گرم</small></div>
+          <div className="derived-gram-value">{prices ? formatToman(prices.silverPerGram) + " تومان" : "—"}</div>
+        </div>
+        <div className="derived-gram-divider" />
+        <div className="derived-gram-item derived-gold">
+          <div className="derived-gram-label"><span className="derived-gram-symbol">Au</span><span>طلای ۱۸ عیار</span><small>هر گرم</small></div>
+          <div className="derived-gram-value">{prices ? formatToman(prices.goldPerGram) + " تومان" : "—"}</div>
+        </div>
+      </div>
+      <div className="derived-gram-footer">
+        <span>● بروزرسانی خودکار هر ۳۰ ثانیه</span>
+        <span>{prices ? "آخرین محاسبه: " + formatTime(prices.updatedAt) : loading ? "در حال اتصال…" : "قیمت موقتاً در دسترس نیست"}</span>
+      </div>
+    </section>
+  );
+}
+
+`;
+
       let next = code;
 
       const barsBlock = `      <div className="section-head bars-head">
@@ -281,16 +354,40 @@ function LiveIranMarketPrices() {
 
       const homeMarker = "function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, startQuote, setView }) {";
       if (!next.includes(homeMarker)) return null;
+      next = next.replace(homeMarker, derivedPricesComponent + homeMarker);
       next = next.replace(homeMarker, cryptoComponent + metalsComponent + iranComponent + homeMarker);
 
       const trackButton = "      <button className=\"track-link\" onClick={() => setView(\"track\")}>\n        <Search size={14} /> پیگیری سفارش با کد رهگیری\n      </button>";
 
-      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      {settings.liveCryptoEnabled !== false && <LiveCryptoPrices />}\n\n      {settings.liveIranEnabled !== false && <LiveIranMarketPrices />}");
+      if (next.includes(trackButton)) next = next.replace(trackButton, trackButton + "\n\n      {settings.liveCryptoEnabled !== false && <LiveCryptoPrices />}\n\n      {settings.liveIranEnabled !== false && <LiveIranMarketPrices />}\n\n      <DerivedGramPrices />");
 
       next = next.replace("      <TwentyFourHourChartCard />", "      {settings.liveChartEnabled !== false && <TwentyFourHourChartCard />}");
 
       const styleMarker = "      .update-row {";
       const styles = `
+
+      .derived-gram-card { background:linear-gradient(145deg,#FFFFFF 0%,#F8F9FA 100%); border:1px solid rgba(169,128,58,0.22); border-radius:16px; padding:13px 14px 10px; margin-top:10px; box-shadow:0 5px 18px rgba(20,30,45,0.06); }
+      .derived-gram-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+      .derived-gram-title { font-size:13px; font-weight:800; color:#1E242B; }
+      .derived-gram-subtitle { margin-top:2px; font-size:9.5px; color:#93A0AF; }
+      .derived-gram-status { display:flex; align-items:center; gap:5px; padding:4px 8px; border-radius:999px; background:#F0F2F4; color:#8A94A2; font-size:9.5px; font-weight:700; white-space:nowrap; }
+      .derived-gram-status.is-live { background:rgba(18,145,91,0.08); color:#0F7A4C; }
+      .derived-gram-dot { width:6px; height:6px; border-radius:50%; background:#AAB2BC; }
+      .derived-gram-status.is-live .derived-gram-dot { background:#12915B; box-shadow:0 0 0 3px rgba(18,145,91,0.10); }
+      .derived-gram-grid { display:grid; grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr); align-items:center; gap:12px; margin-top:12px; }
+      .derived-gram-divider { height:46px; background:rgba(30,40,50,0.08); }
+      .derived-gram-item { min-width:0; }
+      .derived-gram-label { display:flex; align-items:center; gap:6px; color:#667085; font-size:11px; font-weight:700; }
+      .derived-gram-label small { margin-right:auto; font-size:8px; color:#A0A8B3; font-weight:500; white-space:nowrap; }
+      .derived-gram-symbol { width:24px; height:24px; flex:0 0 24px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; }
+      .derived-gold .derived-gram-symbol { background:rgba(169,128,58,0.12); color:#A9803A; border:1px solid rgba(169,128,58,0.28); }
+      .derived-silver .derived-gram-symbol { background:rgba(102,112,133,0.10); color:#667085; border:1px solid rgba(102,112,133,0.18); }
+      .derived-gram-value { margin-top:5px; font-family:'JetBrains Mono',monospace; direction:rtl; text-align:right; font-size:15px; font-weight:800; letter-spacing:-0.3px; color:#1E242B; white-space:nowrap; }
+      .derived-gold .derived-gram-value { color:#9A732F; }
+      .derived-gram-footer { display:flex; justify-content:space-between; gap:8px; margin-top:10px; padding-top:8px; border-top:1px solid rgba(30,40,50,0.06); color:#9AA3AE; font-size:8.5px; }
+      @media (max-width:480px) { .home .derived-gram-card { padding:10px 11px 8px; margin-top:8px; } .home .derived-gram-grid { gap:8px; margin-top:9px; } .home .derived-gram-divider { height:38px; } .home .derived-gram-label { font-size:10px; gap:4px; } .home .derived-gram-symbol { width:21px; height:21px; flex-basis:21px; font-size:8px; } .home .derived-gram-value { font-size:12.5px; } .home .derived-gram-footer { margin-top:7px; padding-top:6px; font-size:7.5px; } }
+      @media (max-width:380px) { .home .derived-gram-label small { display:none; } .home .derived-gram-value { font-size:11.5px; } .home .derived-gram-footer { font-size:7px; } }
+
       .iran-market-card { background:linear-gradient(145deg,#FFFFFF 0%,#F8F9FA 100%); border:1px solid rgba(169,128,58,0.22); border-radius:16px; padding:13px 14px 10px; margin-top:10px; box-shadow:0 5px 18px rgba(20,30,45,0.06); }
       .iran-market-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
       .iran-market-title { font-size:13px; font-weight:800; color:#1E242B; }

@@ -1,0 +1,8 @@
+{
+  "name": "meead-accessories-pages-build",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm --prefix extracted/meead-project install && npm --prefix extracted/meead-project run build && rm -rf dist && cp -R extracted/meead-project/dist dist"
+  }
+}
