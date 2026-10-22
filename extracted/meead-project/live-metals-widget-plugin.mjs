@@ -337,7 +337,12 @@ function DerivedGramPrices() {
 
       next = next.replace(
         'p_live_chart_enabled: patch.liveChartEnabled ?? current.liveChartEnabled ?? true,\n  });',
-        'p_live_chart_enabled: patch.liveChartEnabled ?? current.liveChartEnabled ?? true,\n    p_derived_gram_prices_enabled: patch.derivedGramPricesEnabled ?? current.derivedGramPricesEnabled ?? true,\n  });'
+        'p_live_chart_enabled: patch.liveChartEnabled ?? current.liveChartEnabled ?? true,\n  });'
+      );
+
+      next = next.replace(
+        '  if (error) throw error;\n\n  if (!data?.ok) {\n    throw new Error(\n      data?.reason || "ذخیره تنظیمات ناموفق بود"\n    );\n  }\n\n  return (await adminState()).settings;\n},\n  async updateAnalysisVisibility',
+        '  if (error) throw error;\n\n  if (!data?.ok) {\n    throw new Error(\n      data?.reason || "ذخیره تنظیمات ناموفق بود"\n    );\n  }\n\n  if (patch.derivedGramPricesEnabled !== undefined) {\n    const { data: derivedData, error: derivedError } = await supabase.rpc("update_derived_gram_prices_visibility", { p_enabled: !!patch.derivedGramPricesEnabled });\n    if (derivedError) throw derivedError;\n    if (!derivedData?.ok) throw new Error(derivedData?.reason || "ذخیره وضعیت کارت قیمت جهانی طلا و نقره ناموفق بود");\n  }\n\n  return (await adminState()).settings;\n},\n  async updateAnalysisVisibility'
       );
 
       next = next.replace(
