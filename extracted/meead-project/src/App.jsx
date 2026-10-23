@@ -2203,7 +2203,7 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
       </div>
       <div className="section-head">
         <span className="section-title">خرید و فروش ساچمه نقره</span>
-        <span className="section-hint">برای خرید یا فروش، انتخاب کنید</span>
+        <span className="section-hint">برای خرید یا فروش، روی دکمه مربوطه کلیک کنید</span>
         
       </div>
 
