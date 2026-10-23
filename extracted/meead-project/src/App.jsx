@@ -2203,6 +2203,7 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
       </div>
       <div className="section-head">
         <span className="section-title">خرید و فروش ساچمه نقره</span>
+        <span className="section-hint">برای خرید یا فروش، انتخاب کنید</span>
         
       </div>
 
@@ -4791,6 +4792,8 @@ function GlobalStyles() {
 
       .update-row { display:flex; justify-content:space-between; font-size:11.5px; color:#93A0AF; padding: 0 2px 14px; }
 
+      .section-hint { font-size:10px; font-weight:500; color:#98A2B3; margin-inline-start:8px; }
+      @media (max-width:420px) { .section-hint { font-size:9px; margin-inline-start:5px; } }
       .section-head { display:flex; align-items:center; justify-content:space-between; padding: 4px 2px 10px; }
       .section-title { font-size:14px; font-weight:800; color:#1E242B; }
       .section-caption { font-size: 11px; color:#93A0AF; }
