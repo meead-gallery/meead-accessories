@@ -4967,8 +4967,9 @@ function GlobalStyles() {
       .stamp-badge { width: 40px; height: 40px; border-radius: 50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; background: radial-gradient(circle at 35% 30%, #3A424C, #1B1F25); border: 2px solid #A9803A; color:#EADFC3; font-family:'JetBrains Mono', monospace; font-weight:700; font-size:9.5px; }
 
       .price-split { display:flex; gap: 10px; }
-      .price-half { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; border-radius:12px; padding: 11px 6px; cursor:pointer; font-family:inherit; border:1px solid transparent; transition:0.15s; }
-      .price-half:hover { transform: translateY(-2px); }
+      .price-half { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; border-radius:12px; padding: 11px 6px; cursor:pointer; font-family:inherit; border:1px solid transparent; box-shadow: 0 3px 0 rgba(25,35,45,0.09), 0 5px 12px rgba(25,35,45,0.05); transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; -webkit-tap-highlight-color: transparent; }
+      .price-half:hover { transform: translateY(-2px); box-shadow: 0 5px 0 rgba(25,35,45,0.08), 0 8px 16px rgba(25,35,45,0.08); }
+      .price-half:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(25,35,45,0.08), 0 2px 5px rgba(25,35,45,0.04); }
       .half-buy { background: rgba(18,145,91,0.12); border-color: rgba(18,145,91,0.25); }
       .half-buy:hover { border-color:#12915B; }
       .half-buy .half-label { color:#12915B; }
