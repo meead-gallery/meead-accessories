@@ -2202,7 +2202,7 @@ function Home({ settings, orders, closedByHours, marketBuyOpen, marketSellOpen, 
         <span className="mono">{settings.lastPriceUpdate ? new Date(settings.lastPriceUpdate).toLocaleDateString("fa-IR") + " — " + new Date(settings.lastPriceUpdate).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }) : "—"}</span>
       </div>
       <div className="section-head">
-        <span className="section-title">ساچمه نقره</span>
+        <span className="section-title">خرید و فروش ساچمه نقره</span>
         
       </div>
 
